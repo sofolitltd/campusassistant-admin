@@ -1,15 +1,15 @@
-function getEnv(name: string, fallback?: string): string {
-  const val = process.env[name] || fallback;
-  if (!val) throw new Error(`Missing required env var: ${name}`);
+function requireEnv(key: string, value: string | undefined, fallback?: string): string {
+  const val = value || fallback;
+  if (!val) throw new Error(`Missing required env var: ${key}`);
   return val;
 }
 
 export function getApiKey(): string {
-  return getEnv('NEXT_PUBLIC_API_KEY');
+  return requireEnv('NEXT_PUBLIC_API_KEY', process.env.NEXT_PUBLIC_API_KEY);
 }
 
 export function getApiUrl(): string {
-  return getEnv('NEXT_PUBLIC_API_URL', 'http://localhost:8080/api/v1');
+  return requireEnv('NEXT_PUBLIC_API_URL', process.env.NEXT_PUBLIC_API_URL, 'http://localhost:8080/api/v1');
 }
 
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
