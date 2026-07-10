@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect, useCallback, useDeferredValue } from "react"
+import { useState, useEffect, useCallback, useDeferredValue, useRef } from "react"
 import { api, Student, Batch, Session, getApiKey, getApiUrl } from "@/lib/api"
 import { Avatar, Badge, ConfirmDelete, selectCls, inputCls, Modal } from "./SharedUI"
 import { StudentModal } from "./StudentModal"
-import { Users, Plus, Pencil, Trash2, Mail, Phone, ExternalLink, Search, Copy, Share2, RefreshCcw, Loader2 } from "lucide-react"
+import { Users, Plus, Pencil, Trash2, Mail, Phone, ExternalLink, Search, Copy, Share2, RefreshCcw, Loader2, LayoutGrid, List, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface StudentsTabProps {
@@ -28,6 +28,9 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
   const [previewStudent, setPreviewStudent] = useState<Student | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [sessions, setSessions] = useState<Session[]>([])
+  const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
+  const [batchCounts, setBatchCounts] = useState<Record<string, number>>({})
+  const filterScrollRef = useRef<HTMLDivElement>(null)
   
   const deferredSearch = useDeferredValue(search)
   const ITEMS_PER_PAGE = 20
@@ -51,6 +54,7 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
         ...(deferredSearch && { search: deferredSearch }),
         ...(filterBatch && { batch_id: filterBatch })
       })
+      queryParams.set('preload', 'true')
 
       // We use a raw fetch or update api.ts to support full response
       // For now, let's assume api.students.getAll is updated or we use fetchWithAuth
@@ -78,6 +82,47 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
   }, [departmentId, universityId, currentPage, deferredSearch, filterBatch])
 
   useEffect(() => { loadData() }, [loadData])
+
+  // Load per-batch counts
+  useEffect(() => {
+    if (batches.length === 0) return
+    const controller = new AbortController()
+    ;(async () => {
+      const results = await Promise.allSettled(
+        batches.map(async (b) => {
+          const res = await fetch(`${getApiUrl()}/students?department_id=${departmentId}&batch_id=${b.id}&limit=1`, {
+            headers: { 'X-API-Key': getApiKey() }, signal: controller.signal
+          })
+          const json = await res.json()
+          return { id: b.id, count: json.count || 0 }
+        })
+      )
+      const counts: Record<string, number> = {}
+      for (const r of results) {
+        if (r.status === 'fulfilled') counts[r.value.id] = r.value.count
+      }
+      setBatchCounts(counts)
+    })()
+    return () => controller.abort()
+  }, [batches, departmentId])
+
+  // Drag-to-scroll for batch filters
+  useEffect(() => {
+    const el = filterScrollRef.current
+    if (!el) return
+    let isDown = false, startX = 0, scrollLeft = 0
+    const onDown = (e: MouseEvent) => { isDown = true; startX = e.pageX - el.offsetLeft; scrollLeft = el.scrollLeft; el.style.cursor = 'grabbing' }
+    const onUp = () => { isDown = false; el.style.cursor = 'grab' }
+    const onMove = (e: MouseEvent) => { if (!isDown) return; e.preventDefault(); el.scrollLeft = scrollLeft - (e.pageX - el.offsetLeft - startX) }
+    el.addEventListener('mousedown', onDown)
+    el.addEventListener('mouseup', onUp)
+    el.addEventListener('mouseleave', onUp)
+    el.addEventListener('mousemove', onMove)
+    return () => { el.removeEventListener('mousedown', onDown); el.removeEventListener('mouseup', onUp); el.removeEventListener('mouseleave', onUp); el.removeEventListener('mousemove', onMove) }
+  }, [])
+
+  // Sort students: by student_id (roll) ascending
+  const sortedStudents = [...students].sort((a, b) => a.student_id.localeCompare(b.student_id))
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE)
 
@@ -149,6 +194,13 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
             />
           </div>
           <button 
+            onClick={() => setViewMode(v => v === 'table' ? 'card' : 'table')}
+            className="flex items-center gap-2 rounded-sm border px-4 py-2 text-sm font-bold hover:bg-muted transition-all h-11 shrink-0"
+            title={viewMode === 'table' ? 'Card View' : 'Table View'}
+          >
+            {viewMode === 'table' ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}
+          </button>
+          <button 
             onClick={() => { setEditing(null); setModalOpen(true) }}
             className="flex items-center gap-2 rounded-sm bg-primary px-6 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all shadow-md h-11 shrink-0 active:scale-95"
           >
@@ -158,31 +210,52 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
       </div>
 
       {/* Batch Filters */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide -mx-1 px-1 mb-2">
+      <div className="relative mb-2 group">
         <button 
-          onClick={() => { setFilterBatch(null); setCurrentPage(1); }}
-          className={cn(
-            "flex items-center gap-2 px-5 py-2 rounded-full text-[11px] font-black transition-all border shrink-0 uppercase tracking-tighter",
-            !filterBatch ? "bg-primary text-white border-primary shadow-md" : "bg-card text-muted-foreground hover:bg-muted border-border"
-          )}
+          onClick={() => filterScrollRef.current?.scrollBy({ left: -200, behavior: 'smooth' })}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full border bg-background shadow-md flex items-center justify-center hover:bg-muted transition-all opacity-0 group-hover:opacity-100"
         >
-          All Students
-          <span className={cn("px-1.5 py-0.5 rounded-full text-[9px] leading-none", !filterBatch ? "bg-white/20" : "bg-muted-foreground/10")}>
-            {totalCount}
-          </span>
+          <ChevronLeft className="h-4 w-4" />
         </button>
-        {batches.map((b) => (
+        <div ref={filterScrollRef} className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide -mx-1 px-1 cursor-grab active:cursor-grabbing">
           <button 
-            key={b.id}
-            onClick={() => { setFilterBatch(b.id); setCurrentPage(1); }}
+            onClick={() => { setFilterBatch(null); setCurrentPage(1); }}
             className={cn(
-              "flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-black transition-all border shrink-0 whitespace-nowrap uppercase tracking-tighter",
-              filterBatch === b.id ? "bg-primary text-white border-primary shadow-md" : "bg-card text-muted-foreground hover:bg-muted border-border"
+              "flex items-center gap-2 px-5 py-2 rounded-full text-[11px] font-black transition-all border shrink-0 uppercase tracking-tighter",
+              !filterBatch ? "bg-primary text-white border-primary shadow-md" : "bg-card text-muted-foreground hover:bg-muted border-border"
             )}
           >
-            {b.name}
+            All Students
+            <span className={cn("px-1.5 py-0.5 rounded-full text-[9px] leading-none", !filterBatch ? "bg-white/20" : "bg-muted-foreground/10")}>
+              {totalCount}
+            </span>
           </button>
-        ))}
+          {[...batches].sort((a, b) => {
+  const numA = parseInt(a.name.match(/\d+/)?.[0] || "0")
+  const numB = parseInt(b.name.match(/\d+/)?.[0] || "0")
+  return numB - numA
+}).map((b) => (
+            <button 
+              key={b.id}
+              onClick={() => { setFilterBatch(b.id); setCurrentPage(1); }}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-black transition-all border shrink-0 whitespace-nowrap uppercase tracking-tighter",
+                filterBatch === b.id ? "bg-primary text-white border-primary shadow-md" : "bg-card text-muted-foreground hover:bg-muted border-border"
+              )}
+            >
+              {b.name}
+              <span className={cn("px-1.5 py-0.5 rounded-full text-[9px] leading-none", filterBatch === b.id ? "bg-white/20" : "bg-muted-foreground/10")}>
+                {batchCounts[b.id] ?? "..."}
+              </span>
+            </button>
+          ))}
+        </div>
+        <button 
+          onClick={() => filterScrollRef.current?.scrollBy({ left: 200, behavior: 'smooth' })}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full border bg-background shadow-md flex items-center justify-center hover:bg-muted transition-all opacity-0 group-hover:opacity-100"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
       </div>
 
       {loading ? (
@@ -203,83 +276,163 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
         </div>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {students.map((s) => {
-              const batchName = batches.find(b => b.id === s.batch_id)?.name || "N/A"
-              const sessionName = sessions.find(sess => sess.id === s.session_id)?.name || "N/A"
-              return (
-                <div key={s.id} className="relative rounded-sm border p-4 bg-card hover:shadow-lg transition-all group overflow-hidden border-border/60 hover:border-primary/40">
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <button onClick={() => setPreviewStudent(s)} className="hover:scale-105 transition-transform">
-                        <Avatar name={s.name} size="md" imageUrl={s.user?.image_url} />
-                      </button>
-                      <div className="min-w-0">
-                        <p className="font-black truncate text-sm tracking-tight">{s.name}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <p className="text-[10px] text-muted-foreground font-bold font-mono bg-muted/50 px-1.5 rounded-xs tracking-tighter">ID: {s.student_id}</p>
-                          <div className="h-2.5 w-[1px] bg-muted-foreground/30"></div>
-                          <p className="text-[10px] text-primary font-bold uppercase tracking-tighter">{sessionName}</p>
+          {viewMode === 'card' ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {sortedStudents.map((s) => {
+                const batchName = batches.find(b => b.id === s.batch_id)?.name || "N/A"
+                const sessionName = sessions.find(sess => sess.id === s.session_id)?.name || "N/A"
+                return (
+                  <div key={s.id} className="relative rounded-sm border p-4 bg-card hover:shadow-lg transition-all group overflow-hidden border-border/60 hover:border-primary/40">
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <button onClick={() => setPreviewStudent(s)} className="hover:scale-105 transition-transform">
+                          <Avatar name={s.name} size="md" imageUrl={s.user?.avatar_url} />
+                        </button>
+                        <div className="min-w-0">
+                          <p className="font-black truncate text-sm tracking-tight">{s.name}</p>
+                          {s.email && <p className="text-[10px] text-muted-foreground truncate">{s.email}</p>}
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-[10px] text-muted-foreground font-bold font-mono bg-muted/50 px-1.5 rounded-xs tracking-tighter">ID: {s.student_id}</p>
+                            <div className="h-2.5 w-[1px] bg-muted-foreground/30"></div>
+                            <p className="text-[10px] text-primary font-bold uppercase tracking-tighter">{sessionName}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button onClick={() => { setEditing(s); setModalOpen(true) }} 
-                        className="p-2 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-primary transition-all shadow-sm" 
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button onClick={() => setDeleting(s)} 
-                        className="p-2 rounded-sm border bg-background hover:bg-destructive/5 text-muted-foreground hover:text-destructive transition-all shadow-sm" 
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="flex items-center gap-1 bg-primary/5 border border-primary/10 rounded-sm px-2 py-0.5">
-                       <p className="text-[9px] font-black text-primary uppercase tracking-tighter">{batchName}</p>
-                    </div>
-                    <Badge variant={s.is_regular ? "success" : "warn"} className="text-[9px] px-2 py-0.5 leading-tight font-black uppercase">
-                      {s.is_regular ? "Regular" : "Irregular"}
-                    </Badge>
-                    {s.blood_group && (
-                      <Badge variant="danger" className="text-[9px] px-2 py-0.5 leading-tight font-black">{s.blood_group}</Badge>
-                    )}
-                  </div>
-
-                  <div className="pt-4 border-t border-dashed border-border flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] leading-none mb-1.5">Verification Code</p>
-                      <div className="flex items-center gap-2">
-                        <code className={cn(
-                          "text-[14px] font-black tracking-[0.2em]",
-                          s.is_claimed ? "text-muted-foreground/40 line-through" : "text-primary drop-shadow-sm"
-                        )}>
-                          {s.verification_code || "------"}
-                        </code>
-                        {s.is_claimed && (
-                          <div className="h-4 w-4 rounded-full bg-green-500/10 text-green-600 flex items-center justify-center" title="Verified">
-                             <RefreshCcw className="h-2.5 w-2.5" />
-                          </div>
-                        )}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button onClick={() => { setEditing(s); setModalOpen(true) }} 
+                          className="p-2 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-primary transition-all shadow-sm" 
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button onClick={() => setDeleting(s)} 
+                          className="p-2 rounded-sm border bg-background hover:bg-destructive/5 text-muted-foreground hover:text-destructive transition-all shadow-sm" 
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => handleCopyCode(s)}
-                        className="p-2.5 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all shadow-sm group/btn"
-                        title="Copy Details"
-                      >
-                        <Copy className="h-4 w-4 group-hover/btn:scale-110 transition-transform" />
-                      </button>
+                    
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="flex items-center gap-1 bg-primary/5 border border-primary/10 rounded-sm px-2 py-0.5">
+                         <p className="text-[9px] font-black text-primary uppercase tracking-tighter">{batchName}</p>
+                      </div>
+                      <Badge variant={s.is_regular ? "success" : "warn"} className="text-[9px] px-2 py-0.5 leading-tight font-black uppercase">
+                        {s.is_regular ? "Regular" : "Irregular"}
+                      </Badge>
+                      {s.blood_group && (
+                        <Badge variant="danger" className="text-[9px] px-2 py-0.5 leading-tight font-black">{s.blood_group}</Badge>
+                      )}
+                    </div>
+
+                    <div className="pt-4 border-t border-dashed border-border flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] leading-none mb-1.5">Verification Code</p>
+                        <div className="flex items-center gap-2">
+                          <code className={cn(
+                            "text-[14px] font-black tracking-[0.2em]",
+                            s.is_claimed ? "text-muted-foreground/40 line-through" : "text-primary drop-shadow-sm"
+                          )}>
+                            {s.verification_code || "------"}
+                          </code>
+                          {s.is_claimed && (
+                            <div className="h-4 w-4 rounded-full bg-green-500/10 text-green-600 flex items-center justify-center" title="Verified">
+                               <RefreshCcw className="h-2.5 w-2.5" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => handleCopyCode(s)}
+                          className="p-2.5 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all shadow-sm group/btn"
+                          title="Copy Details"
+                        >
+                          <Copy className="h-4 w-4 group-hover/btn:scale-110 transition-transform" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-sm border">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-muted/50 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3 w-10"></th>
+                    <th className="px-4 py-3">Name</th>
+                    <th className="px-4 py-3">ID</th>
+                    <th className="px-4 py-3">Batch</th>
+                    <th className="px-4 py-3">Session</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Code</th>
+                    <th className="px-4 py-3 w-24"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {sortedStudents.map((s) => {
+                    const batchName = batches.find(b => b.id === s.batch_id)?.name || "N/A"
+                    const sessionName = sessions.find(sess => sess.id === s.session_id)?.name || "N/A"
+                    return (
+                      <tr key={s.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-4 py-2.5">
+                          <button onClick={() => setPreviewStudent(s)} className="hover:scale-105 transition-transform">
+                            <Avatar name={s.name} size="sm" imageUrl={s.user?.avatar_url} />
+                          </button>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <p className="font-bold truncate max-w-[180px]">{s.name}</p>
+                          {s.email && <p className="text-[10px] text-muted-foreground truncate max-w-[180px]">{s.email}</p>}
+                        </td>
+                        <td className="px-4 py-2.5 font-mono text-xs font-bold">{s.student_id}</td>
+                        <td className="px-4 py-2.5">
+                          <span className="rounded-sm bg-primary/5 border border-primary/10 px-2 py-0.5 text-[10px] font-black text-primary uppercase tracking-tighter">{batchName}</span>
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-muted-foreground font-bold">{sessionName}</td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center gap-2">
+                            <Badge variant={s.is_regular ? "success" : "warn"} className="text-[9px] px-2 py-0.5 leading-tight font-black uppercase">{s.is_regular ? "Regular" : "Irregular"}</Badge>
+                            {s.blood_group && (
+                              <Badge variant="danger" className="text-[9px] px-2 py-0.5 leading-tight font-black">{s.blood_group}</Badge>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <code className={cn(
+                            "text-xs font-black tracking-wider",
+                            s.is_claimed ? "text-muted-foreground/40 line-through" : "text-primary"
+                          )}>
+                            {s.verification_code || "------"}
+                          </code>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => { setEditing(s); setModalOpen(true) }} 
+                              className="p-1.5 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-primary transition-all"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button onClick={() => setDeleting(s)} 
+                              className="p-1.5 rounded-sm border bg-background hover:bg-destructive/5 text-muted-foreground hover:text-destructive transition-all"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                            <button onClick={() => handleCopyCode(s)}
+                              className="p-1.5 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
+                              title="Copy Details"
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {/* Pagination */}
           {totalPages > 1 && (
@@ -341,8 +494,8 @@ function StudentPreviewModal({ student, onClose, batches, sessions }: { student:
             zoom ? "w-full aspect-square" : "h-44 w-44 mb-8"
           )}
         >
-          {student.user?.image_url ? (
-            <img src={student.user?.image_url} alt={student.name} className="h-full w-full object-cover" />
+          {student.user?.avatar_url ? (
+            <img src={student.user?.avatar_url} alt={student.name} className="h-full w-full object-cover" />
           ) : (
             <div className="h-full w-full flex items-center justify-center bg-primary/5 text-primary text-5xl font-black italic">
               {student.name.split(" ").slice(0, 2).map(n => n[0]).join("")}

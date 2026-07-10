@@ -31,6 +31,7 @@ export function StudentModal({
   const [verificationCode, setVerificationCode] = useState(student?.verification_code ?? "")
   const [isRegular, setIsRegular] = useState(student?.is_regular ?? true)
   const [isCr, setIsCr] = useState(student?.is_cr ?? false)
+  const [weight, setWeight] = useState(student?.weight ?? 0)
   const [createdAt, setCreatedAt] = useState("")
 
   const [batches, setBatches] = useState<Batch[]>([])
@@ -52,6 +53,7 @@ export function StudentModal({
       setVerificationCode(student?.verification_code ?? Math.random().toString(36).substring(2, 8).toUpperCase())
       setIsRegular(student?.is_regular ?? true)
       setIsCr(student?.is_cr ?? false)
+      setWeight(student?.weight ?? 0)
       setCreatedAt(student?.created_at ? new Date(student.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0])
       setError("")
 
@@ -82,7 +84,7 @@ export function StudentModal({
         student_id: studentId.trim(), name: name.trim(), email: email.trim(), phone: phone.trim(), 
         blood_group: bloodGroup,
         batch_id: batchId, session_id: sessionId, hall_id: hallId,
-        verification_code: verificationCode, is_regular: isRegular, is_cr: isCr,
+        verification_code: verificationCode, is_regular: isRegular, is_cr: isCr, weight,
         created_at: new Date(createdAt).toISOString(),
         university_id: universityId, department_id: departmentId
       }
@@ -187,6 +189,11 @@ export function StudentModal({
             </button>
           </div>
         </div>
+
+        {/* Row: Weight */}
+        <Field label="Weight (higher = shown first)">
+          <input type="number" value={weight} onChange={(e) => setWeight(Number(e.target.value))} className={inputCls} />
+        </Field>
 
         {/* Row: Member Since */}
         <Field label="Member Since (Registration Date)">

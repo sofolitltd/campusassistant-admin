@@ -23,8 +23,8 @@ function TeacherPreviewModal({ teacher, onClose }: { teacher: Teacher | null, on
       <div className="flex flex-col gap-4 pb-4">
         {/* Header Card matching Flutter */}
         <div className="rounded-sm border bg-card p-4 shadow-sm flex items-start gap-4 relative">
-          {teacher.user?.image_url ? (
-            <img src={teacher.user.image_url} alt={teacher.name} className="h-[85px] w-[80px] rounded-sm object-cover bg-muted shrink-0 shadow-xs" />
+          {teacher.user?.avatar_url ? (
+            <img src={teacher.user.avatar_url} alt={teacher.name} className="h-[85px] w-[80px] rounded-sm object-cover bg-muted shrink-0 shadow-xs" />
           ) : (
             <div className="h-[85px] w-[80px] rounded-sm bg-primary/5 flex items-center justify-center shrink-0 shadow-xs border border-primary/10">
               <UserSquare2 className="h-10 w-10 text-primary/30" />
@@ -156,8 +156,8 @@ export function TeachersTab({ teachers, universityId, departmentId, onRefresh }:
               
               {/* Flutter Style Hero Image */}
               <div className="h-[85px] w-[80px] rounded-sm bg-muted overflow-hidden shrink-0 shadow-xs border relative z-0">
-                {t.user?.image_url ? (
-                  <img src={t.user.image_url} alt={t.name} className="h-full w-full object-cover" />
+                {t.user?.avatar_url ? (
+                  <img src={t.user.avatar_url} alt={t.name} className="h-full w-full object-cover" />
                 ) : (
                   <div className="h-full w-full flex items-center justify-center bg-primary/5 text-primary/30">
                     <UserSquare2 className="h-8 w-8" />

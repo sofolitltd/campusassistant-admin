@@ -108,6 +108,7 @@ export interface Student {
   blood_group: string;
   is_regular: boolean;
   is_cr: boolean;
+  weight: number;
   verification_code: string;
   is_claimed: boolean;
   claimed_at?: string;
@@ -119,7 +120,7 @@ export interface Student {
   hall_id?: string;
   hall?: Hall;
   user_id?: string;
-  user?: { id: string; first_name: string; last_name: string; email: string; image_url?: string };
+  user?: { id: string; first_name: string; last_name: string; email: string; avatar_url?: string };
   created_at: string;
 }
 
@@ -141,7 +142,7 @@ export interface Teacher {
   department_id: string;
   university_id: string;
   user_id?: string;
-  user?: { id: string; first_name: string; last_name: string; image_url?: string };
+  user?: { id: string; first_name: string; last_name: string; avatar_url?: string };
   created_at: string;
 }
 

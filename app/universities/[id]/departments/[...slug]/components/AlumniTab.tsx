@@ -181,7 +181,7 @@ function AlumniModal({
             {selectedStudent ? (
               <div className="flex items-center justify-between bg-background border p-3 rounded-sm">
                 <div className="flex items-center gap-3">
-                  <Avatar name={selectedStudent.name} imageUrl={selectedStudent.user?.image_url} size="sm" />
+                  <Avatar name={selectedStudent.name} imageUrl={selectedStudent.user?.avatar_url} size="sm" />
                   <div>
                     <p className="text-sm font-bold">{selectedStudent.name}</p>
                     <p className="text-xs text-muted-foreground">{selectedStudent.student_id} • {selectedStudent.email || "No email"}</p>
@@ -243,7 +243,7 @@ function AlumniModal({
                           className="flex items-center justify-between p-3 hover:bg-muted cursor-pointer transition-colors"
                         >
                           <div className="flex items-center gap-3">
-                            <Avatar name={s.name} imageUrl={s.user?.image_url} size="sm" />
+                            <Avatar name={s.name} imageUrl={s.user?.avatar_url} size="sm" />
                             <div>
                               <p className="text-sm font-bold">{s.name}</p>
                               <p className="text-xs text-muted-foreground">{s.student_id} • {s.email || "No email"}</p>
