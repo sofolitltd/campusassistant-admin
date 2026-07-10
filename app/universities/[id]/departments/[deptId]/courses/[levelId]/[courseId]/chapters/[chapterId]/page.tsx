@@ -6,7 +6,7 @@ interface PageProps {
   params: Promise<{
     id: string
     deptId: string
-    semesterId: string
+    levelId: string
     courseId: string
     chapterId: string
   }>
@@ -25,7 +25,7 @@ export default async function ChapterDetailPage({ params, searchParams }: PagePr
       <ChapterDetailClient
         universityId={resolvedParams.id}
         departmentId={resolvedParams.deptId}
-        semesterId={resolvedParams.semesterId}
+        levelId={resolvedParams.levelId}
         courseId={resolvedParams.courseId}
         chapterId={resolvedParams.chapterId}
         initialChapterNo={parseInt(resolvedSearchParams.chapterNo || "0")}

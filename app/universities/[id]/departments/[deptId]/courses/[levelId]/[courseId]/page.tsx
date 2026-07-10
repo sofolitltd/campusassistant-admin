@@ -6,11 +6,11 @@ type Props = {
   params: Promise<{
     id: string
     deptId: string
-    semesterId: string
+    levelId: string
     courseId: string
   }>
   searchParams: Promise<{
-    semesterName?: string
+    levelName?: string
     courseCode?: string
     courseTitle?: string
     deptSlug?: string
@@ -18,9 +18,9 @@ type Props = {
 }
 
 export default async function CourseDetailPage({ params, searchParams }: Props) {
-  const { id: universityId, deptId: departmentId, semesterId, courseId } = await params
+  const { id: universityId, deptId: departmentId, levelId, courseId } = await params
   const {
-    semesterName = semesterId,
+    levelName = levelId,
     courseCode = "",
     courseTitle = "Course Details",
   } = await searchParams
@@ -35,8 +35,8 @@ export default async function CourseDetailPage({ params, searchParams }: Props) 
       <CourseDetailClient
         universityId={universityId}
         departmentId={departmentId}
-        semesterId={semesterId}
-        semesterName={semesterName}
+        levelId={levelId}
+        levelName={levelName}
         courseId={courseId}
         initialCourseCode={courseCode}
         initialCourseTitle={courseTitle}

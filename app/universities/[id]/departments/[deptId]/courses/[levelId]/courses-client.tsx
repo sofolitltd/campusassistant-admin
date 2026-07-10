@@ -8,7 +8,7 @@ import {
   Loader2, AlertTriangle, Tag, Hash, GraduationCap, ChevronRight,
   CheckCircle,
 } from "lucide-react"
-import { api, Course, CourseCategory, CoursePrefix, Semester, Batch } from "@/lib/api"
+import { api, Course, CourseCategory, CoursePrefix, Level, Batch } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { CourseModal } from "./components/CourseModal"
 
@@ -92,16 +92,16 @@ function ConfigModal({ open, onClose, title, items, onAdd, onDelete, placeholder
 interface Props {
   universityId: string
   departmentId: string
-  semesterId: string
-  semesterName: string
+  levelId: string
+  levelName: string
   departmentSlug: string
 }
 
-export default function CoursesClient({ universityId, departmentId, semesterId, semesterName, departmentSlug }: Props) {
+export default function CoursesClient({ universityId, departmentId, levelId, levelName, departmentSlug }: Props) {
   const [courses, setCourses] = useState<Course[]>([])
   const [categories, setCategories] = useState<CourseCategory[]>([])
   const [prefixes, setPrefixes] = useState<CoursePrefix[]>([])
-  const [semesters, setSemesters] = useState<Semester[]>([])
+  const [levels, setLevels] = useState<Level[]>([])
   const [batches, setBatches] = useState<Batch[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -120,25 +120,24 @@ export default function CoursesClient({ universityId, departmentId, semesterId, 
   const load = useCallback(async () => {
     setLoading(true); setError("")
     try {
-      const [c, cats, prefs, sems, bats, all] = await Promise.all([
-        api.courses.getAllBySemester(semesterId),
+      const [c, cats, prefs, levs, bats, all] = await Promise.all([
+        api.courses.getAllByLevel(levelId),
         api.courseCategories.getAllByDepartment(departmentId),
         api.coursePrefixes.getAllByDepartment(departmentId),
-        api.semesters.getAllByDepartment(departmentId),
+        api.levels.getAllByDepartment(departmentId),
         api.batches.getAllByDepartment(departmentId),
         api.courses.getAllByDepartment(departmentId),
       ])
       setCourses(c)
-      // Find courses that have no semester_id (orphaned)
-      setUnassigned(all.filter((cr) => !cr.semester_id))
+      setUnassigned(all.filter((cr) => !cr.level_id))
       setFixing(false); setFixDone(0)
       setCategories(cats.sort((a, b) => a.order - b.order))
       setPrefixes(prefs)
-      setSemesters(sems)
+      setLevels(levs)
       setBatches(bats)
     } catch (e: any) { setError(e.message) }
     finally { setLoading(false) }
-  }, [semesterId, departmentId])
+  }, [levelId, departmentId])
 
   useEffect(() => { load() }, [load])
 
@@ -168,7 +167,7 @@ export default function CoursesClient({ universityId, departmentId, semesterId, 
     setFixing(true); setError(""); setFixDone(0)
     for (const course of unassigned) {
       try {
-        await api.courses.update(course.id, { semester_id: semesterId })
+        await api.courses.update(course.id, { level_id: levelId })
         setFixDone((p) => p + 1)
       } catch (e: any) {
         console.error(`Failed to fix course ${course.course_code}:`, e)
@@ -188,7 +187,7 @@ export default function CoursesClient({ universityId, departmentId, semesterId, 
           <div>
         
             <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary" /> {semesterName}
+              <BookOpen className="h-5 w-5 text-primary" /> {levelName}
             </h1>
             <p className="text-sm text-muted-foreground">{courses.length} course{courses.length !== 1 ? "s" : ""}</p>
           </div>
@@ -223,7 +222,7 @@ export default function CoursesClient({ universityId, departmentId, semesterId, 
         <div className="flex flex-col items-center justify-center py-24 rounded-sm border border-dashed bg-muted/20">
           <div className="rounded-full bg-muted p-6 mb-4"><GraduationCap className="h-10 w-10 text-muted-foreground/40" /></div>
           <p className="text-lg font-bold">No courses yet</p>
-          <p className="text-sm text-muted-foreground mt-1">Add courses to Semester {semesterName}.</p>
+          <p className="text-sm text-muted-foreground mt-1">Add courses to Level {levelName}.</p>
           <button onClick={() => { setEditTarget(null); setCourseModal(true) }}
             className="mt-6 flex items-center gap-2 rounded-sm bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-all">
             <Plus className="h-4 w-4" /> Add Course
@@ -245,8 +244,8 @@ export default function CoursesClient({ universityId, departmentId, semesterId, 
                     course={course}
                     universityId={universityId}
                     departmentId={departmentId}
-                    semesterId={semesterId}
-                    semesterName={semesterName}
+                    levelId={levelId}
+                    levelName={levelName}
                     onEdit={() => {
                       setEditTarget(course)
                       setCourseModal(true)
@@ -267,7 +266,7 @@ export default function CoursesClient({ universityId, departmentId, semesterId, 
             <div className="flex items-center gap-3">
               <AlertTriangle className="h-4 w-4 text-red-500" />
               <span className="text-sm font-bold text-red-700 dark:text-red-400">
-                {unassigned.length} course{unassigned.length !== 1 ? "s" : ""} without semester
+                {unassigned.length} course{unassigned.length !== 1 ? "s" : ""} without level
               </span>
             </div>
             <button
@@ -280,7 +279,7 @@ export default function CoursesClient({ universityId, departmentId, semesterId, 
               ) : fixDone > 0 ? (
                 <><CheckCircle className="h-3 w-3" /> Fixed {fixDone}</>
               ) : (
-                <><CheckCircle className="h-3 w-3" /> Assign "{semesterName}" to All</>
+                <><CheckCircle className="h-3 w-3" /> Assign "{levelName}" to All</>
               )}
             </button>
           </div>
@@ -301,11 +300,11 @@ export default function CoursesClient({ universityId, departmentId, semesterId, 
         onClose={() => setCourseModal(false)}
         universityId={universityId}
         departmentId={departmentId}
-        semesterId={semesterId}
+        levelId={levelId}
         course={editTarget}
         categories={categories}
         prefixes={prefixes}
-        semesters={semesters}
+        levels={levels}
         batches={batches}
         onSuccess={() => { setCourseModal(false); load() }}
       />
@@ -356,17 +355,17 @@ export default function CoursesClient({ universityId, departmentId, semesterId, 
 }
 
 // ── Course Card ────────────────────────────────────────────────────────────────
-function CourseCard({ course, universityId, departmentId, semesterId, semesterName, onEdit, onDelete }: {
+function CourseCard({ course, universityId, departmentId, levelId, levelName, onEdit, onDelete }: {
   course: Course
   universityId: string
   departmentId: string
-  semesterId: string
-  semesterName: string
+  levelId: string
+  levelName: string
   onEdit: () => void
   onDelete: () => void
 }) {
   const router = useRouter()
-  const detailUrl = `/universities/${universityId}/departments/${departmentId}/courses/${semesterId}/${course.id}?semesterName=${encodeURIComponent(semesterName)}&courseCode=${encodeURIComponent(course.course_code)}&courseTitle=${encodeURIComponent(course.course_title)}`
+  const detailUrl = `/universities/${universityId}/departments/${departmentId}/courses/${levelId}/${course.id}?levelName=${encodeURIComponent(levelName)}&courseCode=${encodeURIComponent(course.course_code)}&courseTitle=${encodeURIComponent(course.course_title)}`
 
   return (
     <div

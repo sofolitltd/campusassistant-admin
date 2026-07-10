@@ -4,15 +4,14 @@ import CoursesClient from "./courses-client"
 import { Loader2 } from "lucide-react"
 
 type Props = {
-  params: Promise<{ id: string; deptId: string; semesterId: string }>
-  searchParams: Promise<{ semesterName?: string; deptSlug?: string }>
+  params: Promise<{ id: string; deptId: string; levelId: string }>
+  searchParams: Promise<{ levelName?: string; deptSlug?: string }>
 }
 
 export default async function CoursesPage({ params, searchParams }: Props) {
-  const { id: universityId, deptId: departmentId, semesterId } = await params
-  const { semesterName = semesterId, deptSlug } = await searchParams
+  const { id: universityId, deptId: departmentId, levelId } = await params
+  const { levelName = levelId, deptSlug } = await searchParams
 
-  // departmentSlug is used for back-navigation to [...slug] route
   const departmentSlug = deptSlug ?? departmentId
 
   return (
@@ -25,8 +24,8 @@ export default async function CoursesPage({ params, searchParams }: Props) {
       <CoursesClient
         universityId={universityId}
         departmentId={departmentId}
-        semesterId={semesterId}
-        semesterName={semesterName}
+        levelId={levelId}
+        levelName={levelName}
         departmentSlug={departmentSlug}
       />
     </Suspense>

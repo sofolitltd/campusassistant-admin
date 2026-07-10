@@ -12,7 +12,7 @@ import {
 // API & Types
 import { 
   api, Department, Session, Batch, Student, Teacher, Staff, 
-  Semester, CR, Banner, EmergencyContact, University, Alumni, Routine
+  Level, CR, Banner, EmergencyContact, University, Alumni, Routine
 } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
@@ -31,7 +31,7 @@ type TabType = "overview" | "sessions" | "batches" | "students" | "study" | "tea
 
 interface TabData {
   sessions: Session[]; batches: Batch[]; students: Student[]
-  study: Semester[]; teachers: Teacher[]; staff: Staff[]
+  study: Level[]; teachers: Teacher[]; staff: Staff[]
   crs: CR[]; banners: Banner[]; contacts: EmergencyContact[]; alumni: Alumni[]; routines: Routine[]
 }
 
@@ -86,7 +86,7 @@ export default function DepartmentDetailClient({
           patch = { batches: bList, students: sList }; break
         case "study": {
           const [semList, batchList] = await Promise.all([
-            api.semesters.getAllByDepartment(departmentId),
+            api.levels.getAllByDepartment(departmentId),
             loadedTabs.has("batches") ? Promise.resolve(tabData.batches) : api.batches.getAllByDepartment(departmentId),
           ])
           patch = { study: semList, batches: batchList }; break

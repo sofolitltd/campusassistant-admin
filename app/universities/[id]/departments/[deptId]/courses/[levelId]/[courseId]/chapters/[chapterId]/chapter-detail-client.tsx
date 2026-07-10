@@ -10,7 +10,7 @@ import ResourcesTab from "../../tabs/ResourcesTab"
 interface Props {
   universityId: string
   departmentId: string
-  semesterId: string
+  levelId: string
   courseId: string
   chapterId: string
   initialChapterNo: number
@@ -18,7 +18,7 @@ interface Props {
 }
 
 export default function ChapterDetailClient({
-  universityId, departmentId, semesterId, courseId, chapterId,
+  universityId, departmentId, levelId, courseId, chapterId,
   initialChapterNo, initialChapterTitle
 }: Props) {
   const [course, setCourse] = useState<Course | null>(null)
@@ -46,7 +46,7 @@ export default function ChapterDetailClient({
 
   const courseCode = course?.course_code || ""
 
-  const backUrl = `/universities/${universityId}/departments/${departmentId}/courses/${semesterId}/${courseId}?courseCode=${encodeURIComponent(courseCode)}&courseTitle=${encodeURIComponent(course?.course_title || "")}`
+  const backUrl = `/universities/${universityId}/departments/${departmentId}/courses/${levelId}/${courseId}?courseCode=${encodeURIComponent(courseCode)}&courseTitle=${encodeURIComponent(course?.course_title || "")}`
 
   return (
     <div className="space-y-0 pb-32">

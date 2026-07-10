@@ -1,27 +1,27 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { api, Semester, Batch } from "@/lib/api"
+import { api, Level, Batch } from "@/lib/api"
 import { Modal, Field, inputCls, selectCls } from "./SharedUI"
 import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-interface SemesterModalProps {
+const STATUSES = ["active", "draft", "archived"] as const
+
+interface LevelModalProps {
   open: boolean
   onClose: () => void
   universityId: string
   departmentId: string
-  semester?: Semester | null
+  level?: Level | null
   onSuccess: () => void
   batches: Batch[]
 }
 
-const STATUSES = ["active", "draft", "archived"] as const
-
-export function SemesterModal({
-  open, onClose, universityId, departmentId, semester, onSuccess, batches,
-}: SemesterModalProps) {
-  const isEdit = !!semester
+export function LevelModal({
+  open, onClose, universityId, departmentId, level, onSuccess, batches,
+}: LevelModalProps) {
+  const isEdit = !!level
 
   const [name, setName] = useState("")
   const [order, setOrder] = useState("0")
@@ -35,16 +35,16 @@ export function SemesterModal({
 
   useEffect(() => {
     if (open) {
-      setName(semester?.name ?? "")
-      setOrder(semester?.order?.toString() ?? "0")
-      setStatus((semester?.status as typeof STATUSES[number]) ?? "active")
-      setTotalCourses(semester?.total_courses?.toString() ?? "0")
-      setTotalCredits(semester?.total_credits?.toString() ?? "0")
-      setTotalMarks(semester?.total_marks?.toString() ?? "0")
-      setSelectedBatchIds(semester?.batches?.map((b: any) => b.id ?? b) ?? [])
+      setName(level?.name ?? "")
+      setOrder(level?.order?.toString() ?? "0")
+      setStatus((level?.status as typeof STATUSES[number]) ?? "active")
+      setTotalCourses(level?.total_courses?.toString() ?? "0")
+      setTotalCredits(level?.total_credits?.toString() ?? "0")
+      setTotalMarks(level?.total_marks?.toString() ?? "0")
+      setSelectedBatchIds(level?.batches?.map((b: any) => b.id ?? b) ?? [])
       setError("")
     }
-  }, [open, semester])
+  }, [open, level])
 
   function toggleBatch(id: string) {
     setSelectedBatchIds((prev) =>
@@ -54,11 +54,11 @@ export function SemesterModal({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim()) { setError("Semester name is required"); return }
+    if (!name.trim()) { setError("Level name is required"); return }
     setLoading(true); setError("")
 
     try {
-      const payload: Partial<Semester> & { batch_ids?: string[] } = {
+      const payload: Partial<Level> & { batch_ids?: string[] } = {
         name: name.trim(),
         order: parseInt(order) || 0,
         status,
@@ -71,9 +71,9 @@ export function SemesterModal({
       }
 
       if (isEdit) {
-        await api.semesters.update(semester!.id, payload)
+        await api.levels.update(level!.id, payload)
       } else {
-        await api.semesters.create(payload)
+        await api.levels.create(payload)
       }
       onSuccess(); onClose()
     } catch (err: any) {
@@ -84,15 +84,15 @@ export function SemesterModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? "Edit Semester" : "Add Semester"}>
+    <Modal open={open} onClose={onClose} title={isEdit ? "Edit Level" : "Add Level"}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
 
         {/* Name */}
-        <Field label="Semester Name" required>
+        <Field label="Level Name" required>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. 1st Year or 2nd Semester"
+            placeholder="e.g. 1st Year or Master's"
             className={inputCls}
           />
         </Field>
@@ -190,7 +190,7 @@ export function SemesterModal({
             className="flex-1 rounded-sm bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {isEdit ? "Update Semester" : "Save Semester"}
+            {isEdit ? "Update Level" : "Save Level"}
           </button>
         </div>
       </form>

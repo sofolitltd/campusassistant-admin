@@ -2,9 +2,9 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Semester, Batch, api } from "@/lib/api"
+import { Level, Batch, api } from "@/lib/api"
 import { EmptyState, Badge, ConfirmDelete } from "./SharedUI"
-import { SemesterModal } from "./SemesterModal"
+import { LevelModal } from "./LevelModal"
 import {
   BookOpen, Plus, MoreVertical, Pencil, Trash2,
   BookCopy, ChevronRight,
@@ -12,7 +12,7 @@ import {
 import { cn } from "@/lib/utils"
 
 interface StudyTabProps {
-  study: Semester[]
+  study: Level[]
   universityId: string
   departmentId: string
   batches: Batch[]
@@ -38,19 +38,19 @@ function StatChip({ label, value }: { label: string; value: number }) {
   )
 }
 
-interface SemesterCardProps {
-  semester: Semester
+interface LevelCardProps {
+  level: Level
   universityId: string
   departmentId: string
-  onEdit: (s: Semester) => void
-  onDelete: (s: Semester) => void
+  onEdit: (s: Level) => void
+  onDelete: (s: Level) => void
 }
 
-function SemesterCard({ semester, universityId, departmentId, onEdit, onDelete }: SemesterCardProps) {
+function LevelCard({ level, universityId, departmentId, onEdit, onDelete }: LevelCardProps) {
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
 
-  const coursesUrl = `/universities/${universityId}/departments/${departmentId}/courses/${semester.id}?semesterName=${encodeURIComponent(semester.name)}&deptSlug=${departmentId}`
+  const coursesUrl = `/universities/${universityId}/departments/${departmentId}/courses/${level.id}?levelName=${encodeURIComponent(level.name)}&deptSlug=${departmentId}`
 
   return (
     <div className="relative group rounded-sm border bg-card shadow-sm hover:shadow-md hover:border-primary/40 transition-all cursor-pointer"
@@ -63,17 +63,17 @@ function SemesterCard({ semester, universityId, departmentId, onEdit, onDelete }
             <BookOpen className="h-4 w-4" />
           </div>
           <div className="min-w-0">
-            <p className="font-bold truncate text-sm leading-tight">Semester {semester.name}</p>
+            <p className="font-bold truncate text-sm leading-tight">Level {level.name}</p>
             <p className="text-xs text-muted-foreground mt-0.5 font-medium flex items-center gap-1">
-              Order: {semester.order}
+              Order: {level.order}
               <ChevronRight className="h-3 w-3 text-primary/50 opacity-0 group-hover:opacity-100 transition-opacity" />
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <Badge variant={statusVariant(semester.status)}>
-            {statusLabel(semester.status)}
+          <Badge variant={statusVariant(level.status)}>
+            {statusLabel(level.status)}
           </Badge>
 
           {/* Menu */}
@@ -89,13 +89,13 @@ function SemesterCard({ semester, universityId, departmentId, onEdit, onDelete }
                 <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
                 <div className="absolute right-0 top-8 z-20 w-36 rounded-sm border bg-card shadow-lg overflow-hidden animate-in zoom-in-95 duration-150">
                   <button
-                    onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit(semester) }}
+                    onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit(level) }}
                     className="flex w-full items-center gap-2 px-3 py-2.5 text-sm hover:bg-muted transition-all"
                   >
                     <Pencil className="h-3.5 w-3.5 text-blue-500" /> Edit
                   </button>
                   <button
-                    onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(semester) }}
+                    onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(level) }}
                     className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
                   >
                     <Trash2 className="h-3.5 w-3.5" /> Delete
@@ -109,15 +109,15 @@ function SemesterCard({ semester, universityId, departmentId, onEdit, onDelete }
 
       {/* Stats row */}
       <div className="flex gap-2 px-4 pb-3 overflow-x-auto scrollbar-hide">
-        <StatChip label="Courses" value={semester.total_courses} />
-        <StatChip label="Credits" value={semester.total_credits} />
-        <StatChip label="Marks" value={semester.total_marks} />
+        <StatChip label="Courses" value={level.total_courses} />
+        <StatChip label="Credits" value={level.total_credits} />
+        <StatChip label="Marks" value={level.total_marks} />
       </div>
 
       {/* Batch pills */}
-      {semester.batches && semester.batches.length > 0 && (
+      {level.batches && level.batches.length > 0 && (
         <div className="border-t px-4 py-2.5 flex flex-wrap gap-1.5">
-          {(semester.batches as any[]).map((b: any) => (
+          {(level.batches as any[]).map((b: any) => (
             <span
               key={b.id ?? b}
               className="rounded-full bg-primary/10 text-primary text-[10px] font-bold px-2.5 py-0.5 uppercase tracking-wide"
@@ -133,20 +133,20 @@ function SemesterCard({ semester, universityId, departmentId, onEdit, onDelete }
 
 export function StudyTab({ study, universityId, departmentId, batches, onRefresh }: StudyTabProps) {
   const [modalOpen, setModalOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<Semester | null>(null)
-  const [deleteTarget, setDeleteTarget] = useState<Semester | null>(null)
+  const [editTarget, setEditTarget] = useState<Level | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Level | null>(null)
   const [deleting, setDeleting] = useState(false)
 
   const sorted = [...study].sort((a, b) => a.order - b.order)
 
   function openAdd() { setEditTarget(null); setModalOpen(true) }
-  function openEdit(s: Semester) { setEditTarget(s); setModalOpen(true) }
+  function openEdit(s: Level) { setEditTarget(s); setModalOpen(true) }
 
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      await api.semesters.delete(deleteTarget.id)
+      await api.levels.delete(deleteTarget.id)
       onRefresh()
     } finally {
       setDeleting(false)
@@ -163,14 +163,14 @@ export function StudyTab({ study, universityId, departmentId, batches, onRefresh
             <BookCopy className="h-4 w-4 text-primary" /> Study Plan
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {sorted.length} semester{sorted.length !== 1 ? "s" : ""}
+            {sorted.length} level{sorted.length !== 1 ? "s" : ""}
           </p>
         </div>
         <button
           onClick={openAdd}
           className="flex items-center gap-2 rounded-sm bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all"
         >
-          <Plus className="h-4 w-4" /> Add Semester
+          <Plus className="h-4 w-4" /> Add Level
         </button>
       </div>
 
@@ -178,16 +178,16 @@ export function StudyTab({ study, universityId, departmentId, batches, onRefresh
       {sorted.length === 0 ? (
         <EmptyState
           icon={BookOpen}
-          label="semesters"
+          label="levels"
           onAdd={openAdd}
-          addLabel="Add Semester"
+          addLabel="Add Level"
         />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {sorted.map((sem) => (
-            <SemesterCard
-              key={sem.id}
-              semester={sem}
+          {sorted.map((l) => (
+            <LevelCard
+              key={l.id}
+              level={l}
               universityId={universityId}
               departmentId={departmentId}
               onEdit={openEdit}
@@ -198,19 +198,19 @@ export function StudyTab({ study, universityId, departmentId, batches, onRefresh
       )}
 
       {/* Modals */}
-      <SemesterModal
+      <LevelModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         universityId={universityId}
         departmentId={departmentId}
-        semester={editTarget}
+        level={editTarget}
         batches={batches}
         onSuccess={() => { setModalOpen(false); onRefresh() }}
       />
 
       <ConfirmDelete
         open={!!deleteTarget}
-        label={deleteTarget ? `Semester ${deleteTarget.name}` : ""}
+        label={deleteTarget ? `Level ${deleteTarget.name}` : ""}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
         loading={deleting}

@@ -26,16 +26,15 @@ type TabKey = (typeof TABS)[number]["key"]
 interface Props {
   universityId: string
   departmentId: string
-  semesterId: string
-  semesterName: string
+  levelId: string
+  levelName: string
   courseId: string
-  // Optimistic params from URL — overridden once we fetch the real data
   initialCourseCode: string
   initialCourseTitle: string
 }
 
 export default function CourseDetailClient({
-  universityId, departmentId, semesterId, semesterName,
+  universityId, departmentId, levelId, levelName,
   courseId, initialCourseCode, initialCourseTitle,
 }: Props) {
   const [course, setCourse] = useState<Course | null>(null)
@@ -44,26 +43,25 @@ export default function CourseDetailClient({
   const [activeTab, setActiveTab] = useState<TabKey>("chapters")
   const [editModal, setEditModal] = useState(false)
 
-  // Supporting data for the edit modal
   const [categories, setCategories] = useState<any[]>([])
   const [prefixes, setPrefixes] = useState<any[]>([])
-  const [semesters, setSemesters] = useState<any[]>([])
+  const [levels, setLevels] = useState<any[]>([])
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [c, bats, cats, prefs, sems] = await Promise.all([
+      const [c, bats, cats, prefs, levs] = await Promise.all([
         api.courses.getOne(courseId),
         api.batches.getAllByDepartment(departmentId),
         api.courseCategories.getAllByDepartment(departmentId),
         api.coursePrefixes.getAllByDepartment(departmentId),
-        api.semesters.getAllByDepartment(departmentId),
+        api.levels.getAllByDepartment(departmentId),
       ])
       setCourse(c)
       setBatches(bats)
       setCategories(cats)
       setPrefixes(prefs)
-      setSemesters(sems)
+      setLevels(levs)
     } catch {
       // keep showing optimistic data from URL params
     } finally {
@@ -76,7 +74,7 @@ export default function CourseDetailClient({
   const courseCode  = course?.course_code  ?? initialCourseCode
   const courseTitle = course?.course_title ?? initialCourseTitle
 
-  const backUrl = `/universities/${universityId}/departments/${departmentId}/courses/${semesterId}?semesterName=${encodeURIComponent(semesterName)}&deptSlug=${departmentId}`
+  const backUrl = `/universities/${universityId}/departments/${departmentId}/courses/${levelId}?levelName=${encodeURIComponent(levelName)}&deptSlug=${departmentId}`
 
   return (
     <div className="space-y-0 pb-32">
@@ -153,7 +151,7 @@ export default function CourseDetailClient({
             courseCode={courseCode}
             universityId={universityId}
             departmentId={departmentId}
-            semesterId={semesterId}
+            levelId={levelId}
             courseId={courseId}
             batches={batches}
           />
@@ -203,11 +201,11 @@ export default function CourseDetailClient({
           onClose={() => setEditModal(false)}
           universityId={universityId}
           departmentId={departmentId}
-          semesterId={semesterId}
+          levelId={levelId}
           course={course}
           categories={categories}
           prefixes={prefixes}
-          semesters={semesters}
+          levels={levels}
           batches={batches}
           onSuccess={() => { setEditModal(false); load() }}
         />

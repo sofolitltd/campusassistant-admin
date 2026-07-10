@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { api, Course, CourseCategory, CoursePrefix, Semester, Batch } from "@/lib/api"
+import { api, Course, CourseCategory, CoursePrefix, Level, Batch } from "@/lib/api"
 import { Loader2, Plus, Users, X, HardDrive, Image as ImageIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { uploadFile, deleteFile } from "@/lib/upload-utils"
@@ -9,7 +9,7 @@ import { BatchSelectionModal } from "@/components/BatchSelectionModal"
 import { optimizeImage } from "@/lib/image-helper"
 import React from "react"
 
-// ─── Inline SharedUI primitives (modal is in a different route directory) ───────
+// ─── Inline SharedUI primitives ───────────────────────────────────────────────
 function Modal({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode }) {
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
@@ -47,18 +47,18 @@ interface CourseModalProps {
   onClose: () => void
   universityId: string
   departmentId: string
-  semesterId: string
+  levelId: string
   course?: Course | null
   categories: CourseCategory[]
   prefixes: CoursePrefix[]
-  semesters: Semester[]
+  levels: Level[]
   batches: Batch[]
   onSuccess: () => void
 }
 
 export function CourseModal({
-  open, onClose, universityId, departmentId, semesterId,
-  course, categories, prefixes, semesters, batches, onSuccess,
+  open, onClose, universityId, departmentId, levelId,
+  course, categories, prefixes, levels, batches, onSuccess,
 }: CourseModalProps) {
   const isEdit = !!course
 
@@ -68,7 +68,7 @@ export function CourseModal({
   const [credits, setCredits] = useState("")
   const [marks, setMarks] = useState("")
   const [categoryId, setCategoryId] = useState("")
-  const [semId, setSemId] = useState(semesterId)
+  const [levId, setLevId] = useState(levelId)
   const [selectedBatchIds, setSelectedBatchIds] = useState<string[]>([])
   const [thumbnailUrl, setThumbnailUrl] = useState("")
   const [loading, setLoading] = useState(false)
@@ -84,7 +84,6 @@ export function CourseModal({
     if (open) {
       setError("")
       if (course) {
-        // Split existing code into prefix + number if it contains "-"
         const parts = course.course_code.split("-")
         if (parts.length >= 2 && prefixes.some((p) => p.prefix === parts[0])) {
           setSelectedPrefix(parts[0])
@@ -97,7 +96,7 @@ export function CourseModal({
         setCredits(course.total_credits?.toString() ?? "")
         setMarks(course.total_marks?.toString() ?? "")
         setCategoryId(course.course_category_id ?? "")
-        setSemId(course.semester_id ?? semesterId)
+        setLevId(course.level_id ?? levelId)
         setSelectedBatchIds(course.batches?.map((b) => b.id) ?? [])
         setThumbnailUrl(course.thumbnail_url ?? "")
         setPickedFile(null)
@@ -107,13 +106,13 @@ export function CourseModal({
         setSelectedPrefix(prefixes.length > 0 ? prefixes[0].prefix : "")
         setCodeNumber(""); setTitle(""); setCredits(""); setMarks("")
         setCategoryId(categories.length > 0 ? categories[0].id : "")
-        setSemId(semesterId); setSelectedBatchIds([]); setThumbnailUrl("")
+        setLevId(levelId); setSelectedBatchIds([]); setThumbnailUrl("")
         setPickedFile(null)
         setThumbnailBlob(null)
         setUrlToDelete(null)
       }
     }
-  }, [open, course, prefixes, categories, semesterId])
+  }, [open, course, prefixes, categories, levelId])
 
   function toggleBatch(id: string) {
     setSelectedBatchIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id])
@@ -124,7 +123,7 @@ export function CourseModal({
     if (!title.trim()) { setError("Course title is required"); return }
     if (!codeNumber.trim()) { setError("Course code/number is required"); return }
     if (!categoryId) { setError("Please select a category"); return }
-    if (!semId) { setError("Please select a semester"); return }
+    if (!levId) { setError("Please select a level"); return }
 
       setLoading(true); setError("")
       try {
@@ -132,7 +131,6 @@ export function CourseModal({
 
         if (thumbnailBlob) {
           setUploading(true)
-          // Use the original URL for deletion if we're replacing it
           const targetDelete = urlToDelete || (isEdit ? thumbnailUrl : null)
           if (targetDelete) {
             await deleteFile(targetDelete).catch(console.error)
@@ -140,7 +138,6 @@ export function CourseModal({
           finalUrl = await uploadFile(thumbnailBlob, "courses", "thumb.webp")
           setUploading(false)
         } else if (urlToDelete) {
-          // Case where user removed image but didn't pick a new one
           await deleteFile(urlToDelete).catch(console.error)
           finalUrl = ""
         }
@@ -158,7 +155,7 @@ export function CourseModal({
           total_credits: parseFloat(credits) || 0,
           total_marks: parseInt(marks) || 0,
           course_category_id: categoryId || undefined,
-          semester_id: semId || undefined,
+          level_id: levId || undefined,
           thumbnail_url: finalUrl,
           batch_ids: selectedBatchIds,
         }
@@ -187,7 +184,6 @@ export function CourseModal({
       setThumbnailBlob(optimized)
     } catch (err) {
       console.error("Optimization failed:", err)
-      // Fallback to original if optimization fails for some reason
       setThumbnailBlob(file)
     }
   }
@@ -231,7 +227,7 @@ export function CourseModal({
           </Field>
         </div>
 
-        {/* Category & Semester in a Row */}
+        {/* Category & Level in a Row */}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Category" required>
             {categories.length === 0 ? (
@@ -244,10 +240,10 @@ export function CourseModal({
             )}
           </Field>
 
-          <Field label="Semester" required>
-            <select value={semId} onChange={(e) => setSemId(e.target.value)} className={selectCls}>
-              <option value="">Select semester…</option>
-              {semesters.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          <Field label="Level" required>
+            <select value={levId} onChange={(e) => setLevId(e.target.value)} className={selectCls}>
+              <option value="">Select level…</option>
+              {levels.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
             </select>
           </Field>
         </div>

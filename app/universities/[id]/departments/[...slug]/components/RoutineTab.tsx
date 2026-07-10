@@ -164,7 +164,7 @@ function RoutineModal({ open, onClose, routine, universityId, departmentId, onSu
             </div>
           </Field>
           
-          <Field label="Time/Semester Info (Optional)">
+          <Field label="Time/Level Info (Optional)">
             <input type="text" value={time} onChange={e => setTime(e.target.value)} className={inputCls} placeholder="e.g. Valid from Jan 2024" />
           </Field>
         </div>

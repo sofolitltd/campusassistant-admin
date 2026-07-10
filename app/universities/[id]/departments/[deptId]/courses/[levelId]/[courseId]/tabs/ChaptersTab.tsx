@@ -187,12 +187,12 @@ interface ChaptersTabProps {
   courseCode: string
   universityId: string
   departmentId: string
-  semesterId: string
+  levelId: string
   courseId: string
   batches: Batch[]
 }
 
-export default function ChaptersTab({ courseCode, universityId, departmentId, semesterId, courseId, batches }: ChaptersTabProps) {
+export default function ChaptersTab({ courseCode, universityId, departmentId, levelId, courseId, batches }: ChaptersTabProps) {
   const [chapters, setChapters] = useState<Chapter[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -256,7 +256,7 @@ export default function ChaptersTab({ courseCode, universityId, departmentId, se
           {chapters.map((ch) => (
             <Link
               key={ch.id}
-              href={`/universities/${universityId}/departments/${departmentId}/courses/${semesterId}/${courseId}/chapters/${ch.id}?chapterNo=${ch.chapter_no}&chapterTitle=${encodeURIComponent(ch.chapter_title)}`}
+              href={`/universities/${universityId}/departments/${departmentId}/courses/${levelId}/${courseId}/chapters/${ch.id}?chapterNo=${ch.chapter_no}&chapterTitle=${encodeURIComponent(ch.chapter_title)}`}
               className="group flex items-center gap-3 rounded-sm border bg-card px-4 py-3 hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer"
             >
               <GripVertical className="h-4 w-4 text-muted-foreground/30 shrink-0" />

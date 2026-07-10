@@ -193,7 +193,7 @@ export interface Alumni {
   created_at: string;
 }
 
-export interface Semester {
+export interface Level {
   id: string;
   name: string;
   order: number;
@@ -236,8 +236,8 @@ export interface Course {
   thumbnail_url: string;
   course_category_id?: string;
   course_category?: CourseCategory;
-  semester_id?: string;
-  semester?: Semester;
+  level_id?: string;
+  level?: Level;
   batches?: Batch[];
   created_at: string;
 }
@@ -565,21 +565,21 @@ export const api = {
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/students/${id}`, { method: 'DELETE' }),
   },
-  semesters: {
-    getAllByDepartment: (deptId: string): Promise<Semester[]> =>
-      fetchWithAuth(`/semesters?department_id=${deptId}`).then((res: PaginatedResponse<Semester>) => res.data ?? []),
-    create: (data: Partial<Semester>): Promise<Semester> =>
-      fetchWithAuth('/semesters', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: string, data: Partial<Semester>): Promise<Semester> =>
-      fetchWithAuth(`/semesters/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  levels: {
+    getAllByDepartment: (deptId: string): Promise<Level[]> =>
+      fetchWithAuth(`/levels?department_id=${deptId}`).then((res: PaginatedResponse<Level>) => res.data ?? []),
+    create: (data: Partial<Level>): Promise<Level> =>
+      fetchWithAuth('/levels', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<Level>): Promise<Level> =>
+      fetchWithAuth(`/levels/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string): Promise<void> =>
-      fetchWithAuth(`/semesters/${id}`, { method: 'DELETE' }),
+      fetchWithAuth(`/levels/${id}`, { method: 'DELETE' }),
   },
   courses: {
     getAllByDepartment: (deptId: string): Promise<Course[]> =>
       fetchWithAuth(`/courses?department_id=${deptId}&limit=500`).then((res: PaginatedResponse<Course>) => res.data ?? []),
-    getAllBySemester: (semesterId: string): Promise<Course[]> =>
-      fetchWithAuth(`/courses?semester_id=${semesterId}&limit=500`).then((res: PaginatedResponse<Course>) => res.data ?? []),
+    getAllByLevel: (levelId: string): Promise<Course[]> =>
+      fetchWithAuth(`/courses?level_id=${levelId}&limit=500`).then((res: PaginatedResponse<Course>) => res.data ?? []),
     getOne: (id: string): Promise<Course> =>
       fetchWithAuth(`/courses/${id}`),
     create: (data: Partial<Course>): Promise<Course> =>
