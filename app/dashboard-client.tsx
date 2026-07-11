@@ -1,12 +1,11 @@
 "use client"
 
+import Link from "next/link"
 import { 
   Users, 
   Image as ImageIcon, 
   CreditCard, 
   TrendingUp,
-  ArrowUpRight,
-  ArrowDownRight
 } from "lucide-react"
 import { DashboardStats } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -15,13 +14,17 @@ interface DashboardClientProps {
   stats: DashboardStats
 }
 
+function dayLabel(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00")
+  return d.toLocaleDateString("en-US", { weekday: "short" })
+}
+
 export default function DashboardClient({ stats }: DashboardClientProps) {
   const statCards = [
     { 
       title: "Total Users", 
       value: (stats.total_users || 0).toLocaleString(), 
       icon: Users, 
-      trend: stats.user_trend || "+0%", 
       color: "text-blue-600", 
       bg: "bg-blue-100" 
     },
@@ -29,7 +32,6 @@ export default function DashboardClient({ stats }: DashboardClientProps) {
       title: "Active Banners", 
       value: (stats.active_banners || 0).toString(), 
       icon: ImageIcon, 
-      trend: stats.banner_trend || "+0", 
       color: "text-purple-600", 
       bg: "bg-purple-100" 
     },
@@ -37,19 +39,21 @@ export default function DashboardClient({ stats }: DashboardClientProps) {
       title: "Subscriptions", 
       value: (stats.total_subscriptions || 0).toLocaleString(), 
       icon: CreditCard, 
-      trend: stats.sub_trend || "+0%", 
       color: "text-emerald-600", 
       bg: "bg-emerald-100" 
     },
     { 
       title: "Revenue", 
-      value: `$${(stats.total_revenue || 0).toLocaleString()}`, 
+      value: `${(stats.total_revenue || 0).toLocaleString()} TK`, 
       icon: TrendingUp, 
-      trend: stats.revenue_trend || "+0%", 
       color: "text-orange-600", 
       bg: "bg-orange-100" 
     },
   ]
+
+  const growth = stats.user_growth ?? []
+  const maxVal = growth.reduce((m, d) => Math.max(m, d.count), 0) || 1
+  const subs = stats.recent_subscriptions ?? []
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -65,12 +69,6 @@ export default function DashboardClient({ stats }: DashboardClientProps) {
               <div className={`rounded-lg p-2 ${stat.bg} ${stat.color} transition-transform group-hover:scale-110`}>
                 <stat.icon className="h-6 w-6" />
               </div>
-              <span className={cn(
-                "flex items-center text-xs font-bold",
-                stat.trend.startsWith('+') ? "text-emerald-600" : "text-rose-600"
-              )}>
-                {stat.trend} {stat.trend.startsWith('+') ? <ArrowUpRight className="ml-1 h-3 w-3" /> : <ArrowDownRight className="ml-1 h-3 w-3" />}
-              </span>
             </div>
             <div className="mt-4">
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest text-[10px]">{stat.title}</p>
@@ -91,39 +89,42 @@ export default function DashboardClient({ stats }: DashboardClientProps) {
             </select>
           </div>
           <div className="mt-8 flex h-64 items-end justify-between gap-2">
-            {[45, 66, 52, 81, 74, 95, 88].map((v, i) => (
+            {growth.length > 0 ? growth.map((d, i) => (
               <div key={i} className="group relative flex-1">
                 <div 
                   className="w-full rounded-t-lg bg-primary/10 transition-all group-hover:bg-primary group-hover:opacity-100 opacity-60" 
-                  style={{ height: `${v}%` }}
+                  style={{ height: `${(d.count / maxVal) * 100}%` }}
                 ></div>
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 rounded bg-primary px-2 py-1 text-[10px] font-bold text-white opacity-0 transition-opacity group-hover:opacity-100 shadow-lg">
-                  {v}%
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 rounded bg-primary px-2 py-1 text-[10px] font-bold text-white opacity-0 transition-opacity group-hover:opacity-100 shadow-lg whitespace-nowrap">
+                  {d.count} user{d.count !== 1 ? "s" : ""}
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">No data</div>
+            )}
           </div>
           <div className="mt-4 flex justify-between text-[10px] font-black text-muted-foreground px-2 uppercase tracking-widest">
-            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+            {growth.length > 0 ? growth.map((d, i) => (
+              <span key={i}>{dayLabel(d.date)}</span>
+            )) : (
+              <>
+                <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+              </>
+            )}
           </div>
         </div>
 
         <div className="rounded-xl border bg-card p-6 shadow-sm lg:col-span-3">
           <h3 className="text-lg font-bold">Recent Subscriptions</h3>
           <div className="mt-6 space-y-6">
-            {[
-              { user: "Sarah Connor", plan: "Premium", status: "Active", date: "2m ago" },
-              { user: "John Doe", plan: "Basic", status: "Pending", date: "15m ago" },
-              { user: "Alice Smith", plan: "Premium+ ", status: "Active", date: "1h ago" },
-              { user: "Bob Williams", plan: "Basic", status: "Expired", date: "5h ago" },
-            ].map((sub, i) => (
-              <div key={i} className="flex items-center justify-between group cursor-pointer hover:bg-muted/50 -mx-2 p-2 rounded-lg transition-colors">
+            {subs.length > 0 ? subs.map((sub, i) => (
+              <div key={sub.user_id} className="flex items-center justify-between group cursor-pointer hover:bg-muted/50 -mx-2 p-2 rounded-lg transition-colors">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-xs uppercase border border-primary/20">
-                    {sub.user.charAt(0)}
+                    {sub.name.charAt(0)}
                   </div>
                   <div>
-                    <p className="text-sm font-bold">{sub.user}</p>
+                    <p className="text-sm font-bold">{sub.name}</p>
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">{sub.plan} Plan</p>
                   </div>
                 </div>
@@ -138,11 +139,13 @@ export default function DashboardClient({ stats }: DashboardClientProps) {
                   <p className="text-[10px] text-muted-foreground font-medium mt-1">{sub.date}</p>
                 </div>
               </div>
-            ))}
+            )) : (
+              <div className="py-12 text-center text-sm text-muted-foreground">No recent subscriptions</div>
+            )}
           </div>
-          <button className="mt-8 w-full rounded-lg border py-2.5 text-xs font-bold uppercase tracking-widest hover:bg-muted transition-all active:scale-[0.98]">
+          <Link href="/subscriptions" className="mt-8 w-full rounded-lg border py-2.5 text-xs font-bold uppercase tracking-widest hover:bg-muted transition-all active:scale-[0.98] block text-center">
             View All Subscriptions
-          </button>
+          </Link>
         </div>
       </div>
     </div>

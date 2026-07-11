@@ -2,12 +2,13 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Level, Batch, api } from "@/lib/api"
 import { EmptyState, Badge, ConfirmDelete } from "./SharedUI"
 import { LevelModal } from "./LevelModal"
 import {
   BookOpen, Plus, MoreVertical, Pencil, Trash2,
-  BookCopy, ChevronRight,
+  BookCopy, ChevronRight, Library, HelpCircle, ScrollText, Search,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -156,6 +157,25 @@ export function StudyTab({ study, universityId, departmentId, batches, onRefresh
 
   return (
     <>
+      {/* ── Feature shortcuts ── */}
+      <div className="flex gap-3 mb-6 overflow-x-auto scrollbar-none">
+        {[
+          { href: `/universities/${universityId}/departments/${departmentId}/library`, label: "Library",        Icon: Library    },
+          { href: `/universities/${universityId}/departments/${departmentId}/questions`, label: "Question Bank",  Icon: HelpCircle },
+          { href: `/universities/${universityId}/departments/${departmentId}/syllabus`, label: "Full Syllabus",  Icon: ScrollText },
+          { href: `/universities/${universityId}/departments/${departmentId}/research`, label: "Research Archive", Icon: Search    },
+        ].map(({ href, label, Icon }) => (
+          <Link
+            key={label}
+            href={href}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-border text-muted-foreground hover:bg-accent hover:text-foreground shrink-0 transition-all"
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </Link>
+        ))}
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

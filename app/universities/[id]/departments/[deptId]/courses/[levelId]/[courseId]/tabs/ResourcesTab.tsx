@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { api, Resource, ResourceType, Batch } from "@/lib/api"
-import { Plus, Loader2, Layers, HelpCircle, FileText, BookMarked, Play, Users } from "lucide-react"
+import { Plus, Loader2, Layers, HelpCircle, FileText, BookMarked, Play, Users, Search } from "lucide-react"
 
 import { ResourceCard } from "./ResourceCard"
 import { ResourceModal } from "./ResourceModal"
@@ -17,6 +17,7 @@ const TYPE_ICONS: Record<ResourceType, React.ElementType> = {
   syllabus: FileText,
   note: BookMarked,
   video: Play,
+  research: Search,
 }
 
 const TYPE_LABELS: Record<ResourceType, string> = {
@@ -25,6 +26,7 @@ const TYPE_LABELS: Record<ResourceType, string> = {
   syllabus: "Syllabus",
   note: "Note",
   video: "Video Lecture",
+  research: "Research Paper",
 }
 
 interface ResourcesTabProps {

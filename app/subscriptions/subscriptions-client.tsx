@@ -3,13 +3,26 @@
 import { useState, useEffect, useCallback } from "react"
 import {
   CreditCard, Users, Settings2, Plus, Trash2, Pencil,
-  Check, ShieldCheck, School, Calendar, ChevronRight,
-  ChevronDown, X, Building2, Globe
+  Check, Calendar, ChevronRight as ChevronRightIcon,
+  ChevronDown, X, Building2, Globe, ChevronLeft
 } from "lucide-react"
-import { api, UserSubscription, SubscriptionPlan, SubscriptionTarget, University, Department } from "@/lib/api"
+import { api, UserSubscription, SubscriptionPlan, SubscriptionTarget, University } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
-// ── Shared UI ───────────────────────────────────────────────────────────────
+const PAGE_SIZE = 20
+
+function getPageNumbers(current: number, total: number): (number | "...")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | "...")[] = [1]
+  if (current > 3) pages.push("...")
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+  for (let i = start; i <= end; i++) pages.push(i)
+  if (current < total - 2) pages.push("...")
+  if (total > 1) pages.push(total)
+  return pages
+}
+
 function Card({ children, className }: { children: React.ReactNode; className?: string }) {
   return <div className={cn("rounded-sm border bg-card shadow-sm overflow-hidden", className)}>{children}</div>
 }
@@ -24,7 +37,6 @@ function Badge({ children, variant = "default" }: { children: React.ReactNode; v
   return <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest", cls)}>{children}</span>
 }
 
-// ── Multi-Target Selector ──────────────────────────────────────────────────
 function TargetSelector({
   universities,
   selectedTargets,
@@ -60,7 +72,6 @@ function TargetSelector({
     if (currentlyTargeted) {
       onChange(selectedTargets.filter(t => t.university_id !== uni.id))
     } else {
-      // Add "University" uni target and remove specific dept targets for cleanliness
       onChange([...selectedTargets.filter(t => t.university_id !== uni.id), fullUniTarget as SubscriptionTarget])
     }
   }
@@ -75,7 +86,7 @@ function TargetSelector({
               onClick={() => setExpandedUni(expandedUni === uni.id ? null : uni.id)}
               className="text-muted-foreground hover:text-foreground"
             >
-              {expandedUni === uni.id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              {expandedUni === uni.id ? <ChevronDown className="h-4 w-4" /> : <ChevronRightIcon className="h-4 w-4" />}
             </button>
             <div className="flex-1 flex items-center justify-between">
               <span className="text-sm font-bold truncate max-w-[200px]">{uni.name}</span>
@@ -116,8 +127,6 @@ function TargetSelector({
     </div>
   )
 }
-
-
 
 // ── Plan Modal ─────────────────────────────────────────────────────────────
 function PlanModal({
@@ -245,6 +254,8 @@ function PlanModal({
 export default function SubscriptionsClient() {
   const [activeTab, setActiveTab] = useState<"subscribers" | "plans">("subscribers")
   const [subscribers, setSubscribers] = useState<UserSubscription[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [offset, setOffset] = useState(0)
   const [plans, setPlans] = useState<SubscriptionPlan[]>([])
   const [universities, setUniversities] = useState<University[]>([])
 
@@ -252,22 +263,31 @@ export default function SubscriptionsClient() {
   const [planModal, setPlanModal] = useState(false)
   const [editPlan, setEditPlan] = useState<SubscriptionPlan | null>(null)
 
-  const loadData = useCallback(async () => {
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+  const currentPage = Math.floor(offset / PAGE_SIZE) + 1
+
+  const loadData = useCallback(async (newOffset = 0) => {
     setLoading(true)
     try {
-      const [subs, allPlans, unis] = await Promise.all([
-        api.subscriptions.getAll(),
+      const [subRes, allPlans, unis] = await Promise.all([
+        api.subscriptions.getAllPaginated(newOffset, PAGE_SIZE),
         api.subscriptions.getPlans(),
         api.universities.getAll("preload=true")
       ])
-      setSubscribers(subs)
+      setSubscribers(subRes.data)
+      setTotalCount(subRes.count)
+      setOffset(newOffset)
       setPlans(allPlans)
       setUniversities(unis)
     } catch (err) { console.error(err) }
     finally { setLoading(false) }
   }, [])
 
-  useEffect(() => { loadData() }, [loadData])
+  useEffect(() => { loadData(0) }, [loadData])
+
+  const goToPage = (page: number) => {
+    loadData((page - 1) * PAGE_SIZE)
+  }
 
   return (
     <div className="space-y-8 pb-20">
@@ -288,7 +308,6 @@ export default function SubscriptionsClient() {
             <Plus className="h-4 w-4" /> Create Custom Plan
           </button>
         )}
-
       </div>
 
       {/* Stats Cards */}
@@ -305,6 +324,13 @@ export default function SubscriptionsClient() {
           <div className="mt-1 flex items-baseline gap-2">
             <span className="text-2xl font-black">{plans.length}</span>
             <Badge variant="indigo">Tiered</Badge>
+          </div>
+        </Card>
+        <Card className="p-4 border-l-4 border-l-orange-500">
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Revenue</p>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-2xl font-black">{subscribers.reduce((s, sub) => s + (sub.price || 0), 0).toLocaleString()} TK</span>
+            <Badge variant="success">Collected</Badge>
           </div>
         </Card>
       </div>
@@ -337,6 +363,7 @@ export default function SubscriptionsClient() {
                 <tr className="border-b bg-muted/30">
                   <th className="px-4 py-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground">User Profile</th>
                   <th className="px-4 py-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Package</th>
+                  <th className="px-4 py-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Amount</th>
                   <th className="px-4 py-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Time Remaining</th>
                   <th className="px-4 py-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Pro Status</th>
                   <th className="px-4 py-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground text-right pr-6">Action</th>
@@ -344,7 +371,7 @@ export default function SubscriptionsClient() {
               </thead>
               <tbody className="divide-y">
                 {subscribers.length === 0 ? (
-                  <tr><td colSpan={5} className="px-4 py-16 text-center text-muted-foreground italic">No subscription history available.</td></tr>
+                  <tr><td colSpan={6} className="px-4 py-16 text-center text-muted-foreground italic">No subscription history available.</td></tr>
                 ) : (
                   subscribers.map(sub => {
                     const isExpired = new Date(sub.end_date) < new Date()
@@ -365,6 +392,9 @@ export default function SubscriptionsClient() {
                           <Badge variant="indigo">{sub.plan}</Badge>
                         </td>
                         <td className="px-4 py-4">
+                          <span className="text-sm font-bold">{(sub.price || 0).toLocaleString()} TK</span>
+                        </td>
+                        <td className="px-4 py-4">
                           <div className="flex flex-col">
                             <span className="text-xs font-bold">{new Date(sub.end_date).toLocaleDateString()}</span>
                             <span className="text-[10px] text-muted-foreground italic">Expires at midnight</span>
@@ -374,8 +404,8 @@ export default function SubscriptionsClient() {
                           {isExpired ? <Badge variant="warning">Expired</Badge> : <Badge variant="success">Active Pro</Badge>}
                         </td>
                         <td className="px-4 py-4 text-right pr-6">
-                          <button onClick={async () => { if (confirm("Revoke this subscription? User status will be updated.")) { await api.subscriptions.delete(sub.id); loadData() } }} className="rounded-full p-2 hover:bg-red-50 hover:text-red-500 transition-all text-muted-foreground">
-                            <Trash2 className="h-4 w-4" />
+                          <button onClick={() => {}} className="rounded-full p-2 hover:bg-indigo-50 hover:text-indigo-500 transition-all text-muted-foreground">
+                            <Pencil className="h-4 w-4" />
                           </button>
                         </td>
                       </tr>
@@ -385,6 +415,41 @@ export default function SubscriptionsClient() {
               </tbody>
             </table>
           </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 p-4 border-t">
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage <= 1}
+                className="rounded-sm border p-2 hover:bg-accent transition-colors disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              {getPageNumbers(currentPage, totalPages).map((p, i) =>
+                p === "..." ? (
+                  <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground/40 text-sm">...</span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => goToPage(p as number)}
+                    className={`min-w-[36px] h-9 rounded-sm text-sm font-bold transition-all ${
+                      p === currentPage
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "border hover:bg-accent"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                )
+              )}
+              <button
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+                className="rounded-sm border p-2 hover:bg-accent transition-colors disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <ChevronRightIcon className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </Card>
 
       ) : (
@@ -398,7 +463,7 @@ export default function SubscriptionsClient() {
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
                   <button onClick={() => { setEditPlan(plan); setPlanModal(true) }} className="p-1.5 hover:bg-muted rounded-sm transition-all text-muted-foreground hover:text-primary"><Pencil className="h-3.5 w-3.5" /></button>
-                  <button onClick={async () => { if (confirm("Delete this elite plan?")) { await api.subscriptions.deletePlan(plan.id); loadData() } }} className="p-1.5 hover:bg-red-50 rounded-sm transition-all text-muted-foreground hover:text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button onClick={async () => { if (confirm("Delete this elite plan?")) { await api.subscriptions.deletePlan(plan.id); loadData(0) } }} className="p-1.5 hover:bg-red-50 rounded-sm transition-all text-muted-foreground hover:text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
               </div>
 
@@ -454,7 +519,7 @@ export default function SubscriptionsClient() {
         onClose={() => setPlanModal(false)}
         universities={universities}
         plan={editPlan}
-        onSuccess={loadData}
+        onSuccess={() => loadData(0)}
       />
     </div>
   )

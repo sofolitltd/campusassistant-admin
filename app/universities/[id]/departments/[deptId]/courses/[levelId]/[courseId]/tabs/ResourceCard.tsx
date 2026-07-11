@@ -3,7 +3,7 @@
 import React from "react"
 import { Resource, ResourceType, Batch } from "@/lib/api"
 import { 
-  Pencil, Trash2, Download, Play, BookOpen, Layers, HelpCircle, FileText, BookMarked
+  Pencil, Trash2, Download, Play, BookOpen, Layers, HelpCircle, FileText, BookMarked, Search
 } from "lucide-react"
 
 const TYPE_ICONS: Record<ResourceType, React.ElementType> = {
@@ -12,6 +12,7 @@ const TYPE_ICONS: Record<ResourceType, React.ElementType> = {
   syllabus: FileText,
   note: BookMarked,
   video: Play,
+  research: Search,
 }
 
 const TYPE_LABELS: Record<ResourceType, string> = {
@@ -20,6 +21,7 @@ const TYPE_LABELS: Record<ResourceType, string> = {
   syllabus: "Syllabus",
   note: "Note",
   video: "Video Lecture",
+  research: "Research Paper",
 }
 
 function fmtBytes(b: number) {

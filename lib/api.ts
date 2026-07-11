@@ -253,7 +253,7 @@ export interface Chapter {
   created_at: string;
 }
 
-export type ResourceType = 'note' | 'question' | 'book' | 'syllabus' | 'video'
+export type ResourceType = 'note' | 'question' | 'book' | 'syllabus' | 'video' | 'research'
 export type ResourceStatus = 'published' | 'pending' | 'rejected' | 'draft'
 export type ResourceAccessLevel = 'basic' | 'pro'
 
@@ -373,6 +373,7 @@ export interface UserSubscription {
   user_id: string;
   user?: User;
   plan: string;
+  price: number;
   start_date: string;
   end_date: string;
   created_at: string;
@@ -405,6 +406,19 @@ export interface User {
   created_at: string;
 }
 
+export interface DailyCount {
+  date: string;
+  count: number;
+}
+
+export interface RecentSubscriber {
+  user_id: string;
+  name: string;
+  plan: string;
+  status: string;
+  date: string;
+}
+
 export interface DashboardStats {
   total_users: number;
   active_banners: number;
@@ -414,6 +428,8 @@ export interface DashboardStats {
   banner_trend: string;
   sub_trend: string;
   revenue_trend: string;
+  user_growth: DailyCount[];
+  recent_subscriptions: RecentSubscriber[];
 }
 
 export const api = {
@@ -622,6 +638,8 @@ export const api = {
   resources: {
     getAllByCourse: (courseCode: string, type?: ResourceType, lessonNo?: number): Promise<Resource[]> =>
       fetchWithAuth(`/resources?course_code=${encodeURIComponent(courseCode)}${type ? `&type=${type}` : ''}${lessonNo ? `&lesson_no=${lessonNo}` : ''}&limit=500&status=published`).then((res: PaginatedResponse<Resource>) => res.data ?? []),
+    getAllByDepartment: (departmentId: string, type?: ResourceType, search?: string, offset?: number, limit?: number): Promise<PaginatedResponse<Resource>> =>
+      fetchWithAuth(`/resources?department_id=${departmentId}&limit=${limit ?? 20}&offset=${offset ?? 0}${type ? `&type=${type}` : ''}${search ? `&search=${search}` : ''}`),
     create: (data: Partial<Resource>): Promise<Resource> =>
       fetchWithAuth('/resources', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: Partial<Resource>): Promise<Resource> =>
@@ -666,6 +684,8 @@ export const api = {
   subscriptions: {
     getAll: (params?: string): Promise<UserSubscription[]> =>
       fetchWithAuth(`/subscriptions?${params || ''}`).then((res: PaginatedResponse<UserSubscription>) => res.data ?? []),
+    getAllPaginated: (offset?: number, limit?: number): Promise<PaginatedResponse<UserSubscription>> =>
+      fetchWithAuth(`/subscriptions?offset=${offset ?? 0}&limit=${limit ?? 20}`),
     getPlans: (params?: string): Promise<SubscriptionPlan[]> =>
       fetchWithAuth(`/subscription-plans?${params || ''}`).then((res: PaginatedResponse<SubscriptionPlan>) => res.data ?? []),
     createPlan: (data: Partial<SubscriptionPlan>) =>

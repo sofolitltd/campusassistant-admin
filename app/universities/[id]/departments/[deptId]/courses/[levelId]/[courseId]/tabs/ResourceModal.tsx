@@ -15,6 +15,7 @@ const TYPE_LABELS: Record<ResourceType, string> = {
   syllabus: "Syllabus",
   note: "Note",
   video: "Video Lecture",
+  research: "Research Paper",
 }
 
 function fmtBytes(b: number) {
