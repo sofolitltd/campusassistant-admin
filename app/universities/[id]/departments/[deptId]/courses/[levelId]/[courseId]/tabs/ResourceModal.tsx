@@ -175,7 +175,7 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
   const selectCls = "w-full rounded-sm border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-end animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[110] flex items-center justify-end animate-in fade-in duration-300">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       
       <div className="relative flex h-full w-full max-w-md flex-col bg-background shadow-2xl animate-in slide-in-from-right duration-500 border-l">

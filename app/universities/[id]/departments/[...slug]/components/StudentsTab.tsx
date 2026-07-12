@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useDeferredValue, useRef } from "reac
 import { api, Student, Batch, Session, getApiKey, getApiUrl } from "@/lib/api"
 import { Avatar, Badge, ConfirmDelete, selectCls, inputCls, Modal } from "./SharedUI"
 import { StudentModal } from "./StudentModal"
-import { Users, Plus, Pencil, Trash2, Mail, Phone, ExternalLink, Search, Copy, Share2, RefreshCcw, Loader2, LayoutGrid, List, ChevronLeft, ChevronRight } from "lucide-react"
+import { Users, Plus, Pencil, Trash2, Mail, Phone, ExternalLink, Search, Copy, Share2, RefreshCcw, Loader2, LayoutGrid, List, ChevronLeft, ChevronRight, MoreVertical, GraduationCap, Handshake, UserCheck, Send } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface StudentsTabProps {
@@ -27,6 +27,8 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [previewStudent, setPreviewStudent] = useState<Student | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [actionMenuStudentId, setActionMenuStudentId] = useState<string | null>(null)
+  const [alumniStudent, setAlumniStudent] = useState<Student | null>(null)
   const [sessions, setSessions] = useState<Session[]>([])
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
   const [batchCounts, setBatchCounts] = useState<Record<string, number>>({})
@@ -41,6 +43,12 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
       return () => clearTimeout(t)
     }
   }, [toast])
+
+  useEffect(() => {
+    const handleClick = () => setActionMenuStudentId(null)
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [])
 
   // ELITE: Server-side search & pagination implementation
   const loadData = useCallback(async () => {
@@ -121,8 +129,13 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
     return () => { el.removeEventListener('mousedown', onDown); el.removeEventListener('mouseup', onUp); el.removeEventListener('mouseleave', onUp); el.removeEventListener('mousemove', onMove) }
   }, [])
 
-  // Sort students: by student_id (roll) ascending
-  const sortedStudents = [...students].sort((a, b) => a.student_id.localeCompare(b.student_id))
+  // Sort students: by student_id (roll)
+  // "All" tab → descending (newest first), batch filter → ascending (oldest first)
+  const sortedStudents = [...students].sort((a, b) =>
+    filterBatch
+      ? a.student_id.localeCompare(b.student_id)
+      : b.student_id.localeCompare(a.student_id)
+  )
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE)
 
@@ -149,6 +162,10 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
     setToast("Verification details copied!")
   }
 
+  const handleAddToAlumni = (s: Student) => {
+    setAlumniStudent(s)
+  }
+
   return (
     <div className="animate-in fade-in duration-500">
       <StudentModal 
@@ -167,6 +184,64 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
         batches={batches}
         sessions={sessions}
       />
+
+      {alumniStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setAlumniStudent(null)} />
+          <div className="relative z-10 w-full max-w-md mx-4 rounded-sm border bg-background shadow-2xl p-6">
+            <h3 className="text-base font-black mb-1">Add to Alumni</h3>
+            <p className="text-xs text-muted-foreground mb-4">Create alumni record from student profile.</p>
+            <form onSubmit={async (e) => {
+              e.preventDefault()
+              const batchName = batches.find(b => b.id === alumniStudent.batch_id)?.name || ""
+              try {
+                await api.alumni.create({
+                  full_name: alumniStudent.name,
+                  student_id: alumniStudent.student_id,
+                  email: alumniStudent.email,
+                  phone: alumniStudent.phone,
+                  batch: batchName,
+                  student_profile_id: alumniStudent.id,
+                  university_id: universityId,
+                  department_id: departmentId,
+                  current_status: "employed",
+                  organization: "",
+                  designation: "",
+                  location: "",
+                  bio: "",
+                  profile_image: "",
+                  social_links: {},
+                })
+                setToast("Added to alumni!")
+              } catch { setToast("Failed to add to alumni") }
+              setAlumniStudent(null)
+            }}>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Name</label>
+                  <input className="w-full rounded-sm border bg-background px-3 py-2 text-sm" value={alumniStudent.name} disabled />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Student ID</label>
+                  <input className="w-full rounded-sm border bg-background px-3 py-2 text-sm" value={alumniStudent.student_id} disabled />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Email</label>
+                  <input className="w-full rounded-sm border bg-background px-3 py-2 text-sm" value={alumniStudent.email} disabled />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Phone</label>
+                  <input className="w-full rounded-sm border bg-background px-3 py-2 text-sm" value={alumniStudent.phone} disabled />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button type="button" onClick={() => setAlumniStudent(null)} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
+                <button type="submit" className="flex-1 rounded-sm bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all">Create Alumni</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <ConfirmDelete 
         open={!!deleting} 
@@ -309,6 +384,29 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
+                        <div className="relative">
+                          <button onClick={(e) => { e.stopPropagation(); setActionMenuStudentId(actionMenuStudentId === s.id ? null : s.id) }} 
+                            className="p-2 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all shadow-sm"
+                          >
+                            <MoreVertical className="h-3.5 w-3.5" />
+                          </button>
+                          {actionMenuStudentId === s.id && (
+                            <div className="absolute right-0 top-full mt-1 z-50 w-52 bg-background border rounded-sm shadow-lg py-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                              <button onClick={() => { setActionMenuStudentId(null); handleAddToAlumni(s) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
+                                <GraduationCap className="h-4 w-4 text-primary" /> Add to Alumni
+                              </button>
+                              <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
+                                <Handshake className="h-4 w-4" /> Add to Contributor
+                              </button>
+                              <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
+                                <UserCheck className="h-4 w-4" /> Att to Pro
+                              </button>
+                              <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
+                                <Send className="h-4 w-4" /> Send Mail
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                     
@@ -424,6 +522,29 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
                             >
                               <Copy className="h-3.5 w-3.5" />
                             </button>
+                            <div className="relative">
+                              <button onClick={(e) => { e.stopPropagation(); setActionMenuStudentId(actionMenuStudentId === s.id ? null : s.id) }} 
+                                className="p-1.5 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
+                              >
+                                <MoreVertical className="h-3.5 w-3.5" />
+                              </button>
+                              {actionMenuStudentId === s.id && (
+                                <div className="absolute right-0 top-full mt-1 z-50 w-52 bg-background border rounded-sm shadow-lg py-1 animate-in fade-in slide-in-from-top-1 duration-150">
+                                  <button onClick={() => { setActionMenuStudentId(null); handleAddToAlumni(s) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
+                                    <GraduationCap className="h-4 w-4 text-primary" /> Add to Alumni
+                                  </button>
+                                  <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
+                                    <Handshake className="h-4 w-4" /> Add to Contributor
+                                  </button>
+                                  <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
+                                    <UserCheck className="h-4 w-4" /> Att to Pro
+                                  </button>
+                                  <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
+                                    <Send className="h-4 w-4" /> Send Mail
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </td>
                       </tr>

@@ -45,7 +45,9 @@ export default function ResourcesTab({ type, courseCode, universityId, departmen
   const [modal, setModal] = useState(false)
   const [editTarget, setEditTarget] = useState<Resource | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Resource | null>(null)
+  const [permanentDeleteTarget, setPermanentDeleteTarget] = useState<Resource | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [permanentDeleting, setPermanentDeleting] = useState(false)
   const [batchFilter, setBatchFilter] = useState<string>("all")
   const [playVideo, setPlayVideo] = useState<{ url: string; title: string; description?: string } | null>(null)
   const [viewPdf, setViewPdf] = useState<{ url: string; title: string } | null>(null)
@@ -74,6 +76,16 @@ export default function ResourcesTab({ type, courseCode, universityId, departmen
       await load() 
     }
     finally { setDeleting(false); setDeleteTarget(null) }
+  }
+
+  async function handlePermanentDelete() {
+    if (!permanentDeleteTarget) return
+    setPermanentDeleting(true)
+    try {
+      await api.resources.permanentDelete(permanentDeleteTarget.id)
+      await load()
+    }
+    finally { setPermanentDeleting(false); setPermanentDeleteTarget(null) }
   }
 
   const filteredResources = resources.filter(r => {
@@ -149,6 +161,7 @@ export default function ResourcesTab({ type, courseCode, universityId, departmen
               resource={r}
               onEdit={() => { setEditTarget(r); setModal(true) }}
               onDelete={() => setDeleteTarget(r)}
+              onPermanentDelete={() => setPermanentDeleteTarget(r)}
               onPlay={(url, title, desc) => setPlayVideo({ url, title, description: desc })}
               onView={(url, title) => setViewPdf({ url, title })}
             />
@@ -175,6 +188,15 @@ export default function ResourcesTab({ type, courseCode, universityId, departmen
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
         loading={deleting}
+      />
+
+      <ConfirmDelete
+        open={!!permanentDeleteTarget}
+        label={permanentDeleteTarget ? `"${permanentDeleteTarget.title}" permanently` : ""}
+        onClose={() => setPermanentDeleteTarget(null)}
+        onConfirm={handlePermanentDelete}
+        loading={permanentDeleting}
+        permanent
       />
 
       <VideoPlayerModal 

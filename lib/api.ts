@@ -646,6 +646,8 @@ export const api = {
       fetchWithAuth(`/resources/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/resources/${id}`, { method: 'DELETE' }),
+    permanentDelete: (id: string): Promise<void> =>
+      fetchWithAuth(`/resources/${id}?permanent=true`, { method: 'DELETE' }),
     approve: (id: string): Promise<Resource> =>
       fetchWithAuth(`/resources/${id}/approve`, { method: 'PATCH' }),
   },

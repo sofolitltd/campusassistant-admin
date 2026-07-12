@@ -1,9 +1,9 @@
 "use client"
 
-import React from "react"
+import React, { useState, useRef, useEffect } from "react"
 import { Resource, ResourceType, Batch } from "@/lib/api"
 import { 
-  Pencil, Trash2, Download, Play, BookOpen, Layers, HelpCircle, FileText, BookMarked, Search
+  Pencil, Trash2, Download, Play, BookOpen, Layers, HelpCircle, FileText, BookMarked, Search, AlertTriangle
 } from "lucide-react"
 
 const TYPE_ICONS: Record<ResourceType, React.ElementType> = {
@@ -39,13 +39,26 @@ function getYoutubeThumb(url: string) {
   return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null
 }
 
-export function ResourceCard({ resource, onEdit, onDelete, onPlay, onView }: { 
+export function ResourceCard({ resource, onEdit, onDelete, onPermanentDelete, onPlay, onView }: { 
   resource: Resource; 
   onEdit: () => void; 
   onDelete: () => void;
+  onPermanentDelete?: () => void;
   onPlay?: (url: string, title: string, description?: string) => void;
   onView?: (url: string, title: string) => void;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
   const Icon = TYPE_ICONS[resource.type]
   const meta = (resource.metadata ?? {}) as Record<string, any>
   const thumb = resource.type === "video" ? getYoutubeThumb(resource.file_url) : resource.thumbnail_url
@@ -64,7 +77,7 @@ export function ResourceCard({ resource, onEdit, onDelete, onPlay, onView }: {
     return (
       <div 
         onClick={handleInteraction}
-        className="group relative rounded-sm border bg-card hover:border-primary/40 hover:shadow-lg transition-all duration-300 flex overflow-hidden h-[110px] bg-gradient-to-r from-card to-muted/5 cursor-pointer"
+        className={`group relative rounded-sm border bg-card hover:border-primary/40 hover:shadow-lg transition-all duration-300 flex h-[110px] bg-gradient-to-r from-card to-muted/5 cursor-pointer ${menuOpen ? 'z-50' : ''}`}
       >
         {/* Left Side: Image or Icon */}
         <div className="w-24 h-full bg-muted/30 shrink-0 relative overflow-hidden border-r flex items-center justify-center">
@@ -111,9 +124,23 @@ export function ResourceCard({ resource, onEdit, onDelete, onPlay, onView }: {
               <button onClick={onEdit} className="p-1.5 hover:bg-background hover:shadow-sm rounded-sm transition-all text-muted-foreground hover:text-foreground">
                 <Pencil className="h-3 w-3" />
               </button>
-              <button onClick={onDelete} className="p-1.5 hover:bg-red-50 hover:text-red-500 rounded-sm transition-all text-muted-foreground">
-                <Trash2 className="h-3 w-3" />
-              </button>
+              <div className="relative" ref={menuRef}>
+                <button onClick={() => setMenuOpen(!menuOpen)} className="p-1.5 hover:bg-red-50 hover:text-red-500 rounded-sm transition-all text-muted-foreground">
+                  <Trash2 className="h-3 w-3" />
+                </button>
+                {menuOpen && (
+                  <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-sm border bg-card shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+                    <button onClick={() => { setMenuOpen(false); onDelete() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium hover:bg-muted transition-colors text-left">
+                      <Trash2 className="h-3.5 w-3.5 text-muted-foreground" /> Soft Delete
+                    </button>
+                    {onPermanentDelete && (
+                      <button onClick={() => { setMenuOpen(false); onPermanentDelete() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium hover:bg-red-50 hover:text-red-600 transition-colors text-left border-t">
+                        <AlertTriangle className="h-3.5 w-3.5 text-red-500" /> Permanent Delete
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
               {resource.file_url && (
                 <a href={resource.file_url} target="_blank" rel="noopener noreferrer" className="p-1.5 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-sm transition-all">
                   <Download className="h-3 w-3" />
@@ -129,7 +156,7 @@ export function ResourceCard({ resource, onEdit, onDelete, onPlay, onView }: {
   return (
     <div 
       onClick={handleInteraction}
-      className="group relative rounded-sm border bg-card hover:border-primary/40 hover:shadow-lg transition-all duration-300 flex flex-col h-full overflow-hidden cursor-pointer"
+      className={`group relative rounded-sm border bg-card hover:border-primary/40 hover:shadow-lg transition-all duration-300 flex flex-col h-full cursor-pointer ${menuOpen ? 'z-50' : ''}`}
     >
       <div className="aspect-video relative overflow-hidden bg-muted">
         {thumb ? (
@@ -188,9 +215,23 @@ export function ResourceCard({ resource, onEdit, onDelete, onPlay, onView }: {
           <button onClick={onEdit} className="rounded-sm p-1.5 hover:bg-background hover:shadow-sm transition-all text-muted-foreground hover:text-foreground" title="Edit">
             <Pencil className="h-3.5 w-3.5" />
           </button>
-          <button onClick={onDelete} className="rounded-sm p-1.5 hover:bg-red-50 hover:text-red-500 transition-all text-muted-foreground" title="Delete">
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+          <div className="relative" ref={menuRef}>
+            <button onClick={() => setMenuOpen(!menuOpen)} className="rounded-sm p-1.5 hover:bg-red-50 hover:text-red-500 transition-all text-muted-foreground" title="Delete">
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-sm border bg-card shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+                <button onClick={() => { setMenuOpen(false); onDelete() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium hover:bg-muted transition-colors text-left">
+                  <Trash2 className="h-3.5 w-3.5 text-muted-foreground" /> Soft Delete
+                </button>
+                {onPermanentDelete && (
+                  <button onClick={() => { setMenuOpen(false); onPermanentDelete() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium hover:bg-red-50 hover:text-red-600 transition-colors text-left border-t">
+                    <AlertTriangle className="h-3.5 w-3.5 text-red-500" /> Permanent Delete
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
           {resource.file_url && (
             <div className="flex items-center gap-1.5 rounded-sm bg-primary/10 px-3 py-1.5 text-[10px] font-black text-primary uppercase tracking-widest shadow-sm ml-2">
               <Play className="h-3 w-3" /> Watch In-App

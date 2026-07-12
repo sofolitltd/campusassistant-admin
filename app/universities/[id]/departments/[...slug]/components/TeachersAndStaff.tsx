@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Teacher, Staff, api } from "@/lib/api"
 import { Avatar, Badge, EmptyState, inputCls, ConfirmDelete, Modal } from "./SharedUI"
-import { UserSquare2, Briefcase, Search, Plus, Pencil, Trash2, Phone } from "lucide-react"
+import { UserSquare2, Briefcase, Search, Plus, Pencil, Trash2, Phone, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { TeacherModal } from "./TeacherModal"
 import { StaffModal } from "./StaffModal"
@@ -89,16 +89,21 @@ function TeacherPreviewModal({ teacher, onClose }: { teacher: Teacher | null, on
 
 export function TeachersTab({ teachers, universityId, departmentId, onRefresh }: TeachersTabProps) {
   const [search, setSearch] = useState("")
+  const [filterLeave, setFilterLeave] = useState<string>("all")
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Teacher | null>(null)
   const [deleting, setDeleting] = useState<Teacher | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [preview, setPreview] = useState<Teacher | null>(null)
 
-  const filtered = teachers.filter(t => 
-    t.name.toLowerCase().includes(search.toLowerCase()) || 
-    t.designation.toLowerCase().includes(search.toLowerCase())
-  ).sort((a,b) => b.weight - a.weight)
+  const filtered = teachers.filter(t => {
+    const matchesSearch = t.name.toLowerCase().includes(search.toLowerCase()) || 
+      t.designation.toLowerCase().includes(search.toLowerCase())
+    if (!matchesSearch) return false
+    if (filterLeave === "present") return t.is_present
+    if (filterLeave === "leave") return !t.is_present
+    return true
+  })
 
   async function handleDelete() {
     if (!deleting) return
@@ -130,6 +135,18 @@ export function TeachersTab({ teachers, universityId, departmentId, onRefresh }:
           <p className="text-sm text-muted-foreground">Manage department teachers</p>
         </div>
         <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="relative">
+            <select
+              value={filterLeave}
+              onChange={(e) => setFilterLeave(e.target.value)}
+              className="appearance-none rounded-sm border bg-background pl-3 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all h-10 shrink-0"
+            >
+              <option value="all">All</option>
+              <option value="present">Present</option>
+              <option value="leave">Leave</option>
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          </div>
           <div className="relative flex-1 md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input 
