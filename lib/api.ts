@@ -25,7 +25,7 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
   
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `API error: ${response.status}`);
+    throw new Error(errorData.error || errorData.message || `API error: ${response.status}`);
   }
   
   return response.json();
@@ -419,6 +419,20 @@ export interface RecentSubscriber {
   date: string;
 }
 
+export interface AppNotification {
+  id: string;
+  title: string;
+  body: string;
+  type: string;
+  scope: string; // "user" | "batch" | "department" | "university"
+  target_id?: string | null;
+  data: Record<string, string> | null;
+  created_at: string;
+  updated_at: string;
+  recipient_count: number;
+  read_count: number;
+}
+
 export interface DashboardStats {
   total_users: number;
   active_banners: number;
@@ -740,5 +754,16 @@ export const api = {
       fetchWithAuth(`/transports/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/transports/${id}`, { method: 'DELETE' }),
+  },
+  notifications: {
+    getAll: (): Promise<AppNotification[]> =>
+      fetchWithAuth(`/admin/notifications`),
+    create: (data: Record<string, unknown>) =>
+      fetchWithAuth('/admin/notifications', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      fetchWithAuth(`/admin/notifications/${id}`, { method: 'DELETE' }),
   },
 };

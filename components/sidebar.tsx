@@ -47,6 +47,11 @@ const navItems = [
     icon: CreditCard,
   },
   {
+    title: "Notifications",
+    href: "/notifications",
+    icon: Bell,
+  },
+  {
     title: "Contacts",
     href: "/contacts",
     icon: Phone,

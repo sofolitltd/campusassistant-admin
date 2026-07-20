@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react"
 import { api, Resource, ResourceType, Batch } from "@/lib/api"
-import { 
-  X, Plus, Users, HardDrive, FilePlus2, BookOpen, Loader2, AlertTriangle 
+import {
+  X, Plus, Users, HardDrive, FilePlus2, BookOpen, Loader2, AlertTriangle, Bell
 } from "lucide-react"
 import { BatchSelectionModal } from "@/components/BatchSelectionModal"
 import { uploadFile, deleteFile } from "./resource-utils"
@@ -39,6 +39,7 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
   const [thumbnailUrl, setThumbnailUrl] = useState("")
   const [accessLevel, setAccessLevel] = useState<"basic" | "pro">("basic")
   const [selectedBatchIds, setSelectedBatchIds] = useState<string[]>([])
+  const [notifyBatches, setNotifyBatches] = useState(true)
   const [tags, setTags] = useState("")
   const [metaAuthor, setMetaAuthor] = useState("")
   const [metaPublisher, setMetaPublisher] = useState("")
@@ -124,7 +125,7 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
       if (type === "video") { if (metaDuration) meta.duration = metaDuration }
       if (metaPages) meta.pages = parseInt(metaPages)
 
-      const payload: Partial<Resource> & { batch_ids?: string[]; file_size_bytes?: number; lesson_no?: number } = {
+      const payload: Partial<Resource> & { batch_ids?: string[]; file_size_bytes?: number; lesson_no?: number; notify?: boolean } = {
         type, title: finalTitle || "Untitled Video", description: description.trim(),
         course_code: courseCode,
         file_url: finalUrl,
@@ -137,6 +138,7 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
         tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
         metadata: { ...meta, is_edited: isEdit ? true : meta.is_edited },
         batch_ids: selectedBatchIds,
+        notify: notifyBatches,
         file_size_bytes: pickedFile?.size ?? undefined,
       }
       if (isEdit) { await api.resources.update(resource!.id, payload) }
@@ -330,6 +332,19 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
                   )
                 })}
               </div>
+            )}
+
+            {selectedBatchIds.length > 0 && (
+              <label className="flex items-center gap-2.5 mt-3 rounded-sm border border-dashed border-muted-foreground/20 bg-muted/5 px-4 py-3 cursor-pointer hover:border-primary/40 transition-all">
+                <input
+                  type="checkbox"
+                  checked={notifyBatches}
+                  onChange={(e) => setNotifyBatches(e.target.checked)}
+                  className="h-4 w-4 rounded-sm accent-primary"
+                />
+                <Bell className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-bold text-muted-foreground">Notify selected batches</span>
+              </label>
             )}
           </div>
 
