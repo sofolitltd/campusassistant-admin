@@ -336,6 +336,30 @@ export interface Banner {
   created_at: string;
 }
 
+export interface Notice {
+  id: string;
+  uploader: string;
+  message: string;
+  image_urls: string[];
+  university_id: string;
+  department_id: string;
+  created_at: string;
+}
+
+export interface Contributor {
+  id: string;
+  name: string;
+  image_url: string;
+  tier: string;
+  university_id: string;
+  university_name: string;
+  department_id: string;
+  department_name: string;
+  session: string;
+  student_profile_id?: string;
+  created_at: string;
+}
+
 export interface EmergencyContact {
   id: string;
   title: string;
@@ -680,6 +704,30 @@ export const api = {
       fetchWithAuth(`/banners/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/banners/${id}`, { method: 'DELETE' }),
+  },
+  notices: {
+    getAllByDepartment: (deptId: string): Promise<Notice[]> =>
+      fetchWithAuth(`/notices?department_id=${deptId}&limit=100`).then((res: PaginatedResponse<Notice>) => res.data ?? []),
+    create: (data: Partial<Notice>): Promise<Notice> =>
+      fetchWithAuth('/notices', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<Notice>): Promise<Notice> =>
+      fetchWithAuth(`/notices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/notices/${id}`, { method: 'DELETE' }),
+  },
+  contributors: {
+    getAll: (): Promise<Contributor[]> =>
+      fetchWithAuth(`/contributors?limit=200`).then((res: PaginatedResponse<Contributor>) => res.data ?? []),
+    getAllByDepartment: (deptId: string): Promise<Contributor[]> =>
+      fetchWithAuth(`/contributors?department_id=${deptId}&limit=200`).then((res: PaginatedResponse<Contributor>) => res.data ?? []),
+    create: (data: Partial<Contributor>): Promise<Contributor> =>
+      fetchWithAuth('/contributors', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<Contributor>): Promise<Contributor> =>
+      fetchWithAuth(`/contributors/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/contributors/${id}`, { method: 'DELETE' }),
+    hardDelete: (id: string): Promise<void> =>
+      fetchWithAuth(`/contributors/${id}?permanent=true`, { method: 'DELETE' }),
   },
   emergencyContacts: {
     getAll: (params?: string): Promise<EmergencyContact[]> =>

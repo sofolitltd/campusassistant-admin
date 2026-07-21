@@ -3,16 +3,16 @@
 import { useState, useCallback, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { 
+import {
   ArrowLeft, GraduationCap, Layers, Users, BookOpen, UserSquare2,
   Briefcase, Megaphone, Phone, Info, Clock, Loader2, MapPin, Globe,
-  School, CalendarDays, ExternalLink, Users2
+  School, CalendarDays, ExternalLink, Users2, Bell
 } from "lucide-react"
 
 // API & Types
-import { 
-  api, Department, Session, Batch, Student, Teacher, Staff, 
-  Level, CR, Banner, EmergencyContact, University, Alumni, Routine
+import {
+  api, Department, Session, Batch, Student, Teacher, Staff,
+  Level, CR, Banner, EmergencyContact, University, Alumni, Routine, Notice
 } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
@@ -26,13 +26,15 @@ import { TeachersTab, StaffTab } from "./components/TeachersAndStaff"
 import { CRsTab, BannersTab, ContactsTab } from "./components/ExtraTabs"
 import { AlumniTab } from "./components/AlumniTab"
 import { RoutineTab } from "./components/RoutineTab"
+import { NoticesTab } from "./components/NoticesTab"
 
-type TabType = "overview" | "sessions" | "batches" | "students" | "study" | "teachers" | "staff" | "crs" | "banners" | "contacts" | "alumni" | "routines"
+type TabType = "overview" | "sessions" | "batches" | "students" | "study" | "teachers" | "staff" | "crs" | "banners" | "contacts" | "alumni" | "routines" | "notices"
 
 interface TabData {
   sessions: Session[]; batches: Batch[]; students: Student[]
   study: Level[]; teachers: Teacher[]; staff: Staff[]
   crs: CR[]; banners: Banner[]; contacts: EmergencyContact[]; alumni: Alumni[]; routines: Routine[]
+  notices: Notice[]
 }
 
 interface DepartmentDetailClientProps {
@@ -57,7 +59,8 @@ export default function DepartmentDetailClient({
   const [activeTab, setActiveTab] = useState<TabType>((searchParams.get("tab") as TabType) || "overview")
   const [tabData, setTabData] = useState<TabData>({
     sessions: [], batches: [], students: [], study: [],
-    teachers: [], staff: [], crs: [], banners: initialBanners, contacts: [], alumni: [], routines: []
+    teachers: [], staff: [], crs: [], banners: initialBanners, contacts: [], alumni: [], routines: [],
+    notices: []
   })
   const [loadedTabs, setLoadedTabs] = useState<Set<TabType>>(new Set(initialBanners.length > 0 ? ["banners"] : []))
 
@@ -98,6 +101,7 @@ export default function DepartmentDetailClient({
         case "contacts": patch = { contacts: await api.emergencyContacts.getAllByDepartment(universityId, departmentId) }; break
         case "alumni": patch = { alumni: await api.alumni.getAllByDepartment(universityId, departmentId) }; break
         case "routines": patch = { routines: await api.routines.getAllByDepartment(universityId, departmentId) }; break
+        case "notices": patch = { notices: await api.notices.getAllByDepartment(departmentId) }; break
       }
       setTabData((prev) => ({ ...prev, ...patch }))
       setLoadedTabs((prev) => new Set([...prev, tab]))
@@ -121,6 +125,7 @@ export default function DepartmentDetailClient({
     { id: "contacts", label: "Contacts", icon: Phone },
     { id: "alumni", label: "Alumni", icon: Users2 },
     { id: "routines", label: "Routines", icon: CalendarDays },
+    { id: "notices", label: "Notices", icon: Bell },
   ]
 
   return (
@@ -193,7 +198,7 @@ export default function DepartmentDetailClient({
         {activeTab === "overview" && <AboutTab department={department} university={university} />}
         {activeTab === "sessions" && <SessionsTab sessions={tabData.sessions} universityId={universityId} departmentId={departmentId} onRefresh={() => loadTabData("sessions", true)} />}
         {activeTab === "batches" && <BatchesTab batches={tabData.batches} universityId={universityId} departmentId={departmentId} onRefresh={() => loadTabData("batches", true)} />}
-        {activeTab === "students" && <StudentsTab batches={tabData.batches} universityId={universityId} departmentId={departmentId} onBatchesRefresh={() => loadTabData("batches", true)} />}
+        {activeTab === "students" && <StudentsTab batches={tabData.batches} universityId={universityId} departmentId={departmentId} universityName={university.name} departmentName={department.name} onBatchesRefresh={() => loadTabData("batches", true)} />}
         {activeTab === "study" && <StudyTab study={tabData.study} universityId={universityId} departmentId={departmentId} batches={tabData.batches} onRefresh={() => loadTabData("study", true)} />}
         {activeTab === "teachers" && <TeachersTab teachers={tabData.teachers} universityId={universityId} departmentId={departmentId} onRefresh={() => loadTabData("teachers", true)} />}
         {activeTab === "staff" && <StaffTab staff={tabData.staff} universityId={universityId} departmentId={departmentId} onRefresh={() => loadTabData("staff", true)} />}
@@ -202,6 +207,7 @@ export default function DepartmentDetailClient({
         { activeTab === "contacts" && <ContactsTab contacts={tabData.contacts} universityId={universityId} departmentId={departmentId} onRefresh={() => loadTabData("contacts", true)} />}
         {activeTab === "alumni" && <AlumniTab alumni={tabData.alumni} universityId={universityId} departmentId={departmentId} onRefresh={() => loadTabData("alumni", true)} />}
         {activeTab === "routines" && <RoutineTab routines={tabData.routines} universityId={universityId} departmentId={departmentId} onRefresh={() => loadTabData("routines", true)} />}
+        {activeTab === "notices" && <NoticesTab notices={tabData.notices} universityId={universityId} departmentId={departmentId} onRefresh={() => loadTabData("notices", true)} />}
       </main>
     </div>
   )

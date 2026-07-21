@@ -1,20 +1,24 @@
 "use client"
 
 import { useState, useEffect, useCallback, useDeferredValue, useRef } from "react"
-import { api, Student, Batch, Session, getApiKey, getApiUrl } from "@/lib/api"
-import { Avatar, Badge, ConfirmDelete, selectCls, inputCls, Modal } from "./SharedUI"
+import { api, Student, Batch, Session, Contributor, getApiKey, getApiUrl } from "@/lib/api"
+import { Avatar, Badge, ConfirmDelete, selectCls, inputCls, Modal, ActionMenu } from "./SharedUI"
 import { StudentModal } from "./StudentModal"
-import { Users, Plus, Pencil, Trash2, Mail, Phone, ExternalLink, Search, Copy, Share2, RefreshCcw, Loader2, LayoutGrid, List, ChevronLeft, ChevronRight, MoreVertical, GraduationCap, Handshake, UserCheck, Send } from "lucide-react"
+import { Users, Plus, Pencil, Trash2, Mail, Phone, ExternalLink, Search, Copy, Share2, RefreshCcw, Loader2, LayoutGrid, List, ChevronLeft, ChevronRight, MoreVertical, GraduationCap, Handshake, UserCheck, Send, UserMinus } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+const CONTRIBUTOR_TIERS = ["Platinum", "Gold", "Silver", "Bronze"]
 
 interface StudentsTabProps {
   batches: Batch[]
   departmentId: string
   universityId: string
+  universityName: string
+  departmentName: string
   onBatchesRefresh: () => void
 }
 
-export function StudentsTab({ batches, departmentId, universityId, onBatchesRefresh }: StudentsTabProps) {
+export function StudentsTab({ batches, departmentId, universityId, universityName, departmentName, onBatchesRefresh }: StudentsTabProps) {
   const [students, setStudents] = useState<Student[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -28,11 +32,19 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
   const [previewStudent, setPreviewStudent] = useState<Student | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [actionMenuStudentId, setActionMenuStudentId] = useState<string | null>(null)
+  const [actionMenuAnchor, setActionMenuAnchor] = useState<HTMLElement | null>(null)
   const [alumniStudent, setAlumniStudent] = useState<Student | null>(null)
+  const [contributorStudent, setContributorStudent] = useState<Student | null>(null)
+  const [contributorTier, setContributorTier] = useState(CONTRIBUTOR_TIERS[3])
+  const [contributorLoading, setContributorLoading] = useState(false)
+  const [contributorsByStudentId, setContributorsByStudentId] = useState<Record<string, Contributor>>({})
+  const [removingContributor, setRemovingContributor] = useState<Contributor | null>(null)
+  const [removeContributorLoading, setRemoveContributorLoading] = useState(false)
   const [sessions, setSessions] = useState<Session[]>([])
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
   const [batchCounts, setBatchCounts] = useState<Record<string, number>>({})
   const filterScrollRef = useRef<HTMLDivElement>(null)
+  const tableScrollRef = useRef<HTMLDivElement>(null)
   
   const deferredSearch = useDeferredValue(search)
   const ITEMS_PER_PAGE = 20
@@ -43,12 +55,6 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
       return () => clearTimeout(t)
     }
   }, [toast])
-
-  useEffect(() => {
-    const handleClick = () => setActionMenuStudentId(null)
-    document.addEventListener("mousedown", handleClick)
-    return () => document.removeEventListener("mousedown", handleClick)
-  }, [])
 
   // ELITE: Server-side search & pagination implementation
   const loadData = useCallback(async () => {
@@ -114,6 +120,21 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
     return () => controller.abort()
   }, [batches, departmentId])
 
+  const loadContributors = useCallback(async () => {
+    try {
+      const list = await api.contributors.getAllByDepartment(departmentId)
+      const map: Record<string, Contributor> = {}
+      for (const c of list) {
+        if (c.student_profile_id) map[c.student_profile_id] = c
+      }
+      setContributorsByStudentId(map)
+    } catch (err) {
+      console.error("Failed to load contributors:", err)
+    }
+  }, [departmentId])
+
+  useEffect(() => { loadContributors() }, [loadContributors])
+
   // Drag-to-scroll for batch filters
   useEffect(() => {
     const el = filterScrollRef.current
@@ -127,6 +148,35 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
     el.addEventListener('mouseleave', onUp)
     el.addEventListener('mousemove', onMove)
     return () => { el.removeEventListener('mousedown', onDown); el.removeEventListener('mouseup', onUp); el.removeEventListener('mouseleave', onUp); el.removeEventListener('mousemove', onMove) }
+  }, [])
+
+  // Drag-to-scroll + wheel-to-horizontal-scroll for the students table (narrow/md screens)
+  useEffect(() => {
+    const el = tableScrollRef.current
+    if (!el) return
+    let isDown = false, startX = 0, scrollLeft = 0
+    const onDown = (e: MouseEvent) => { isDown = true; startX = e.pageX - el.offsetLeft; scrollLeft = el.scrollLeft; el.style.cursor = 'grabbing' }
+    const onUp = () => { isDown = false; el.style.cursor = 'grab' }
+    const onMove = (e: MouseEvent) => { if (!isDown) return; e.preventDefault(); el.scrollLeft = scrollLeft - (e.pageX - el.offsetLeft - startX) }
+    const onWheel = (e: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth) return
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault()
+        el.scrollLeft += e.deltaY
+      }
+    }
+    el.addEventListener('mousedown', onDown)
+    el.addEventListener('mouseup', onUp)
+    el.addEventListener('mouseleave', onUp)
+    el.addEventListener('mousemove', onMove)
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => {
+      el.removeEventListener('mousedown', onDown)
+      el.removeEventListener('mouseup', onUp)
+      el.removeEventListener('mouseleave', onUp)
+      el.removeEventListener('mousemove', onMove)
+      el.removeEventListener('wheel', onWheel)
+    }
   }, [])
 
   // Sort students: by student_id (roll)
@@ -164,6 +214,53 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
 
   const handleAddToAlumni = (s: Student) => {
     setAlumniStudent(s)
+  }
+
+  const handleAddToContributor = (s: Student) => {
+    setContributorTier(CONTRIBUTOR_TIERS[3])
+    setContributorStudent(s)
+  }
+
+  async function handleRemoveContributor() {
+    if (!removingContributor) return
+    setRemoveContributorLoading(true)
+    try {
+      await api.contributors.hardDelete(removingContributor.id)
+      setToast("Removed from contributors")
+      setRemovingContributor(null)
+      loadContributors()
+    } catch (err: any) {
+      setToast(err.message || "Failed to remove contributor")
+    } finally {
+      setRemoveContributorLoading(false)
+    }
+  }
+
+  async function submitContributor(e: React.FormEvent) {
+    e.preventDefault()
+    if (!contributorStudent) return
+    setContributorLoading(true)
+    try {
+      const sessionName = sessions.find(sess => sess.id === contributorStudent.session_id)?.name || ""
+      await api.contributors.create({
+        name: contributorStudent.name,
+        image_url: contributorStudent.user?.avatar_url || "",
+        tier: contributorTier,
+        university_id: universityId,
+        university_name: universityName,
+        department_id: departmentId,
+        department_name: departmentName,
+        session: sessionName,
+        student_profile_id: contributorStudent.id,
+      })
+      setToast("Added to contributors!")
+      setContributorStudent(null)
+      loadContributors()
+    } catch (err: any) {
+      setToast(err.message || "Failed to add to contributors")
+    } finally {
+      setContributorLoading(false)
+    }
   }
 
   return (
@@ -243,12 +340,53 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
         </div>
       )}
 
-      <ConfirmDelete 
-        open={!!deleting} 
-        label={`student "${deleting?.name}"`} 
-        onClose={() => setDeleting(null)} 
-        onConfirm={handleDelete} 
-        loading={deleteLoading} 
+      {contributorStudent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setContributorStudent(null)} />
+          <div className="relative z-10 w-full max-w-md mx-4 rounded-sm border bg-background shadow-2xl p-6">
+            <h3 className="text-base font-black mb-1">Add to Contributor</h3>
+            <p className="text-xs text-muted-foreground mb-4">Feature this student on the app's Contributors page.</p>
+            <form onSubmit={submitContributor}>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <Avatar name={contributorStudent.name} imageUrl={contributorStudent.user?.avatar_url} size="md" />
+                  <div className="min-w-0">
+                    <p className="font-bold text-sm truncate">{contributorStudent.name}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{departmentName} &middot; {universityName}</p>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Contribution Tier</label>
+                  <select value={contributorTier} onChange={(e) => setContributorTier(e.target.value)} className={selectCls}>
+                    {CONTRIBUTOR_TIERS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button type="button" onClick={() => setContributorStudent(null)} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
+                <button type="submit" disabled={contributorLoading} className="flex-1 rounded-sm bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                  {contributorLoading && <Loader2 className="h-4 w-4 animate-spin" />} Add Contributor
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDelete
+        open={!!deleting}
+        label={`student "${deleting?.name}"`}
+        onClose={() => setDeleting(null)}
+        onConfirm={handleDelete}
+        loading={deleteLoading}
+      />
+
+      <ConfirmDelete
+        open={!!removingContributor}
+        label={`"${removingContributor?.name}" from Contributors (permanent)`}
+        onClose={() => setRemovingContributor(null)}
+        onConfirm={handleRemoveContributor}
+        loading={removeContributorLoading}
       />
 
       {/* Header & Search */}
@@ -384,28 +522,32 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
-                        <div className="relative">
-                          <button onClick={(e) => { e.stopPropagation(); setActionMenuStudentId(actionMenuStudentId === s.id ? null : s.id) }} 
+                        <div>
+                          <button onClick={(e) => { e.stopPropagation(); const el = e.currentTarget; setActionMenuAnchor(el); setActionMenuStudentId(actionMenuStudentId === s.id ? null : s.id) }}
                             className="p-2 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all shadow-sm"
                           >
                             <MoreVertical className="h-3.5 w-3.5" />
                           </button>
-                          {actionMenuStudentId === s.id && (
-                            <div className="absolute right-0 top-full mt-1 z-50 w-52 bg-background border rounded-sm shadow-lg py-1 animate-in fade-in slide-in-from-top-1 duration-150">
-                              <button onClick={() => { setActionMenuStudentId(null); handleAddToAlumni(s) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
-                                <GraduationCap className="h-4 w-4 text-primary" /> Add to Alumni
+                          <ActionMenu open={actionMenuStudentId === s.id} anchorEl={actionMenuAnchor} onClose={() => { setActionMenuStudentId(null); setActionMenuAnchor(null) }}>
+                            <button onClick={() => { setActionMenuStudentId(null); handleAddToAlumni(s) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
+                              <GraduationCap className="h-4 w-4 text-primary" /> Add to Alumni
+                            </button>
+                            {contributorsByStudentId[s.id] ? (
+                              <button onClick={() => { setActionMenuStudentId(null); setRemovingContributor(contributorsByStudentId[s.id]) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors text-red-500">
+                                <UserMinus className="h-4 w-4" /> Remove from Contributors
                               </button>
-                              <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
-                                <Handshake className="h-4 w-4" /> Add to Contributor
+                            ) : (
+                              <button onClick={() => { setActionMenuStudentId(null); handleAddToContributor(s) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
+                                <Handshake className="h-4 w-4 text-primary" /> Add to Contributor
                               </button>
-                              <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
-                                <UserCheck className="h-4 w-4" /> Att to Pro
-                              </button>
-                              <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
-                                <Send className="h-4 w-4" /> Send Mail
-                              </button>
-                            </div>
-                          )}
+                            )}
+                            <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
+                              <UserCheck className="h-4 w-4" /> Att to Pro
+                            </button>
+                            <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
+                              <Send className="h-4 w-4" /> Send Mail
+                            </button>
+                          </ActionMenu>
                         </div>
                       </div>
                     </div>
@@ -454,15 +596,15 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
               })}
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-sm border">
+            <div ref={tableScrollRef} className="overflow-x-auto rounded-sm border cursor-grab active:cursor-grabbing">
               <table className="w-full text-left text-sm">
                 <thead className="bg-muted/50 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                   <tr>
                     <th className="px-4 py-3 w-10"></th>
                     <th className="px-4 py-3">Name</th>
                     <th className="px-4 py-3">ID</th>
-                    <th className="px-4 py-3">Batch</th>
-                    <th className="px-4 py-3">Session</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Batch</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Session</th>
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">Code</th>
                     <th className="px-4 py-3 w-24"></th>
@@ -484,10 +626,10 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
                           {s.email && <p className="text-[10px] text-muted-foreground truncate max-w-[180px]">{s.email}</p>}
                         </td>
                         <td className="px-4 py-2.5 font-mono text-xs font-bold">{s.student_id}</td>
-                        <td className="px-4 py-2.5">
-                          <span className="rounded-sm bg-primary/5 border border-primary/10 px-2 py-0.5 text-[10px] font-black text-primary uppercase tracking-tighter">{batchName}</span>
+                        <td className="px-4 py-2.5 whitespace-nowrap">
+                          <span className="rounded-sm bg-primary/5 border border-primary/10 px-2 py-0.5 text-[10px] font-black text-primary uppercase tracking-tighter whitespace-nowrap">{batchName}</span>
                         </td>
-                        <td className="px-4 py-2.5 text-xs text-muted-foreground font-bold">{sessionName}</td>
+                        <td className="px-4 py-2.5 text-xs text-muted-foreground font-bold whitespace-nowrap">{sessionName}</td>
                         <td className="px-4 py-2.5">
                           <div className="flex items-center gap-2">
                             <Badge variant={s.is_regular ? "success" : "warn"} className="text-[9px] px-2 py-0.5 leading-tight font-black uppercase">{s.is_regular ? "Regular" : "Irregular"}</Badge>
@@ -522,28 +664,32 @@ export function StudentsTab({ batches, departmentId, universityId, onBatchesRefr
                             >
                               <Copy className="h-3.5 w-3.5" />
                             </button>
-                            <div className="relative">
-                              <button onClick={(e) => { e.stopPropagation(); setActionMenuStudentId(actionMenuStudentId === s.id ? null : s.id) }} 
+                            <div>
+                              <button onClick={(e) => { e.stopPropagation(); const el = e.currentTarget; setActionMenuAnchor(el); setActionMenuStudentId(actionMenuStudentId === s.id ? null : s.id) }}
                                 className="p-1.5 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
                               >
                                 <MoreVertical className="h-3.5 w-3.5" />
                               </button>
-                              {actionMenuStudentId === s.id && (
-                                <div className="absolute right-0 top-full mt-1 z-50 w-52 bg-background border rounded-sm shadow-lg py-1 animate-in fade-in slide-in-from-top-1 duration-150">
-                                  <button onClick={() => { setActionMenuStudentId(null); handleAddToAlumni(s) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
-                                    <GraduationCap className="h-4 w-4 text-primary" /> Add to Alumni
+                              <ActionMenu open={actionMenuStudentId === s.id} anchorEl={actionMenuAnchor} onClose={() => { setActionMenuStudentId(null); setActionMenuAnchor(null) }}>
+                                <button onClick={() => { setActionMenuStudentId(null); handleAddToAlumni(s) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
+                                  <GraduationCap className="h-4 w-4 text-primary" /> Add to Alumni
+                                </button>
+                                {contributorsByStudentId[s.id] ? (
+                                  <button onClick={() => { setActionMenuStudentId(null); setRemovingContributor(contributorsByStudentId[s.id]) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors text-red-500">
+                                    <UserMinus className="h-4 w-4" /> Remove from Contributors
                                   </button>
-                                  <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
-                                    <Handshake className="h-4 w-4" /> Add to Contributor
+                                ) : (
+                                  <button onClick={() => { setActionMenuStudentId(null); handleAddToContributor(s) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
+                                    <Handshake className="h-4 w-4 text-primary" /> Add to Contributor
                                   </button>
-                                  <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
-                                    <UserCheck className="h-4 w-4" /> Att to Pro
-                                  </button>
-                                  <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
-                                    <Send className="h-4 w-4" /> Send Mail
-                                  </button>
-                                </div>
-                              )}
+                                )}
+                                <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
+                                  <UserCheck className="h-4 w-4" /> Att to Pro
+                                </button>
+                                <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
+                                  <Send className="h-4 w-4" /> Send Mail
+                                </button>
+                              </ActionMenu>
                             </div>
                           </div>
                         </td>

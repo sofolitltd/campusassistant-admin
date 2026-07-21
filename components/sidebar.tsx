@@ -3,10 +3,10 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { 
-  LayoutDashboard, 
-  Users, 
-  Image as ImageIcon, 
+import {
+  LayoutDashboard,
+  Users,
+  Image as ImageIcon,
   CreditCard,
   School,
   Settings,
@@ -15,7 +15,8 @@ import {
   ChevronRight,
   Search,
   Bell,
-  Phone
+  Phone,
+  Handshake
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -55,6 +56,11 @@ const navItems = [
     title: "Contacts",
     href: "/contacts",
     icon: Phone,
+  },
+  {
+    title: "Contributors",
+    href: "/contributors",
+    icon: Handshake,
   },
 ]
 

@@ -2,14 +2,15 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { 
-  LayoutDashboard, 
-  Users, 
-  Image as ImageIcon, 
+import {
+  LayoutDashboard,
+  Users,
+  Image as ImageIcon,
   CreditCard,
   School,
   Settings,
-  Phone
+  Phone,
+  Bell
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -38,6 +39,11 @@ const navItems = [
     title: "Subs",
     href: "/subscriptions",
     icon: CreditCard,
+  },
+  {
+    title: "Notify",
+    href: "/notifications",
+    icon: Bell,
   },
   {
     title: "Helps",
