@@ -16,7 +16,11 @@ import {
   Search,
   Bell,
   Phone,
-  Handshake
+  Handshake,
+  Sparkles,
+  Users2,
+  ShoppingBag,
+  Landmark
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -46,6 +50,26 @@ const navItems = [
     title: "Subscriptions",
     href: "/subscriptions",
     icon: CreditCard,
+  },
+  {
+    title: "Skills",
+    href: "/skills",
+    icon: Sparkles,
+  },
+  {
+    title: "Clubs",
+    href: "/clubs",
+    icon: Users2,
+  },
+  {
+    title: "Associations",
+    href: "/associations",
+    icon: Landmark,
+  },
+  {
+    title: "Marketplace",
+    href: "/marketplace",
+    icon: ShoppingBag,
   },
   {
     title: "Notifications",

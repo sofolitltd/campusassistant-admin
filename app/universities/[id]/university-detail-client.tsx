@@ -2,62 +2,72 @@
 
 import { useState, useCallback, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { 
+import {
   ArrowLeft, MapPin, Globe, GraduationCap, Building2, ImageIcon, Info,
   ExternalLink, Plus, Loader2, CalendarDays, MoreVertical, Pencil,
   Trash2, Save, Maximize, Share2, Layers, Calendar, Eye, Layout,
   School, Phone, Bus
 } from "lucide-react"
 import Link from "next/link"
-import { api, University, Department, Hall, Banner, EmergencyContact, getFullImageUrl, Transport } from "@/lib/api"
+import { api, University, Department, Hall, Faculty, Banner, EmergencyContact, getFullImageUrl, Transport } from "@/lib/api"
 import { ContactsTab } from "./departments/[...slug]/components/ExtraTabs"
 import { TransportTab } from "./components/TransportTab"
 import { cn } from "@/lib/utils"
 import { ConfirmDelete, Modal, Field, inputCls } from "./departments/[...slug]/components/SharedUI"
 
-type TabType = "overview" | "departments" | "halls" | "banners" | "contacts" | "transports"
+type TabType = "overview" | "departments" | "faculties" | "halls" | "banners" | "contacts" | "transports"
 
 interface UniversityDetailClientProps {
   university: University
   initialDepartments: Department[]
   initialHalls: Hall[]
+  initialFaculties: Faculty[]
   initialBanners: Banner[]
   initialContacts: EmergencyContact[]
   initialTransports: Transport[]
   universityId: string
 }
 
-export default function UniversityDetailClient({ 
-  university, 
-  initialDepartments, 
-  initialHalls, 
+export default function UniversityDetailClient({
+  university,
+  initialDepartments,
+  initialHalls,
+  initialFaculties,
   initialBanners,
   initialContacts,
   initialTransports,
-  universityId 
+  universityId
 }: UniversityDetailClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  
+
   // Initialize from URL or default to departments
   const [activeTab, setActiveTab] = useState<TabType>((searchParams.get("tab") as TabType) || "departments")
   const [departments, setDepartments] = useState<Department[]>(initialDepartments)
   const [halls, setHalls] = useState<Hall[]>(initialHalls)
+  const [faculties, setFaculties] = useState<Faculty[]>(initialFaculties)
   const [banners, setBanners] = useState<Banner[]>(initialBanners)
   const [contacts, setContacts] = useState<EmergencyContact[]>(initialContacts)
   const [transports, setTransports] = useState<Transport[]>(initialTransports)
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
-  
+
   const [deletingDept, setDeletingDept] = useState<Department | null>(null)
   const [deletingHall, setDeletingHall] = useState<Hall | null>(null)
+  const [deletingFaculty, setDeletingFaculty] = useState<Faculty | null>(null)
   const [deletingBanner, setDeletingBanner] = useState<Banner | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
-  
+
   // Hall states
   const [isHallModalOpen, setIsHallModalOpen] = useState(false)
   const [editingHall, setEditingHall] = useState<Hall | null>(null)
   const [hallName, setHallName] = useState("")
   const [hallLoading, setHallLoading] = useState(false)
+
+  // Faculty states
+  const [isFacultyModalOpen, setIsFacultyModalOpen] = useState(false)
+  const [editingFaculty, setEditingFaculty] = useState<Faculty | null>(null)
+  const [facultyName, setFacultyName] = useState("")
+  const [facultyLoading, setFacultyLoading] = useState(false)
 
   // Sync URL when tab changes internally
   const handleTabChange = useCallback((tab: TabType) => {
@@ -114,6 +124,39 @@ export default function UniversityDetailClient({
     }
   }
 
+  async function handleSaveFaculty(e: React.FormEvent) {
+    e.preventDefault()
+    setFacultyLoading(true)
+    try {
+      if (editingFaculty) {
+        const updated = await api.faculties.update(editingFaculty.id, { name: facultyName })
+        setFaculties(prev => prev.map(f => f.id === editingFaculty.id ? updated : f))
+      } else {
+        const created = await api.faculties.create({ name: facultyName, university_id: universityId })
+        setFaculties(prev => [...prev, created])
+      }
+      setIsFacultyModalOpen(false)
+    } catch (err: any) {
+      alert(err.message)
+    } finally {
+      setFacultyLoading(false)
+    }
+  }
+
+  async function handleDeleteFaculty() {
+    if (!deletingFaculty) return
+    setDeleteLoading(true)
+    try {
+      await api.faculties.delete(deletingFaculty.id)
+      setFaculties(prev => prev.filter(f => f.id !== deletingFaculty.id))
+      setDeletingFaculty(null)
+    } catch (err: any) {
+      alert(err.message)
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
+
   async function handleDeleteBanner() {
     if (!deletingBanner) return
     setDeleteLoading(true)
@@ -140,6 +183,7 @@ export default function UniversityDetailClient({
 
   const tabs = [
     { id: "departments", label: "Departments", icon: GraduationCap },
+    { id: "faculties", label: "Faculties", icon: Layers },
     { id: "banners", label: "Banners", icon: ImageIcon },
     { id: "contacts", label: "Contacts", icon: Phone },
     { id: "transports", label: "Transports", icon: Bus },
@@ -426,6 +470,129 @@ export default function UniversityDetailClient({
               label={`department "${deletingDept?.name}"`}
               onClose={() => setDeletingDept(null)} 
               onConfirm={handleDeleteDept} 
+              loading={deleteLoading}
+            />
+          </div>
+        )}
+
+        {activeTab === "faculties" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold tracking-tight">Academic Faculties</h3>
+              <button
+                onClick={() => {
+                  setEditingFaculty(null);
+                  setFacultyName("");
+                  setIsFacultyModalOpen(true);
+                }}
+                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 shadow-sm transition-all active:scale-95"
+              >
+                <Plus className="h-3.5 w-3.5" /> Add Faculty
+              </button>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {faculties.length === 0 ? (
+                <div className="col-span-full rounded-xl border border-dashed p-12 text-center text-muted-foreground text-sm bg-muted/20">
+                  No faculties listed for this university.
+                </div>
+              ) : (
+                faculties.map((faculty) => (
+                  <div key={faculty.id} className="relative flex items-center justify-between rounded-xl border bg-card p-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/5 text-primary font-black text-sm uppercase border border-primary/10">
+                        {faculty.name.charAt(0)}
+                      </div>
+                      <span className="text-sm font-bold tracking-tight">{faculty.name}</span>
+                    </div>
+
+                    <div className="relative">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setActiveMenu(activeMenu === `faculty-${faculty.id}` ? null : `faculty-${faculty.id}`);
+                        }}
+                        className="h-8 w-8 rounded-full hover:bg-accent flex items-center justify-center transition-colors border border-transparent hover:border-border"
+                      >
+                        <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                      </button>
+
+                      {activeMenu === `faculty-${faculty.id}` && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-10"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setActiveMenu(null);
+                            }}
+                          />
+                          <div
+                            className="absolute right-0 top-10 w-32 rounded-md border bg-card p-1 shadow-lg z-20 animate-in fade-in zoom-in-95 duration-100"
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                          >
+                            <button
+                              onClick={() => {
+                                setActiveMenu(null);
+                                setEditingFaculty(faculty);
+                                setFacultyName(faculty.name);
+                                setIsFacultyModalOpen(true);
+                              }}
+                              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent transition-colors"
+                            >
+                              <Pencil className="h-3.5 w-3.5 text-muted-foreground" /> Edit
+                            </button>
+                            <button
+                              onClick={() => {
+                                setActiveMenu(null);
+                                setDeletingFaculty(faculty);
+                              }}
+                              className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" /> Delete
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <Modal
+              open={isFacultyModalOpen}
+              onClose={() => setIsFacultyModalOpen(false)}
+              title={editingFaculty ? "Edit Faculty" : "Add Faculty"}
+            >
+              <form onSubmit={handleSaveFaculty} className="p-6 space-y-6">
+                <Field label="Faculty Name" required>
+                  <input
+                    required
+                    value={facultyName}
+                    onChange={(e) => setFacultyName(e.target.value)}
+                    placeholder="e.g. Faculty of Science"
+                    className={cn(inputCls, "font-bold")}
+                  />
+                </Field>
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button type="button" onClick={() => setIsFacultyModalOpen(false)} className="rounded-sm border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors">
+                    Cancel
+                  </button>
+                  <button type="submit" disabled={facultyLoading} className="rounded-sm bg-primary px-6 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-colors flex items-center gap-2 shadow-sm">
+                    {facultyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    Save
+                  </button>
+                </div>
+              </form>
+            </Modal>
+
+            <ConfirmDelete
+              open={!!deletingFaculty}
+              label={`faculty "${deletingFaculty?.name}"`}
+              onClose={() => setDeletingFaculty(null)}
+              onConfirm={handleDeleteFaculty}
               loading={deleteLoading}
             />
           </div>

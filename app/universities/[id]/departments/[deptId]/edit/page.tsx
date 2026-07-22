@@ -14,7 +14,8 @@ import {
   X
 } from "lucide-react"
 import Link from "next/link"
-import { api, getApiKey, getApiUrl } from "@/lib/api"
+import { api, getApiKey, getApiUrl, Faculty } from "@/lib/api"
+import { selectCls } from "../../[...slug]/components/SharedUI"
 
 export default function EditDepartmentPage() {
   const router = useRouter()
@@ -26,15 +27,21 @@ export default function EditDepartmentPage() {
   const [initialLoading, setInitialLoading] = useState(true)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
-  
+  const [faculties, setFaculties] = useState<Faculty[]>([])
+
   const [formData, setFormData] = useState({
     name: "",
     acronym: "",
     slug: "",
     established_year: "",
     website_url: "",
-    about: ""
+    about: "",
+    faculty_id: ""
   })
+
+  useEffect(() => {
+    api.faculties.getAllByUniversity(universityId).then(setFaculties).catch(() => {})
+  }, [universityId])
 
   useEffect(() => {
     async function loadData() {
@@ -46,7 +53,8 @@ export default function EditDepartmentPage() {
           slug: dept.slug || "",
           established_year: dept.established_year?.toString() || "",
           website_url: dept.website_url || "",
-          about: dept.about || ""
+          about: dept.about || "",
+          faculty_id: dept.faculty_id || ""
         })
         if (dept.logo_url) {
           setLogoPreview(dept.logo_url)
@@ -73,7 +81,7 @@ export default function EditDepartmentPage() {
     setFormData(prev => ({ ...prev, name, slug }))
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     if (name === "name") {
       handleNameChange(e as React.ChangeEvent<HTMLInputElement>);
@@ -139,6 +147,9 @@ export default function EditDepartmentPage() {
       await api.departments.update(departmentId, {
         ...formData,
         established_year: parseInt(formData.established_year) || 0,
+        // Explicit null (not omitted) so clearing the faculty back to "None"
+        // actually unsets it server-side, instead of leaving the prior value.
+        faculty_id: formData.faculty_id || null,
         logo_url,
         university_id: universityId
       })
@@ -231,6 +242,21 @@ export default function EditDepartmentPage() {
                     />
                   </div>
                 </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Faculty</label>
+                <select
+                  name="faculty_id"
+                  value={formData.faculty_id}
+                  onChange={handleChange}
+                  className={`mt-1 ${selectCls}`}
+                >
+                  <option value="">No faculty assigned</option>
+                  {faculties.map((faculty) => (
+                    <option key={faculty.id} value={faculty.id}>{faculty.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>

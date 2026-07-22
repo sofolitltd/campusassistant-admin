@@ -136,17 +136,25 @@ function PlanModal({
 }) {
   const [title, setTitle] = useState("")
   const [price, setPrice] = useState("")
+  const [discount, setDiscount] = useState("0")
   const [index, setIndex] = useState("0")
+  const [isLifetime, setIsLifetime] = useState(false)
   const [durationValue, setDurationValue] = useState("1")
   const [durationUnit, setDurationUnit] = useState<"Days"|"Months"|"Years">("Months")
   const [targets, setTargets] = useState<SubscriptionTarget[]>([])
   const [loading, setLoading] = useState(false)
+
+  // A large sentinel so any other code path that reads duration_days before
+  // checking is_lifetime still gets a sane, non-zero value.
+  const LIFETIME_DURATION_DAYS = 36500
 
   useEffect(() => {
     if (open) {
       if (plan) {
         setTitle(plan.title || "");
         setPrice(plan.price?.toString() || "");
+        setDiscount(plan.discount?.toString() || "0");
+        setIsLifetime(plan.is_lifetime || false);
         const d = plan.duration_days || 30;
         if (d % 365 === 0 && d >= 365) {
           setDurationValue((d / 365).toString());
@@ -161,7 +169,7 @@ function PlanModal({
         setTargets(plan.targets || [])
         setIndex(plan.index?.toString() || "0")
       } else {
-        setTitle(""); setPrice(""); setDurationValue("1"); setDurationUnit("Months"); setTargets([]); setIndex("0")
+        setTitle(""); setPrice(""); setDiscount("0"); setIsLifetime(false); setDurationValue("1"); setDurationUnit("Months"); setTargets([]); setIndex("0")
       }
     }
   }, [open, plan])
@@ -175,12 +183,14 @@ function PlanModal({
     try {
       const val = parseInt(durationValue) || 1;
       const multiplier = durationUnit === "Years" ? 365 : durationUnit === "Months" ? 30 : 1;
-      
+
       const payload: Partial<SubscriptionPlan> = {
-        title, 
+        title,
         price: parseInt(price) || 0,
+        discount: parseInt(discount) || 0,
         index: parseInt(index) || 0,
-        duration_days: val * multiplier,
+        is_lifetime: isLifetime,
+        duration_days: isLifetime ? LIFETIME_DURATION_DAYS : val * multiplier,
         targets: targets
       }
       if (plan) {
@@ -202,14 +212,19 @@ function PlanModal({
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-5 overflow-y-auto pr-1">
+          <div className="space-y-1">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Title</label>
+            <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. 1 Year Pro" className="w-full rounded-sm border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" required />
+          </div>
+
           <div className="grid grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Title</label>
-              <input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. 1 Year Pro" className="w-full rounded-sm border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" required />
-            </div>
             <div className="space-y-1">
               <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Price (BDT)</label>
               <input type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="e.g. 1200" className="w-full rounded-sm border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" required />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Discount (%)</label>
+              <input type="number" min="0" max="100" value={discount} onChange={e => setDiscount(e.target.value)} placeholder="e.g. 20" className="w-full rounded-sm border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Order</label>
@@ -218,19 +233,34 @@ function PlanModal({
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-              <Calendar className="h-3 w-3" /> Duration
-            </label>
-            <div className="flex gap-2">
-              <input type="number" value={durationValue} onChange={e => setDurationValue(e.target.value)} className="flex-1 rounded-sm border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" required />
-              <div className="flex gap-1">
-                {(["Days", "Months", "Years"] as const).map(u => (
-                  <button key={u} type="button" onClick={() => setDurationUnit(u)} className={cn("px-2 py-1 text-[10px] font-bold border rounded-sm hover:bg-muted transition-all", durationUnit === u && "bg-primary border-primary text-white")}>
-                    {u}
-                  </button>
-                ))}
-              </div>
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                <Calendar className="h-3 w-3" /> Duration
+              </label>
+              <button
+                type="button"
+                onClick={() => setIsLifetime(!isLifetime)}
+                className={cn("flex items-center gap-1.5 px-2 py-1 text-[10px] font-black uppercase tracking-widest border rounded-sm transition-all",
+                  isLifetime ? "bg-primary border-primary text-white" : "text-muted-foreground hover:border-primary/50"
+                )}
+              >
+                {isLifetime && <Check className="h-3 w-3" />} Lifetime
+              </button>
             </div>
+            {isLifetime ? (
+              <p className="text-xs text-muted-foreground italic px-1 py-2">This plan never expires — duration doesn&apos;t apply.</p>
+            ) : (
+              <div className="flex gap-2">
+                <input type="number" value={durationValue} onChange={e => setDurationValue(e.target.value)} className="flex-1 rounded-sm border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" required />
+                <div className="flex gap-1">
+                  {(["Days", "Months", "Years"] as const).map(u => (
+                    <button key={u} type="button" onClick={() => setDurationUnit(u)} className={cn("px-2 py-1 text-[10px] font-bold border rounded-sm hover:bg-muted transition-all", durationUnit === u && "bg-primary border-primary text-white")}>
+                      {u}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -315,7 +345,7 @@ export default function SubscriptionsClient() {
         <Card className="p-4 border-l-4 border-l-primary">
           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Pro Users</p>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-black">{subscribers.filter(s => new Date(s.end_date) > new Date()).length}</span>
+            <span className="text-2xl font-black">{subscribers.filter(s => s.end_date === null || new Date(s.end_date) > new Date()).length}</span>
             <Badge variant="success">Active</Badge>
           </div>
         </Card>
@@ -374,7 +404,7 @@ export default function SubscriptionsClient() {
                   <tr><td colSpan={6} className="px-4 py-16 text-center text-muted-foreground italic">No subscription history available.</td></tr>
                 ) : (
                   subscribers.map(sub => {
-                    const isExpired = new Date(sub.end_date) < new Date()
+                    const isExpired = sub.end_date !== null && new Date(sub.end_date) < new Date()
                     return (
                       <tr key={sub.id} className="hover:bg-muted/10 transition-colors">
                         <td className="px-4 py-4">
@@ -396,8 +426,14 @@ export default function SubscriptionsClient() {
                         </td>
                         <td className="px-4 py-4">
                           <div className="flex flex-col">
-                            <span className="text-xs font-bold">{new Date(sub.end_date).toLocaleDateString()}</span>
-                            <span className="text-[10px] text-muted-foreground italic">Expires at midnight</span>
+                            {sub.end_date === null ? (
+                              <Badge variant="indigo">Lifetime</Badge>
+                            ) : (
+                              <>
+                                <span className="text-xs font-bold">{new Date(sub.end_date).toLocaleDateString()}</span>
+                                <span className="text-[10px] text-muted-foreground italic">Expires at midnight</span>
+                              </>
+                            )}
                           </div>
                         </td>
                         <td className="px-4 py-4">

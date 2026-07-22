@@ -14,7 +14,8 @@ import {
   X
 } from "lucide-react"
 import Link from "next/link"
-import { api, getApiKey, getApiUrl } from "@/lib/api"
+import { api, getApiKey, getApiUrl, Faculty } from "@/lib/api"
+import { selectCls } from "../[...slug]/components/SharedUI"
 
 export default function AddDepartmentPage() {
   const router = useRouter()
@@ -24,15 +25,21 @@ export default function AddDepartmentPage() {
   const [loading, setLoading] = useState(false)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
-  
+  const [faculties, setFaculties] = useState<Faculty[]>([])
+
   const [formData, setFormData] = useState({
     name: "",
     acronym: "",
     slug: "",
     established_year: "",
     website_url: "",
-    about: ""
+    about: "",
+    faculty_id: ""
   })
+
+  useEffect(() => {
+    api.faculties.getAllByUniversity(universityId).then(setFaculties).catch(() => {})
+  }, [universityId])
 
   // Auto-generate slug from name
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,7 +54,7 @@ export default function AddDepartmentPage() {
     setFormData(prev => ({ ...prev, name, slug }))
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     if (name === "name") {
       handleNameChange(e as React.ChangeEvent<HTMLInputElement>);
@@ -101,6 +108,7 @@ export default function AddDepartmentPage() {
       await api.departments.create({
         ...formData,
         established_year: parseInt(formData.established_year) || 0,
+        faculty_id: formData.faculty_id || undefined,
         logo_url,
         university_id: universityId
       })
@@ -185,6 +193,21 @@ export default function AddDepartmentPage() {
                     />
                   </div>
                 </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Faculty</label>
+                <select
+                  name="faculty_id"
+                  value={formData.faculty_id}
+                  onChange={handleChange}
+                  className={`mt-1 ${selectCls}`}
+                >
+                  <option value="">No faculty assigned</option>
+                  {faculties.map((faculty) => (
+                    <option key={faculty.id} value={faculty.id}>{faculty.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>

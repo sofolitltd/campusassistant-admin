@@ -68,9 +68,18 @@ export interface Department {
   website_url: string;
   logo_url: string;
   university_id: string;
+  faculty_id?: string | null;
+  faculty?: Faculty;
 }
 
 export interface Hall {
+  id: string;
+  name: string;
+  slug: string;
+  university_id: string;
+}
+
+export interface Faculty {
   id: string;
   name: string;
   slug: string;
@@ -381,6 +390,7 @@ export interface SubscriptionPlan {
   price: number;
   discount: number;
   duration_days: number;
+  is_lifetime: boolean;
   index: number;
   targets: SubscriptionTarget[];
 }
@@ -392,6 +402,186 @@ export interface SubscriptionTarget {
   department_id: string;
 }
 
+// SkillTarget links a Skill to a university/department. A Skill with zero
+// targets is global (visible to everyone) — unlike SubscriptionTarget,
+// this is optional, not required.
+export interface SkillTarget {
+  id?: string;
+  skill_id?: string;
+  university_id: string;
+  department_id: string;
+}
+
+export interface SkillVideo {
+  id: string;
+  skill_id: string;
+  youtube_url: string;
+  title: string;
+  thumbnail_url: string;
+  duration: string;
+  index: number;
+}
+
+export interface Skill {
+  id: string;
+  title: string;
+  description: string;
+  thumbnail_url: string;
+  index: number;
+  is_published: boolean;
+  targets: SkillTarget[];
+  videos?: SkillVideo[];
+}
+
+export type MerchantStatus = 'pending' | 'approved' | 'rejected';
+
+export interface Merchant {
+  id: string;
+  user_id: string;
+  business_name: string;
+  description: string;
+  logo_url: string;
+  commission_rate: number;
+  status: MerchantStatus;
+  is_platform: boolean;
+  rejection_reason?: string;
+  created_at: string;
+}
+
+// ProductTarget links a Product to a university/department. A Product with
+// zero targets is global (visible to everyone), same shape as SkillTarget.
+export interface ProductTarget {
+  id?: string;
+  product_id?: string;
+  university_id: string;
+  department_id: string;
+}
+
+export interface Product {
+  id: string;
+  merchant_id: string;
+  merchant?: Merchant;
+  title: string;
+  description: string;
+  price: number;
+  stock: number;
+  image_urls: string[];
+  category: string;
+  is_published: boolean;
+  targets: ProductTarget[];
+  created_at: string;
+}
+
+export type ClubType = 'department' | 'university';
+
+export const CLUB_CATEGORIES = [
+  'Academic',
+  'Cultural',
+  'Sports',
+  'Technology',
+  'Arts',
+  'Social Service',
+  'Debate',
+  'Other',
+] as const;
+export type ClubCategory = typeof CLUB_CATEGORIES[number];
+
+export interface Club {
+  id: string;
+  name: string;
+  description: string;
+  club_type: ClubType;
+  university_id: string;
+  department_id?: string | null;
+  logo_url?: string;
+  banner_url?: string;
+  founded_year?: number;
+  is_active: boolean;
+  social_links?: { facebook?: string; instagram?: string; linkedin?: string };
+  contact_email?: string;
+  contact_phone?: string;
+  followers_count: number;
+  category?: string;
+  is_verified: boolean;
+  created_at: string;
+}
+
+export interface ClubEvent {
+  id: string;
+  club_id: string;
+  title: string;
+  description: string;
+  image_url: string;
+  location: string;
+  start_at: string;
+  end_at?: string;
+  // Toggling this on at create time is what triggers the push notification
+  // to the club's followers — see ClubEventManager for the confirmation UI.
+  is_published: boolean;
+  created_at: string;
+}
+
+export type AssociationType = 'district' | 'sub_district';
+
+export const ASSOCIATION_CATEGORIES = [
+  'Regional Welfare',
+  'Cultural',
+  'Sports',
+  'Social Service',
+  'Academic',
+  'Networking',
+  'Other',
+] as const;
+export type AssociationCategory = typeof ASSOCIATION_CATEGORIES[number];
+
+export interface BDSubDistrict {
+  id: string;
+  name: string;
+}
+
+export interface BDDistrict {
+  id: string;
+  name: string;
+  division?: string;
+  sub_districts: BDSubDistrict[];
+}
+
+export interface Association {
+  id: string;
+  name: string;
+  description: string;
+  association_type: AssociationType;
+  university_id: string;
+  district_id: string;
+  district_name: string;
+  sub_district_id?: string | null;
+  sub_district_name?: string | null;
+  logo_url?: string;
+  banner_url?: string;
+  founded_year?: number;
+  is_active: boolean;
+  social_links?: { facebook?: string; instagram?: string; linkedin?: string };
+  contact_email?: string;
+  contact_phone?: string;
+  followers_count: number;
+  category?: string;
+  is_verified: boolean;
+  created_at: string;
+}
+
+export interface AssociationEvent {
+  id: string;
+  association_id: string;
+  title: string;
+  description: string;
+  image_url: string;
+  location: string;
+  start_at: string;
+  end_at?: string;
+  is_published: boolean;
+  created_at: string;
+}
+
 export interface UserSubscription {
   id: string;
   user_id: string;
@@ -399,7 +589,7 @@ export interface UserSubscription {
   plan: string;
   price: number;
   start_date: string;
-  end_date: string;
+  end_date: string | null; // null = Lifetime plan, never expires
   created_at: string;
 }
 
@@ -546,6 +736,114 @@ export const api = {
       fetchWithAuth(`/halls/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/halls/${id}`, { method: 'DELETE' }),
+  },
+  faculties: {
+    getAllByUniversity: (universityId: string): Promise<Faculty[]> =>
+      fetchWithAuth(`/faculties?university_id=${universityId}`).then((res: PaginatedResponse<Faculty>) => res.data ?? []),
+    create: (data: Partial<Faculty>): Promise<Faculty> =>
+      fetchWithAuth('/faculties', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<Faculty>): Promise<Faculty> =>
+      fetchWithAuth(`/faculties/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/faculties/${id}`, { method: 'DELETE' }),
+  },
+  skills: {
+    getAll: (): Promise<Skill[]> =>
+      fetchWithAuth('/skills').then((res: PaginatedResponse<Skill>) => res.data ?? []),
+    getById: (id: string): Promise<Skill> =>
+      fetchWithAuth(`/skills/${id}`),
+    create: (data: Partial<Skill>): Promise<Skill> =>
+      fetchWithAuth('/skills', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<Skill>): Promise<Skill> =>
+      fetchWithAuth(`/skills/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/skills/${id}`, { method: 'DELETE' }),
+  },
+  skillVideos: {
+    getBySkill: (skillId: string): Promise<SkillVideo[]> =>
+      fetchWithAuth(`/skill-videos?skill_id=${skillId}`).then((res: PaginatedResponse<SkillVideo>) => res.data ?? []),
+    create: (data: Partial<SkillVideo>): Promise<SkillVideo> =>
+      fetchWithAuth('/skill-videos', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<SkillVideo>): Promise<SkillVideo> =>
+      fetchWithAuth(`/skill-videos/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/skill-videos/${id}`, { method: 'DELETE' }),
+  },
+  merchants: {
+    getAll: (status?: MerchantStatus): Promise<Merchant[]> =>
+      fetchWithAuth(`/merchants${status ? `?status=${status}` : ''}`).then((res: PaginatedResponse<Merchant>) => res.data ?? []),
+    getById: (id: string): Promise<Merchant> =>
+      fetchWithAuth(`/merchants/${id}`),
+    getPlatform: (): Promise<Merchant> =>
+      fetchWithAuth('/merchants/platform'),
+    update: (id: string, data: Partial<Merchant>): Promise<Merchant> =>
+      fetchWithAuth(`/merchants/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    approve: (id: string): Promise<void> =>
+      fetchWithAuth(`/merchants/${id}/approve`, { method: 'PUT' }),
+    reject: (id: string, reason?: string): Promise<void> =>
+      fetchWithAuth(`/merchants/${id}/reject`, { method: 'PUT', body: JSON.stringify({ reason }) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/merchants/${id}`, { method: 'DELETE' }),
+  },
+  products: {
+    getAll: (merchantId?: string): Promise<Product[]> =>
+      fetchWithAuth(`/products${merchantId ? `?merchant_id=${merchantId}` : ''}`).then((res: PaginatedResponse<Product>) => res.data ?? []),
+    getById: (id: string): Promise<Product> =>
+      fetchWithAuth(`/products/${id}`),
+    create: (data: Partial<Product>): Promise<Product> =>
+      fetchWithAuth('/products', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<Product>): Promise<Product> =>
+      fetchWithAuth(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/products/${id}`, { method: 'DELETE' }),
+  },
+  clubs: {
+    getAll: (params?: string): Promise<Club[]> =>
+      fetchWithAuth(`/clubs?limit=500&${params || ''}`).then((res: PaginatedResponse<Club>) => res.data ?? []),
+    getById: (id: string): Promise<Club> =>
+      fetchWithAuth(`/clubs/${id}`),
+    create: (data: Partial<Club>): Promise<Club> =>
+      fetchWithAuth('/clubs', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<Club>): Promise<Club> =>
+      fetchWithAuth(`/clubs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/clubs/${id}`, { method: 'DELETE' }),
+  },
+  clubEvents: {
+    getByClub: (clubId: string): Promise<ClubEvent[]> =>
+      fetchWithAuth(`/club-events?club_id=${clubId}`).then((res: PaginatedResponse<ClubEvent>) => res.data ?? []),
+    create: (data: Partial<ClubEvent>): Promise<ClubEvent> =>
+      fetchWithAuth('/club-events', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<ClubEvent>): Promise<ClubEvent> =>
+      fetchWithAuth(`/club-events/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/club-events/${id}`, { method: 'DELETE' }),
+  },
+  bdDistricts: {
+    getAll: (): Promise<BDDistrict[]> =>
+      fetchWithAuth(`/bd-districts`),
+  },
+  associations: {
+    getAll: (params?: string): Promise<Association[]> =>
+      fetchWithAuth(`/associations?limit=500&${params || ''}`).then((res: PaginatedResponse<Association>) => res.data ?? []),
+    getById: (id: string): Promise<Association> =>
+      fetchWithAuth(`/associations/${id}`),
+    create: (data: Partial<Association>): Promise<Association> =>
+      fetchWithAuth('/associations', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<Association>): Promise<Association> =>
+      fetchWithAuth(`/associations/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/associations/${id}`, { method: 'DELETE' }),
+  },
+  associationEvents: {
+    getByAssociation: (associationId: string): Promise<AssociationEvent[]> =>
+      fetchWithAuth(`/association-events?association_id=${associationId}`).then((res: PaginatedResponse<AssociationEvent>) => res.data ?? []),
+    create: (data: Partial<AssociationEvent>): Promise<AssociationEvent> =>
+      fetchWithAuth('/association-events', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<AssociationEvent>): Promise<AssociationEvent> =>
+      fetchWithAuth(`/association-events/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/association-events/${id}`, { method: 'DELETE' }),
   },
   sessions: {
     getAll: (params?: string): Promise<Session[]> =>
