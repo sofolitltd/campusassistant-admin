@@ -9,7 +9,10 @@ import {
   Loader2,
   Percent,
   Save,
-  AlertTriangle
+  AlertTriangle,
+  Phone,
+  Mail,
+  Tag
 } from "lucide-react"
 import { api, Merchant, MerchantStatus, getFullImageUrl } from "@/lib/api"
 import { ConfirmDelete } from "../../universities/[id]/departments/[...slug]/components/SharedUI"
@@ -192,6 +195,29 @@ export default function MerchantsClient({ initialMerchants }: MerchantsClientPro
 
                 {merchant.description && (
                   <p className="text-xs text-muted-foreground line-clamp-2">{merchant.description}</p>
+                )}
+
+                {(merchant.business_type || merchant.phone || merchant.email) && (
+                  <div className="space-y-1 rounded-sm border border-dashed border-border/60 bg-muted/20 p-2">
+                    {merchant.business_type && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <Tag className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{merchant.business_type}</span>
+                      </div>
+                    )}
+                    {merchant.phone && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <Phone className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{merchant.phone}</span>
+                      </div>
+                    )}
+                    {merchant.email && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <Mail className="h-3 w-3 flex-shrink-0" />
+                        <span className="truncate">{merchant.email}</span>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {merchant.status === "rejected" && merchant.rejection_reason && (

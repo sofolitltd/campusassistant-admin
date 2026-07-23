@@ -2,32 +2,32 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ShoppingBag, Store, Package, Layers } from "lucide-react"
+import { Briefcase, LayoutList, Layers } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const tabs = [
-  { title: "Merchants", href: "/marketplace/merchants", icon: Store },
-  { title: "Products", href: "/marketplace/products", icon: Package },
-  { title: "Categories", href: "/marketplace/categories", icon: Layers },
-  { title: "Orders", href: "/marketplace/orders", icon: ShoppingBag },
+  { title: "Circulars", href: "/career", icon: LayoutList },
+  { title: "Categories", href: "/career/categories", icon: Layers },
 ]
 
-export default function MarketplaceLayout({ children }: { children: React.ReactNode }) {
+export default function CareerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <div className="rounded-full bg-primary/10 p-3"><ShoppingBag className="h-6 w-6 text-primary" /></div>
+        <div className="rounded-full bg-primary/10 p-3"><Briefcase className="h-6 w-6 text-primary" /></div>
         <div>
-          <h1 className="text-2xl font-black tracking-tight">Campus Marketplace</h1>
-          <p className="text-sm text-muted-foreground">Manage merchants, products, categories, and orders.</p>
+          <h1 className="text-2xl font-black tracking-tight">Career</h1>
+          <p className="text-sm text-muted-foreground">Post job/exam circulars for students to browse and save.</p>
         </div>
       </div>
 
       <div className="flex gap-1 rounded-sm border bg-muted/20 p-1 w-fit">
         {tabs.map(tab => {
-          const active = pathname?.startsWith(tab.href)
+          const active = tab.href === "/career"
+            ? pathname === tab.href
+            : pathname?.startsWith(tab.href)
           return (
             <Link
               key={tab.href}

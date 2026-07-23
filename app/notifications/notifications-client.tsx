@@ -98,6 +98,16 @@ export default function NotificationsClient({ initialNotifications }: Notificati
                 <Bell className="h-5 w-5" />
               </div>
 
+              {notification.image_url && (
+                <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg border bg-muted">
+                  <img
+                    src={notification.image_url}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              )}
+
               <div className="min-w-0 flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">

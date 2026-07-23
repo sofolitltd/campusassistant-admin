@@ -6,31 +6,38 @@ import {
   Save,
   Upload,
   Type,
-  Info,
   Loader2,
   X,
   ChevronRight as ChevronRightIcon,
   ChevronDown,
   Check,
   Globe,
-  Store
+  Link as LinkIcon,
 } from "lucide-react"
-import { api, Product, ProductTarget, Merchant, MarketplaceCategory, University, getApiKey, getApiUrl } from "@/lib/api"
+import {
+  api,
+  CareerCircular,
+  CareerCircularTarget,
+  CareerCircularCategory,
+  University,
+  getApiKey,
+  getApiUrl,
+} from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 // A target with this department_id means "whole university" — a real UUID
-// (uuid.Nil's string form), NOT an empty string (see SkillForm's TargetSelector
-// for why an empty string would fail Go's uuid.UUID JSON binding).
+// (uuid.Nil's string form), NOT an empty string (see ProductForm's
+// TargetSelector for why an empty string would fail Go's uuid.UUID JSON binding).
 const WHOLE_UNIVERSITY = "00000000-0000-0000-0000-000000000000"
 
 function TargetSelector({
   universities,
   selectedTargets,
-  onChange
+  onChange,
 }: {
   universities: University[]
-  selectedTargets: ProductTarget[]
-  onChange: (targets: ProductTarget[]) => void
+  selectedTargets: CareerCircularTarget[]
+  onChange: (targets: CareerCircularTarget[]) => void
 }) {
   const [expandedUni, setExpandedUni] = useState<string | null>(null)
 
@@ -52,7 +59,7 @@ function TargetSelector({
     } else {
       onChange([
         ...selectedTargets.filter(t => t.university_id !== uni.id),
-        { university_id: uni.id, department_id: WHOLE_UNIVERSITY }
+        { university_id: uni.id, department_id: WHOLE_UNIVERSITY },
       ])
     }
   }
@@ -112,42 +119,42 @@ function TargetSelector({
   )
 }
 
-export interface ProductFormProps {
-  initialData?: Product
+export interface CareerCircularFormProps {
+  initialData?: CareerCircular
   returnUrl: string
-  onSaved?: (product: Product) => void
+  onSaved?: (circular: CareerCircular) => void
 }
 
-export function ProductForm({ initialData, returnUrl, onSaved }: ProductFormProps) {
+function toDateInputValue(iso?: string) {
+  if (!iso) return ""
+  return iso.slice(0, 10)
+}
+
+export function CareerCircularForm({ initialData, returnUrl, onSaved }: CareerCircularFormProps) {
   const router = useRouter()
 
   const [loading, setLoading] = useState(false)
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.image_urls?.[0] || null)
   const [universities, setUniversities] = useState<University[]>([])
-  const [merchants, setMerchants] = useState<Merchant[]>([])
-  const [platformMerchant, setPlatformMerchant] = useState<Merchant | null>(null)
-  const [categories, setCategories] = useState<MarketplaceCategory[]>([])
+  const [categories, setCategories] = useState<CareerCircularCategory[]>([])
+  const [attachments, setAttachments] = useState<string[]>(initialData?.attachment_urls || [])
+  const [uploading, setUploading] = useState(false)
 
   const [formData, setFormData] = useState({
     title: initialData?.title || "",
-    description: initialData?.description || "",
-    price: initialData?.price?.toString() || "",
-    stock: initialData?.stock?.toString() || "0",
+    organization: initialData?.organization || "",
     category_id: initialData?.category_id || "",
-    merchant_id: initialData?.merchant_id || "",
-    is_published: initialData?.is_published ?? false
+    description: initialData?.description || "",
+    post_link: initialData?.post_link || "",
+    resource_link: initialData?.resource_link || "",
+    publish_date: toDateInputValue(initialData?.publish_date),
+    deadline_date: toDateInputValue(initialData?.deadline_date),
+    is_published: initialData?.is_published ?? false,
   })
-  const [targets, setTargets] = useState<ProductTarget[]>(initialData?.targets || [])
+  const [targets, setTargets] = useState<CareerCircularTarget[]>(initialData?.targets || [])
 
   useEffect(() => {
     api.universities.getAll("preload=true").then(setUniversities).catch(console.error)
-    api.merchants.getAll("approved").then(setMerchants).catch(console.error)
-    api.merchants.getPlatform().then(m => {
-      setPlatformMerchant(m)
-      setFormData(prev => prev.merchant_id ? prev : { ...prev, merchant_id: m.id })
-    }).catch(console.error)
-    api.marketplaceCategories.getAll().then(setCategories).catch(console.error)
+    api.careerCircularCategories.getAll().then(setCategories).catch(console.error)
   }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -160,14 +167,36 @@ export function ProductForm({ initialData, returnUrl, onSaved }: ProductFormProp
     }
   }
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setImageFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => setImagePreview(reader.result as string)
-      reader.readAsDataURL(file)
+  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+    setUploading(true)
+    try {
+      for (const file of files) {
+        const uploadFormData = new FormData()
+        uploadFormData.append("image", file)
+        uploadFormData.append("folder", "career")
+
+        const uploadRes = await fetch(`${getApiUrl()}/upload`, {
+          method: 'POST',
+          headers: { 'X-API-Key': getApiKey() },
+          body: uploadFormData,
+        })
+        if (uploadRes.ok) {
+          const uploadData = await uploadRes.json()
+          setAttachments(prev => [...prev, uploadData.file_url || uploadData.url])
+        }
+      }
+    } catch (err) {
+      alert("Failed to upload one or more attachments")
+    } finally {
+      setUploading(false)
+      e.target.value = ""
     }
+  }
+
+  const removeAttachment = (url: string) => {
+    setAttachments(prev => prev.filter(a => a !== url))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -175,55 +204,25 @@ export function ProductForm({ initialData, returnUrl, onSaved }: ProductFormProp
     setLoading(true)
 
     try {
-      let image_url = initialData?.image_urls?.[0] || ""
-
-      if (imageFile) {
-        if (initialData?.image_urls?.[0]) {
-          try {
-            await fetch(`${getApiUrl()}/upload?url=${initialData.image_urls[0]}`, {
-              method: 'DELETE',
-              headers: { 'X-API-Key': getApiKey() },
-            })
-          } catch (err) {
-            console.error("Failed to delete old image:", err)
-          }
-        }
-
-        const uploadFormData = new FormData()
-        uploadFormData.append("image", imageFile)
-        uploadFormData.append("folder", "products")
-
-        const uploadRes = await fetch(`${getApiUrl()}/upload`, {
-          method: 'POST',
-          headers: { 'X-API-Key': getApiKey() },
-          body: uploadFormData,
-        })
-
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json()
-          image_url = uploadData.file_url || uploadData.url
-        } else {
-          throw new Error("Failed to upload image")
-        }
-      }
-
-      const payload: Partial<Product> = {
+      const payload: Partial<CareerCircular> = {
         title: formData.title,
-        description: formData.description,
-        price: parseInt(formData.price) || 0,
-        stock: parseInt(formData.stock) || 0,
+        organization: formData.organization,
         category_id: formData.category_id || undefined,
-        merchant_id: formData.merchant_id || platformMerchant?.id,
+        description: formData.description,
+        post_link: formData.post_link,
+        resource_link: formData.resource_link,
+        publish_date: formData.publish_date ? new Date(formData.publish_date).toISOString() : undefined,
+        deadline_date: formData.deadline_date ? new Date(formData.deadline_date).toISOString() : undefined,
         is_published: formData.is_published,
-        image_urls: image_url ? [image_url] : [],
-        targets
+        attachment_urls: attachments,
+        targets,
       }
 
-      let saved: Product
+      let saved: CareerCircular
       if (initialData?.id) {
-        saved = await api.products.update(initialData.id, payload)
+        saved = await api.careerCirculars.update(initialData.id, payload)
       } else {
-        saved = await api.products.create(payload)
+        saved = await api.careerCirculars.create(payload)
       }
 
       if (onSaved) {
@@ -233,7 +232,7 @@ export function ProductForm({ initialData, returnUrl, onSaved }: ProductFormProp
         router.refresh()
       }
     } catch (error: any) {
-      alert(`Error saving product: ${error.message}`)
+      alert(`Error saving circular: ${error.message}`)
     } finally {
       setLoading(false)
     }
@@ -245,20 +244,32 @@ export function ProductForm({ initialData, returnUrl, onSaved }: ProductFormProp
         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
           <div className="flex items-center gap-2 font-semibold text-primary mb-2">
             <Type className="h-5 w-5" />
-            <h2>Product Details</h2>
+            <h2>Circular Details</h2>
           </div>
 
           <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Title *</label>
-              <input
-                required
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-                placeholder="e.g. Scientific Calculator"
-                className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="text-sm font-medium">Title *</label>
+                <input
+                  required
+                  name="title"
+                  value={formData.title}
+                  onChange={handleChange}
+                  placeholder="e.g. Bangladesh Bank Officer (General) Recruitment 2026"
+                  className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Organization</label>
+                <input
+                  name="organization"
+                  value={formData.organization}
+                  onChange={handleChange}
+                  placeholder="e.g. Bangladesh Bank"
+                  className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
             </div>
 
             <div>
@@ -267,38 +278,13 @@ export function ProductForm({ initialData, returnUrl, onSaved }: ProductFormProp
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                rows={4}
-                placeholder="Describe the product"
+                rows={5}
+                placeholder="Eligibility, vacancy details, how to apply..."
                 className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
-              <div>
-                <label className="text-sm font-medium">Price (৳) *</label>
-                <input
-                  required
-                  type="number"
-                  min={0}
-                  name="price"
-                  value={formData.price}
-                  onChange={handleChange}
-                  placeholder="0"
-                  className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Stock</label>
-                <input
-                  type="number"
-                  min={0}
-                  name="stock"
-                  value={formData.stock}
-                  onChange={handleChange}
-                  placeholder="0"
-                  className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                />
-              </div>
               <div>
                 <label className="text-sm font-medium">Category</label>
                 <select
@@ -313,38 +299,65 @@ export function ProductForm({ initialData, returnUrl, onSaved }: ProductFormProp
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="text-sm font-medium">Publish Date</label>
+                <input
+                  type="date"
+                  name="publish_date"
+                  value={formData.publish_date}
+                  onChange={handleChange}
+                  className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Deadline Date</label>
+                <input
+                  type="date"
+                  name="deadline_date"
+                  value={formData.deadline_date}
+                  onChange={handleChange}
+                  className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="text-sm font-medium">Merchant</label>
-                <select
-                  name="merchant_id"
-                  value={formData.merchant_id}
-                  onChange={handleChange}
-                  className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
-                >
-                  {platformMerchant && (
-                    <option value={platformMerchant.id}>Campus Assistant (in-house)</option>
-                  )}
-                  {merchants.map(m => (
-                    <option key={m.id} value={m.id}>{m.business_name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col justify-center pt-6">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    name="is_published"
-                    checked={formData.is_published}
-                    onChange={handleChange}
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                  />
-                  <span className="text-sm font-medium">Published (visible to users)</span>
+                <label className="text-sm font-medium flex items-center gap-1">
+                  <LinkIcon className="h-3.5 w-3.5" /> Job Posting Link
                 </label>
+                <input
+                  name="post_link"
+                  value={formData.post_link}
+                  onChange={handleChange}
+                  placeholder="https://..."
+                  className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium flex items-center gap-1">
+                  <LinkIcon className="h-3.5 w-3.5" /> Resource Link
+                </label>
+                <input
+                  name="resource_link"
+                  value={formData.resource_link}
+                  onChange={handleChange}
+                  placeholder="https://..."
+                  className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                />
               </div>
             </div>
+
+            <label className="flex items-center gap-2 cursor-pointer w-fit">
+              <input
+                type="checkbox"
+                name="is_published"
+                checked={formData.is_published}
+                onChange={handleChange}
+                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <span className="text-sm font-medium">Published (visible to students)</span>
+            </label>
           </div>
         </div>
 
@@ -359,7 +372,7 @@ export function ProductForm({ initialData, returnUrl, onSaved }: ProductFormProp
             </span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Leave empty to show this product to everyone. Select specific universities or
+            Leave empty to show this circular to everyone. Select specific universities or
             departments to restrict it.
           </p>
           <TargetSelector universities={universities} selectedTargets={targets} onChange={setTargets} />
@@ -370,43 +383,29 @@ export function ProductForm({ initialData, returnUrl, onSaved }: ProductFormProp
         <div className="rounded-xl border bg-card p-6 shadow-sm space-y-4">
           <div className="flex items-center gap-2 font-semibold text-primary mb-2">
             <Upload className="h-5 w-5" />
-            <h2>Image</h2>
+            <h2>Attachments</h2>
           </div>
 
-          <div className="flex flex-col items-center justify-center gap-4">
-            <div className="group relative h-40 w-full overflow-hidden rounded-xl border-2 border-dashed bg-muted transition-colors hover:border-primary flex items-center justify-center">
-              {imagePreview ? (
-                <>
-                  <img src={imagePreview} alt="Product preview" className="h-full w-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={(e) => { e.preventDefault(); setImageFile(null); setImagePreview(null) }}
-                    className="absolute top-2 right-2 rounded-full bg-destructive p-1.5 text-white opacity-0 transition-opacity group-hover:opacity-100 shadow-md"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </>
-              ) : (
-                <label className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-2 text-muted-foreground p-6 text-center">
-                  <Upload className="h-8 w-8" />
-                  <span className="text-xs uppercase font-bold tracking-wider">Upload Image</span>
-                  <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                </label>
-              )}
-            </div>
-            <p className="text-[10px] text-center text-muted-foreground italic flex items-start gap-1">
-              <Info className="h-3 w-3 flex-shrink-0 mt-0.5" />
-              Square or landscape works best. Max 5MB.
-            </p>
+          <div className="grid grid-cols-2 gap-2">
+            {attachments.map(url => (
+              <div key={url} className="group relative aspect-square overflow-hidden rounded-lg border bg-muted">
+                <img src={url} alt="Attachment" className="h-full w-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removeAttachment(url)}
+                  className="absolute top-1 right-1 rounded-full bg-destructive p-1 text-white opacity-0 transition-opacity group-hover:opacity-100 shadow-md"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+            <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed text-muted-foreground hover:border-primary transition-colors">
+              {uploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
+              <span className="text-[10px] font-bold uppercase">Add</span>
+              <input type="file" accept="image/*" multiple onChange={handleAttachmentUpload} className="hidden" disabled={uploading} />
+            </label>
           </div>
         </div>
-
-        {formData.merchant_id && platformMerchant && formData.merchant_id !== platformMerchant.id && (
-          <div className="rounded-xl border bg-card p-4 shadow-sm flex items-start gap-2 text-xs text-muted-foreground">
-            <Store className="h-4 w-4 flex-shrink-0 mt-0.5 text-primary" />
-            This product is listed under a merchant, not Campus Assistant itself.
-          </div>
-        )}
 
         <div className="flex gap-4">
           <button
@@ -422,7 +421,7 @@ export function ProductForm({ initialData, returnUrl, onSaved }: ProductFormProp
             className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-all shadow-md"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            {initialData ? "Save Changes" : "Create Product"}
+            {initialData ? "Save Changes" : "Create Circular"}
           </button>
         </div>
       </div>

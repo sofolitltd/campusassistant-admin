@@ -20,7 +20,9 @@ import {
   Sparkles,
   Users2,
   ShoppingBag,
-  Landmark
+  Landmark,
+  PackageSearch,
+  Briefcase
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -70,6 +72,16 @@ const navItems = [
     title: "Marketplace",
     href: "/marketplace",
     icon: ShoppingBag,
+  },
+  {
+    title: "Lost & Found",
+    href: "/lost-and-found",
+    icon: PackageSearch,
+  },
+  {
+    title: "Career",
+    href: "/career",
+    icon: Briefcase,
   },
   {
     title: "Notifications",

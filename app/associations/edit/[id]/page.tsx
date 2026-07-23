@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import { AssociationForm } from "@/components/AssociationForm"
 import { AssociationEventManager } from "@/components/AssociationEventManager"
+import { AssociationMembersManager } from "@/components/AssociationMembersManager"
 import { ArrowLeft, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { api, Association } from "@/lib/api"
@@ -57,6 +58,8 @@ export default function EditAssociationPage() {
       <AssociationForm initialData={association} returnUrl="/associations" />
 
       <AssociationEventManager associationId={association.id} />
+
+      <AssociationMembersManager associationId={association.id} />
     </div>
   )
 }

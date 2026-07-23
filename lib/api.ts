@@ -441,6 +441,11 @@ export interface Merchant {
   business_name: string;
   description: string;
   logo_url: string;
+  business_type?: string;
+  // Contact-only fields — the app's public storefront lookup redacts these;
+  // the admin panel (this API) always receives them in full.
+  phone?: string;
+  email?: string;
   commission_rate: number;
   status: MerchantStatus;
   is_platform: boolean;
@@ -466,9 +471,149 @@ export interface Product {
   price: number;
   stock: number;
   image_urls: string[];
-  category: string;
+  category_id?: string;
+  category?: MarketplaceCategory;
   is_published: boolean;
   targets: ProductTarget[];
+  created_at: string;
+}
+
+export type OrderStatus = 'pending_payment' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+
+export interface OrderItem {
+  id: string;
+  product_id: string;
+  product_title: string;
+  merchant_id: string;
+  quantity: number;
+  unit_price: number;
+  commission_rate_snapshot: number;
+  created_at: string;
+}
+
+export interface Order {
+  id: string;
+  buyer_id: string;
+  shipping_recipient_name: string;
+  shipping_phone: string;
+  shipping_address_line: string;
+  shipping_city: string;
+  total_amount: number;
+  status: OrderStatus;
+  items: OrderItem[];
+  created_at: string;
+}
+
+export interface MarketplaceCategory {
+  id: string;
+  name: string;
+  image_url: string;
+  description: string;
+  index: number;
+  created_at: string;
+}
+
+export type LostFoundType = 'lost' | 'found';
+export type LostFoundStatus = 'open' | 'claimed' | 'resolved' | 'removed';
+export type LostFoundClaimStatus = 'pending' | 'accepted' | 'rejected';
+export type LostFoundReportStatus = 'pending' | 'resolved' | 'dismissed';
+
+export interface LostFoundCategory {
+  id: string;
+  name: string;
+  icon_key: string;
+  index: number;
+  created_at: string;
+}
+
+// LostFoundItemTarget links an item to a university/department. An item with
+// zero targets is global (visible campus-wide), same shape as ProductTarget.
+export interface LostFoundItemTarget {
+  id?: string;
+  item_id?: string;
+  university_id: string;
+  department_id: string;
+}
+
+export interface LostFoundUser {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface LostFoundItem {
+  id: string;
+  type: LostFoundType;
+  title: string;
+  description: string;
+  category_id?: string;
+  category?: LostFoundCategory;
+  image_urls: string[];
+  location: string;
+  event_date?: string;
+  status: LostFoundStatus;
+  removal_reason?: string;
+  resolved_at?: string;
+  poster_id: string;
+  poster?: LostFoundUser;
+  targets: LostFoundItemTarget[];
+  created_at: string;
+}
+
+export interface LostFoundClaim {
+  id: string;
+  item_id: string;
+  claimer_id: string;
+  claimer?: LostFoundUser;
+  message: string;
+  status: LostFoundClaimStatus;
+  created_at: string;
+}
+
+export interface LostFoundReport {
+  id: string;
+  item_id: string;
+  item?: LostFoundItem;
+  reporter_id: string;
+  reporter?: LostFoundUser;
+  reason: string;
+  status: LostFoundReportStatus;
+  created_at: string;
+}
+
+export interface CareerCircularCategory {
+  id: string;
+  name: string;
+  icon_key: string;
+  index: number;
+  created_at: string;
+}
+
+// CareerCircularTarget links a circular to a university/department. A
+// circular with zero targets is global, same shape as ProductTarget.
+export interface CareerCircularTarget {
+  id?: string;
+  circular_id?: string;
+  university_id: string;
+  department_id: string;
+}
+
+export interface CareerCircular {
+  id: string;
+  title: string;
+  organization: string;
+  category_id?: string;
+  category?: CareerCircularCategory;
+  description: string;
+  attachment_urls: string[];
+  post_link: string;
+  resource_link: string;
+  publish_date?: string;
+  deadline_date?: string;
+  views_count: number;
+  is_published: boolean;
+  targets: CareerCircularTarget[];
   created_at: string;
 }
 
@@ -569,6 +714,14 @@ export interface Association {
   created_at: string;
 }
 
+export interface AssociationMemberSummary {
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  avatar_url?: string;
+  role?: string;
+}
+
 export interface AssociationEvent {
   id: string;
   association_id: string;
@@ -640,6 +793,7 @@ export interface AppNotification {
   type: string;
   scope: string; // "user" | "batch" | "department" | "university"
   target_id?: string | null;
+  image_url?: string;
   data: Record<string, string> | null;
   created_at: string;
   updated_at: string;
@@ -834,6 +988,12 @@ export const api = {
       fetchWithAuth(`/associations/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/associations/${id}`, { method: 'DELETE' }),
+    getPendingMembers: (id: string): Promise<AssociationMemberSummary[]> =>
+      fetchWithAuth(`/associations/${id}/members/pending`),
+    approveMember: (id: string, userId: string): Promise<void> =>
+      fetchWithAuth(`/associations/${id}/members/${userId}/approve`, { method: 'POST' }),
+    rejectMember: (id: string, userId: string): Promise<void> =>
+      fetchWithAuth(`/associations/${id}/members/${userId}/reject`, { method: 'POST' }),
   },
   associationEvents: {
     getByAssociation: (associationId: string): Promise<AssociationEvent[]> =>
@@ -1100,6 +1260,83 @@ export const api = {
       fetchWithAuth(`/transports/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/transports/${id}`, { method: 'DELETE' }),
+  },
+  marketplaceCategories: {
+    getAll: (params?: string): Promise<MarketplaceCategory[]> =>
+      fetchWithAuth(`/marketplace-categories?${params || ''}`).then((res: PaginatedResponse<MarketplaceCategory>) => res.data ?? []),
+    getById: (id: string): Promise<MarketplaceCategory> =>
+      fetchWithAuth(`/marketplace-categories/${id}`),
+    create: (data: Partial<MarketplaceCategory>): Promise<MarketplaceCategory> =>
+      fetchWithAuth('/marketplace-categories', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<MarketplaceCategory>): Promise<MarketplaceCategory> =>
+      fetchWithAuth(`/marketplace-categories/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/marketplace-categories/${id}`, { method: 'DELETE' }),
+  },
+  orders: {
+    getAll: (status?: string): Promise<Order[]> =>
+      fetchWithAuth(`/orders${status ? `?status=${status}` : ''}`).then((res: PaginatedResponse<Order>) => res.data ?? []),
+    getById: (id: string): Promise<Order> =>
+      fetchWithAuth(`/orders/${id}`),
+    updateStatus: (id: string, status: OrderStatus): Promise<void> =>
+      fetchWithAuth(`/orders/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
+  },
+  lostFoundCategories: {
+    getAll: (params?: string): Promise<LostFoundCategory[]> =>
+      fetchWithAuth(`/lost-found-categories?${params || ''}`).then((res: PaginatedResponse<LostFoundCategory>) => res.data ?? []),
+    getById: (id: string): Promise<LostFoundCategory> =>
+      fetchWithAuth(`/lost-found-categories/${id}`),
+    create: (data: Partial<LostFoundCategory>): Promise<LostFoundCategory> =>
+      fetchWithAuth('/lost-found-categories', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<LostFoundCategory>): Promise<LostFoundCategory> =>
+      fetchWithAuth(`/lost-found-categories/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/lost-found-categories/${id}`, { method: 'DELETE' }),
+  },
+  lostFoundItems: {
+    getAll: (params?: string): Promise<LostFoundItem[]> =>
+      fetchWithAuth(`/lost-found-items?limit=200&${params || ''}`).then((res: PaginatedResponse<LostFoundItem>) => res.data ?? []),
+    getById: (id: string): Promise<LostFoundItem> =>
+      fetchWithAuth(`/lost-found-items/${id}`),
+    updateStatus: (id: string, status: LostFoundStatus, removalReason?: string): Promise<void> =>
+      fetchWithAuth(`/lost-found-items/${id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status, removal_reason: removalReason }),
+      }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/lost-found-items/${id}`, { method: 'DELETE' }),
+  },
+  lostFoundReports: {
+    getAll: (status?: LostFoundReportStatus): Promise<LostFoundReport[]> =>
+      fetchWithAuth(`/lost-found-reports${status ? `?status=${status}` : ''}`).then((res: PaginatedResponse<LostFoundReport>) => res.data ?? []),
+    resolve: (id: string): Promise<void> =>
+      fetchWithAuth(`/lost-found-reports/${id}/resolve`, { method: 'PUT', body: JSON.stringify({ status: 'resolved' }) }),
+    dismiss: (id: string): Promise<void> =>
+      fetchWithAuth(`/lost-found-reports/${id}/resolve`, { method: 'PUT', body: JSON.stringify({ status: 'dismissed' }) }),
+  },
+  careerCircularCategories: {
+    getAll: (params?: string): Promise<CareerCircularCategory[]> =>
+      fetchWithAuth(`/career-circular-categories?${params || ''}`).then((res: PaginatedResponse<CareerCircularCategory>) => res.data ?? []),
+    getById: (id: string): Promise<CareerCircularCategory> =>
+      fetchWithAuth(`/career-circular-categories/${id}`),
+    create: (data: Partial<CareerCircularCategory>): Promise<CareerCircularCategory> =>
+      fetchWithAuth('/career-circular-categories', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<CareerCircularCategory>): Promise<CareerCircularCategory> =>
+      fetchWithAuth(`/career-circular-categories/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/career-circular-categories/${id}`, { method: 'DELETE' }),
+  },
+  careerCirculars: {
+    getAll: (params?: string): Promise<CareerCircular[]> =>
+      fetchWithAuth(`/career-circulars?limit=200&${params || ''}`).then((res: PaginatedResponse<CareerCircular>) => res.data ?? []),
+    getById: (id: string): Promise<CareerCircular> =>
+      fetchWithAuth(`/career-circulars/${id}`),
+    create: (data: Partial<CareerCircular>): Promise<CareerCircular> =>
+      fetchWithAuth('/career-circulars', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<CareerCircular>): Promise<CareerCircular> =>
+      fetchWithAuth(`/career-circulars/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/career-circulars/${id}`, { method: 'DELETE' }),
   },
   notifications: {
     getAll: (): Promise<AppNotification[]> =>

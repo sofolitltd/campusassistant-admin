@@ -10,7 +10,14 @@ import {
   School,
   Settings,
   Phone,
-  Bell
+  Bell,
+  Sparkles,
+  Users2,
+  Landmark,
+  ShoppingBag,
+  Handshake,
+  PackageSearch,
+  Briefcase,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -50,13 +57,53 @@ const navItems = [
     href: "/contacts",
     icon: Phone,
   },
+  {
+    title: "Skills",
+    href: "/skills",
+    icon: Sparkles,
+  },
+  {
+    title: "Clubs",
+    href: "/clubs",
+    icon: Users2,
+  },
+  {
+    title: "Assoc",
+    href: "/associations",
+    icon: Landmark,
+  },
+  {
+    title: "Market",
+    href: "/marketplace",
+    icon: ShoppingBag,
+  },
+  {
+    title: "L&F",
+    href: "/lost-and-found",
+    icon: PackageSearch,
+  },
+  {
+    title: "Career",
+    href: "/career",
+    icon: Briefcase,
+  },
+  {
+    title: "Contrib",
+    href: "/contributors",
+    icon: Handshake,
+  },
 ]
 
 export function BottomNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-card px-2 pb-safe md:hidden">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center gap-1 overflow-x-auto border-t bg-card px-2 pb-safe md:hidden scrollbar-hide"
+      onWheel={(e) => {
+        e.currentTarget.scrollLeft += e.deltaY
+      }}
+    >
       {navItems.map((item) => {
         const isActive = pathname === item.href
         return (
@@ -64,7 +111,7 @@ export function BottomNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex flex-col items-center justify-center gap-1 min-w-[64px] transition-colors",
+              "flex flex-col items-center justify-center gap-1 min-w-[64px] flex-shrink-0 transition-colors",
               isActive ? "text-primary" : "text-muted-foreground"
             )}
           >

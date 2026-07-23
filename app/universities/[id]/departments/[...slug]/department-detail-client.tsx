@@ -24,11 +24,12 @@ import { StudentsTab } from "./components/StudentsTab"
 import { StudyTab } from "./components/StudyTab"
 import { TeachersTab, StaffTab } from "./components/TeachersAndStaff"
 import { CRsTab, BannersTab, ContactsTab } from "./components/ExtraTabs"
+import { CareerTab } from "./components/CareerTab"
 import { AlumniTab } from "./components/AlumniTab"
 import { RoutineTab } from "./components/RoutineTab"
 import { NoticesTab } from "./components/NoticesTab"
 
-type TabType = "overview" | "sessions" | "batches" | "students" | "study" | "teachers" | "staff" | "crs" | "banners" | "contacts" | "alumni" | "routines" | "notices"
+type TabType = "overview" | "sessions" | "batches" | "students" | "study" | "career" | "teachers" | "staff" | "crs" | "banners" | "contacts" | "alumni" | "routines" | "notices"
 
 interface TabData {
   sessions: Session[]; batches: Batch[]; students: Student[]

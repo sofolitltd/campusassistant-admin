@@ -2,32 +2,33 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ShoppingBag, Store, Package, Layers } from "lucide-react"
+import { PackageSearch, LayoutList, Layers, Flag } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const tabs = [
-  { title: "Merchants", href: "/marketplace/merchants", icon: Store },
-  { title: "Products", href: "/marketplace/products", icon: Package },
-  { title: "Categories", href: "/marketplace/categories", icon: Layers },
-  { title: "Orders", href: "/marketplace/orders", icon: ShoppingBag },
+  { title: "Items", href: "/lost-and-found", icon: LayoutList },
+  { title: "Categories", href: "/lost-and-found/categories", icon: Layers },
+  { title: "Reports", href: "/lost-and-found/reports", icon: Flag },
 ]
 
-export default function MarketplaceLayout({ children }: { children: React.ReactNode }) {
+export default function LostAndFoundLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <div className="rounded-full bg-primary/10 p-3"><ShoppingBag className="h-6 w-6 text-primary" /></div>
+        <div className="rounded-full bg-primary/10 p-3"><PackageSearch className="h-6 w-6 text-primary" /></div>
         <div>
-          <h1 className="text-2xl font-black tracking-tight">Campus Marketplace</h1>
-          <p className="text-sm text-muted-foreground">Manage merchants, products, categories, and orders.</p>
+          <h1 className="text-2xl font-black tracking-tight">Lost &amp; Found Portal</h1>
+          <p className="text-sm text-muted-foreground">Moderate reported items, manage categories, and resolve abuse reports.</p>
         </div>
       </div>
 
       <div className="flex gap-1 rounded-sm border bg-muted/20 p-1 w-fit">
         {tabs.map(tab => {
-          const active = pathname?.startsWith(tab.href)
+          const active = tab.href === "/lost-and-found"
+            ? pathname === tab.href
+            : pathname?.startsWith(tab.href)
           return (
             <Link
               key={tab.href}
