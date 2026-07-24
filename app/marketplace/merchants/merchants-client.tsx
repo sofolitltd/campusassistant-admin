@@ -14,6 +14,7 @@ import {
   Mail,
   Tag
 } from "lucide-react"
+import Link from "next/link"
 import { api, Merchant, MerchantStatus, getFullImageUrl } from "@/lib/api"
 import { ConfirmDelete } from "../../universities/[id]/departments/[...slug]/components/SharedUI"
 import { cn } from "@/lib/utils"
@@ -176,7 +177,7 @@ export default function MerchantsClient({ initialMerchants }: MerchantsClientPro
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map(merchant => (
             <div key={merchant.id} className="overflow-hidden rounded-lg border bg-card shadow-xs transition-all hover:shadow-md border-border/60">
-              <div className="p-4 space-y-3">
+              <Link href={`/marketplace/merchants/${merchant.id}`} className="block p-4 space-y-3 hover:bg-muted/20 transition-colors">
                 <div className="flex items-start gap-3">
                   <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-muted flex items-center justify-center">
                     {merchant.logo_url ? (
@@ -223,7 +224,9 @@ export default function MerchantsClient({ initialMerchants }: MerchantsClientPro
                 {merchant.status === "rejected" && merchant.rejection_reason && (
                   <p className="text-[10px] text-red-600 italic">Reason: {merchant.rejection_reason}</p>
                 )}
+              </Link>
 
+              <div className="px-4 pb-4 space-y-3">
                 <div className="flex items-center gap-2 border-t border-dashed pt-3 border-border/60">
                   <Percent className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                   <input

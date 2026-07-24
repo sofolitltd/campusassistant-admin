@@ -438,6 +438,9 @@ export type MerchantStatus = 'pending' | 'approved' | 'rejected';
 export interface Merchant {
   id: string;
   user_id: string;
+  // Preloaded read-only — lets an admin cross-check the applicant's real
+  // account identity against their uploaded ID proofs.
+  user?: { id: string; email: string; first_name: string; last_name: string };
   business_name: string;
   description: string;
   logo_url: string;
@@ -450,6 +453,15 @@ export interface Merchant {
   status: MerchantStatus;
   is_platform: boolean;
   rejection_reason?: string;
+  website?: string;
+  social_media_link?: string;
+  // Verification documents uploaded by the applicant — admin-only, use to
+  // confirm identity before approving. These are attachment IDs (private
+  // storage), not directly-loadable URLs — resolve via api.attachments.getUrl.
+  student_id_proof_url?: string;
+  nid_proof_url?: string;
+  payout_method?: string;
+  payout_account?: string;
   created_at: string;
 }
 
@@ -938,6 +950,13 @@ export const api = {
       fetchWithAuth(`/merchants/${id}/reject`, { method: 'PUT', body: JSON.stringify({ reason }) }),
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/merchants/${id}`, { method: 'DELETE' }),
+  },
+  attachments: {
+    // Resolves any attachment id to a viewing URL — a short-lived signed
+    // URL for private documents (e.g. merchant verification photos), or
+    // the permanent public URL otherwise. Never cache the returned URL.
+    getUrl: (id: string): Promise<{ url: string; expires_in_seconds?: number }> =>
+      fetchWithAuth(`/attachments/${id}/url`),
   },
   products: {
     getAll: (merchantId?: string): Promise<Product[]> =>
