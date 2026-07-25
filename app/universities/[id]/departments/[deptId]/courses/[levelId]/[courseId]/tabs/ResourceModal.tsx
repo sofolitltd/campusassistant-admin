@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react"
 import { api, Resource, ResourceType, Batch } from "@/lib/api"
 import {
-  X, Plus, Users, HardDrive, FilePlus2, BookOpen, Loader2, AlertTriangle, Bell
+  X, Plus, Users, HardDrive, FilePlus2, BookOpen, Loader2, AlertTriangle, Bell, Download, Eye, Star
 } from "lucide-react"
 import { BatchSelectionModal } from "@/components/BatchSelectionModal"
 import { uploadFile, deleteFile } from "./resource-utils"
@@ -118,7 +118,7 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
       }
       setUploading(false)
 
-      const meta: Record<string, any> = (resource?.metadata ?? {})
+      const meta: Record<string, any> = { ...(resource?.metadata ?? {}) }
       if (type === "book") { if (metaAuthor) meta.author = metaAuthor; if (metaPublisher) meta.publisher = metaPublisher; if (metaEdition) meta.edition = metaEdition }
       if (type === "question") { if (metaExamType) meta.exam_type = metaExamType; if (metaYear) meta.year = parseInt(metaYear) }
       if (type === "syllabus") { if (metaAcadYear) meta.academic_year = metaAcadYear }
@@ -193,6 +193,16 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+          {isEdit && (
+            <div className="flex items-center gap-4 rounded-sm border bg-muted/10 px-4 py-3 text-xs font-bold text-muted-foreground">
+              <span className="flex items-center gap-1.5"><Download className="h-3.5 w-3.5" /> {resource!.download_count} downloads</span>
+              <span className="flex items-center gap-1.5"><Eye className="h-3.5 w-3.5" /> {resource!.view_count} views</span>
+              <span className="flex items-center gap-1.5">
+                <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                {resource!.rating_count > 0 ? `${resource!.rating_avg.toFixed(1)} (${resource!.rating_count})` : "No ratings"}
+              </span>
+            </div>
+          )}
           <div className="space-y-4">
             <div className="rounded-sm border-2 border-dashed border-muted-foreground/20 bg-muted/5 p-1 transition-all hover:border-primary/40 group overflow-hidden">
               {pickedFile || fileUrl ? (

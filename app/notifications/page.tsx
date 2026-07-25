@@ -6,9 +6,9 @@ import { Loader2 } from "lucide-react"
 export const dynamic = 'force-dynamic'
 
 export default async function NotificationsPage() {
-  let notifications: Awaited<ReturnType<typeof api.notifications.getAll>> = []
+  let page: Awaited<ReturnType<typeof api.notifications.getAll>> = { data: [], count: 0, limit: 20, offset: 0 }
   try {
-    notifications = await api.notifications.getAll()
+    page = await api.notifications.getAll()
   } catch {
     // API unavailable during build — render empty
   }
@@ -20,7 +20,10 @@ export default async function NotificationsPage() {
         <p className="text-[10px] font-black animate-pulse text-muted-foreground uppercase tracking-[0.3em]">Loading Notifications...</p>
       </div>
     }>
-      <NotificationsClient initialNotifications={notifications} />
+      <NotificationsClient
+        initialNotifications={page.data}
+        initialCount={page.count}
+      />
     </Suspense>
   )
 }

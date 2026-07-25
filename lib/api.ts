@@ -285,6 +285,7 @@ export interface Resource {
   download_count: number;
   view_count: number;
   rating_avg: number;
+  rating_count: number;
   tags: string[];
   is_public: boolean;
   metadata?: Record<string, unknown>;
@@ -1358,10 +1359,18 @@ export const api = {
       fetchWithAuth(`/career-circulars/${id}`, { method: 'DELETE' }),
   },
   notifications: {
-    getAll: (): Promise<AppNotification[]> =>
-      fetchWithAuth(`/admin/notifications`),
+    getAll: (offset = 0, limit = 20): Promise<PaginatedResponse<AppNotification>> =>
+      fetchWithAuth(`/admin/notifications?offset=${offset}&limit=${limit}`),
     create: (data: Record<string, unknown>) =>
       fetchWithAuth('/admin/notifications', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    // Resolves the audience for data without sending anything — used to show
+    // "this will reach N users" before an admin commits to an otherwise
+    // irreversible broadcast.
+    preview: (data: Record<string, unknown>): Promise<{ count: number }> =>
+      fetchWithAuth('/admin/notifications/preview', {
         method: 'POST',
         body: JSON.stringify(data),
       }),

@@ -13,6 +13,7 @@ import {
   Building2,
   User,
   Calendar,
+  Loader2,
 } from "lucide-react"
 import Link from "next/link"
 import { api, AppNotification } from "@/lib/api"
@@ -20,6 +21,7 @@ import { ConfirmDelete } from "../universities/[id]/departments/[...slug]/compon
 
 interface NotificationsClientProps {
   initialNotifications: AppNotification[]
+  initialCount: number
 }
 
 const typeStyles: Record<string, string> = {
@@ -38,11 +40,28 @@ const scopeIcons: Record<string, React.ReactNode> = {
   user: <User className="h-3 w-3" />,
 }
 
-export default function NotificationsClient({ initialNotifications }: NotificationsClientProps) {
+export default function NotificationsClient({ initialNotifications, initialCount }: NotificationsClientProps) {
   const [notifications, setNotifications] = useState<AppNotification[]>(initialNotifications)
+  const [count, setCount] = useState(initialCount)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+
+  const hasMore = notifications.length < count
+
+  async function handleLoadMore() {
+    setLoadingMore(true)
+    try {
+      const page = await api.notifications.getAll(notifications.length)
+      setNotifications(prev => [...prev, ...page.data])
+      setCount(page.count)
+    } catch {
+      alert("Failed to load more notifications")
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   async function handleDelete() {
     if (!deleteId) return
@@ -50,6 +69,7 @@ export default function NotificationsClient({ initialNotifications }: Notificati
     try {
       await api.notifications.delete(deleteId)
       setNotifications(prev => prev.filter(n => n.id !== deleteId))
+      setCount(prev => Math.max(0, prev - 1))
       setDeleteId(null)
     } catch {
       alert("Failed to delete notification")
@@ -180,6 +200,19 @@ export default function NotificationsClient({ initialNotifications }: Notificati
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {hasMore && (
+        <div className="flex justify-center pt-2">
+          <button
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+            className="flex items-center gap-2 rounded-lg border px-5 py-2.5 text-sm font-bold hover:bg-muted transition-all disabled:opacity-50"
+          >
+            {loadingMore && <Loader2 className="h-4 w-4 animate-spin" />}
+            {loadingMore ? "Loading..." : "Load more"}
+          </button>
         </div>
       )}
 

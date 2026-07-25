@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { startTransition, useState, useEffect } from "react"
 import { api, Course, CourseCategory, CoursePrefix, Level, Batch } from "@/lib/api"
 import { Loader2, Plus, Users, X, HardDrive, Image as ImageIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -82,35 +82,37 @@ export function CourseModal({
 
   useEffect(() => {
     if (open) {
-      setError("")
-      if (course) {
-        const parts = course.course_code.split("-")
-        if (parts.length >= 2 && prefixes.some((p) => p.prefix === parts[0])) {
-          setSelectedPrefix(parts[0])
-          setCodeNumber(parts.slice(1).join("-"))
+      startTransition(() => {
+        setError("")
+        if (course) {
+          const parts = course.course_code.split("-")
+          if (parts.length >= 2 && prefixes.some((p) => p.prefix === parts[0])) {
+            setSelectedPrefix(parts[0])
+            setCodeNumber(parts.slice(1).join("-"))
+          } else {
+            setSelectedPrefix("")
+            setCodeNumber(course.course_code)
+          }
+          setTitle(course.course_title)
+          setCredits(course.total_credits?.toString() ?? "")
+          setMarks(course.total_marks?.toString() ?? "")
+          setCategoryId(course.course_category_id ?? "")
+          setLevId(course.level_id ?? levelId)
+          setSelectedBatchIds(course.batches?.map((b) => b.id) ?? [])
+          setThumbnailUrl(course.thumbnail_url ?? "")
+          setPickedFile(null)
+          setThumbnailBlob(null)
+          setUrlToDelete(null)
         } else {
-          setSelectedPrefix("")
-          setCodeNumber(course.course_code)
+          setSelectedPrefix(prefixes.length > 0 ? prefixes[0].prefix : "")
+          setCodeNumber(""); setTitle(""); setCredits(""); setMarks("")
+          setCategoryId(categories.length > 0 ? categories[0].id : "")
+          setLevId(levelId); setSelectedBatchIds([]); setThumbnailUrl("")
+          setPickedFile(null)
+          setThumbnailBlob(null)
+          setUrlToDelete(null)
         }
-        setTitle(course.course_title)
-        setCredits(course.total_credits?.toString() ?? "")
-        setMarks(course.total_marks?.toString() ?? "")
-        setCategoryId(course.course_category_id ?? "")
-        setLevId(course.level_id ?? levelId)
-        setSelectedBatchIds(course.batches?.map((b) => b.id) ?? [])
-        setThumbnailUrl(course.thumbnail_url ?? "")
-        setPickedFile(null)
-        setThumbnailBlob(null)
-        setUrlToDelete(null)
-      } else {
-        setSelectedPrefix(prefixes.length > 0 ? prefixes[0].prefix : "")
-        setCodeNumber(""); setTitle(""); setCredits(""); setMarks("")
-        setCategoryId(categories.length > 0 ? categories[0].id : "")
-        setLevId(levelId); setSelectedBatchIds([]); setThumbnailUrl("")
-        setPickedFile(null)
-        setThumbnailBlob(null)
-        setUrlToDelete(null)
-      }
+      })
     }
   }, [open, course, prefixes, categories, levelId])
 

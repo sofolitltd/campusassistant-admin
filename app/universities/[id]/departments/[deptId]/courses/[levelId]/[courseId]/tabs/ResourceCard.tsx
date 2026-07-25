@@ -2,8 +2,8 @@
 
 import React, { useState, useRef, useEffect } from "react"
 import { Resource, ResourceType, Batch } from "@/lib/api"
-import { 
-  Pencil, Trash2, Download, Play, BookOpen, Layers, HelpCircle, FileText, BookMarked, Search, AlertTriangle
+import {
+  Pencil, Trash2, Download, Play, BookOpen, Layers, HelpCircle, FileText, BookMarked, Search, AlertTriangle, Eye, Star
 } from "lucide-react"
 
 const TYPE_ICONS: Record<ResourceType, React.ElementType> = {
@@ -63,6 +63,16 @@ export function ResourceCard({ resource, onEdit, onDelete, onPermanentDelete, on
   const meta = (resource.metadata ?? {}) as Record<string, any>
   const thumb = resource.type === "video" ? getYoutubeThumb(resource.file_url) : resource.thumbnail_url
 
+  const engagementStats = (
+    <span className="flex items-center gap-2 text-[10px] text-muted-foreground/70 font-medium" title="Downloads / Views / Rating">
+      <span className="flex items-center gap-0.5"><Download className="h-2.5 w-2.5" /> {resource.download_count ?? 0}</span>
+      <span className="flex items-center gap-0.5"><Eye className="h-2.5 w-2.5" /> {resource.view_count ?? 0}</span>
+      {(resource.rating_count ?? 0) > 0 && (
+        <span className="flex items-center gap-0.5 text-amber-600"><Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" /> {resource.rating_avg.toFixed(1)} ({resource.rating_count})</span>
+      )}
+    </span>
+  )
+
   const handleInteraction = (e: React.MouseEvent) => {
     if (resource.type === "video" && onPlay) {
       e.preventDefault()
@@ -117,6 +127,7 @@ export function ResourceCard({ resource, onEdit, onDelete, onPermanentDelete, on
                 </span>
               )}
               {resource.file_size_bytes > 0 && <span className="text-[10px] text-muted-foreground/60 font-medium">{fmtBytes(resource.file_size_bytes)}</span>}
+              {engagementStats}
             </div>
 
             {/* Actions Toolbar */}
@@ -195,10 +206,11 @@ export function ResourceCard({ resource, onEdit, onDelete, onPermanentDelete, on
           )}
         </div>
 
-        <div className="flex flex-wrap gap-2 mt-auto pt-2">
+        <div className="flex flex-wrap gap-2 mt-auto pt-2 items-center">
           {meta.author && <span className="text-[10px] font-medium text-muted-foreground truncate max-w-[120px]">by {meta.author}</span>}
           {meta.exam_type && <span className="text-[9px] font-black bg-amber-100 text-amber-700 rounded-sm px-1.5 py-0.5 uppercase tracking-tighter">{meta.exam_type}</span>}
           {meta.year && <span className="text-[10px] font-medium text-muted-foreground">{meta.year}</span>}
+          {engagementStats}
           <div className="flex items-center gap-2 ml-auto">
             {meta.pages && (
               <span className="flex items-center gap-1 text-[10px] font-bold text-primary bg-primary/5 px-1.5 py-0.5 rounded-sm">

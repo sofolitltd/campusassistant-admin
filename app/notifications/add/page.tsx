@@ -10,14 +10,27 @@ import { NotificationAudienceBuilder, TargetRow } from "@/components/Notificatio
 import { uploadFile } from "@/lib/upload-utils"
 import { compressForNotification } from "@/lib/image-helper"
 
+// Kept in sync with the Flutter app's NotificationType enum
+// (lib/features/notification/domain/enums/notification_type.dart) — any
+// value not in that enum silently falls back to "Notice" icon/label
+// client-side, so this list must only ever offer values the app actually
+// recognizes. "community*"/"subscription" are system-generated only (never
+// admin-composed) and deliberately excluded.
 const NOTIFICATION_TYPES = [
-  { value: "general", label: "General" },
+  { value: "notice", label: "Notice" },
   { value: "routineUpdate", label: "Routine Update" },
   { value: "studyMaterial", label: "Study Material" },
-  { value: "notice", label: "Notice" },
-  { value: "exam", label: "Exam" },
-  { value: "event", label: "Event" },
+  { value: "emergency", label: "Emergency" },
+  { value: "achievement", label: "Achievement" },
+  { value: "alumni", label: "Alumni" },
+  { value: "bloodRequest", label: "Blood Request" },
+  { value: "club", label: "Club" },
 ]
+
+// FCM/notification-card practical limits — long titles/bodies get silently
+// truncated on end-user devices with no compose-time warning otherwise.
+const TITLE_MAX_LENGTH = 100
+const BODY_MAX_LENGTH = 500
 
 type AudienceMode = "all" | "custom"
 
@@ -28,7 +41,7 @@ export default function AddNotificationPage() {
   const [form, setForm] = useState({
     title: "",
     body: "",
-    type: "general",
+    type: "notice",
     action_route: "",
   })
 
@@ -55,20 +68,62 @@ export default function AddNotificationPage() {
     }
   }
 
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewCount, setPreviewCount] = useState<number | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+
+  function buildBasePayload(): Record<string, unknown> {
+    const payload: Record<string, unknown> = {
+      title: form.title,
+      body: form.body,
+      type: form.type,
+      data: {} as Record<string, unknown>,
+    }
+    if (mode === "all") {
+      payload.scope = "university" // no target_id => broadcast to every user
+    } else {
+      payload.scope = "custom"
+      payload.targets = rows.map(r => ({
+        university_id: r.universityId,
+        ...(r.departmentId ? { department_id: r.departmentId } : {}),
+        ...(r.batchId ? { batch_id: r.batchId } : {}),
+      }))
+    }
+    if (form.action_route) {
+      (payload.data as Record<string, unknown>).action_route = form.action_route
+    }
+    return payload
+  }
+
+  // Step 1: resolve the audience and show a confirm dialog with the real
+  // recipient count before anything irreversible happens — this used to go
+  // straight to a live broadcast with no chance to catch a misconfigured
+  // audience (e.g. picking a whole university instead of one batch).
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (mode === "custom" && rows.length === 0) {
       alert("Add at least one target to the custom audience before sending.")
       return
     }
+    setPreviewLoading(true)
+    try {
+      const { count } = await api.notifications.preview(buildBasePayload())
+      setPreviewCount(count)
+      setPreviewOpen(true)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to resolve audience")
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
+  // Step 2: the actual, irreversible send — only reachable after confirming
+  // the previewed count.
+  async function handleConfirmSend() {
+    setPreviewOpen(false)
     setLoading(true)
     try {
-      const payload: Record<string, unknown> = {
-        title: form.title,
-        body: form.body,
-        type: form.type,
-        data: {} as Record<string, unknown>,
-      }
+      const payload = buildBasePayload()
       if (pickedImage) {
         setUploading(true)
         try {
@@ -76,19 +131,6 @@ export default function AddNotificationPage() {
         } finally {
           setUploading(false)
         }
-      }
-      if (mode === "all") {
-        payload.scope = "university" // no target_id => broadcast to every user
-      } else {
-        payload.scope = "custom"
-        payload.targets = rows.map(r => ({
-          university_id: r.universityId,
-          ...(r.departmentId ? { department_id: r.departmentId } : {}),
-          ...(r.batchId ? { batch_id: r.batchId } : {}),
-        }))
-      }
-      if (form.action_route) {
-        (payload.data as Record<string, unknown>).action_route = form.action_route
       }
       const result = await api.notifications.create(payload) as { count?: number }
       if (!result?.count) {
@@ -122,27 +164,35 @@ export default function AddNotificationPage() {
           <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Content</h2>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">
-              Title <span className="text-red-500 ml-0.5">*</span>
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">
+                Title <span className="text-red-500 ml-0.5">*</span>
+              </label>
+              <span className="text-[10px] text-muted-foreground font-medium">{form.title.length}/{TITLE_MAX_LENGTH}</span>
+            </div>
             <input
               className={inputCls}
               placeholder="e.g. Exam Schedule Updated"
               value={form.title}
               onChange={e => update("title", e.target.value)}
+              maxLength={TITLE_MAX_LENGTH}
               required
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">
-              Body <span className="text-red-500 ml-0.5">*</span>
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">
+                Body <span className="text-red-500 ml-0.5">*</span>
+              </label>
+              <span className="text-[10px] text-muted-foreground font-medium">{form.body.length}/{BODY_MAX_LENGTH}</span>
+            </div>
             <textarea
               className={`${inputCls} min-h-[100px] resize-y`}
               placeholder="Notification message content..."
               value={form.body}
               onChange={e => update("body", e.target.value)}
+              maxLength={BODY_MAX_LENGTH}
               required
             />
           </div>
@@ -253,14 +303,44 @@ export default function AddNotificationPage() {
           </Link>
           <button
             type="submit"
-            disabled={loading || uploading}
+            disabled={previewLoading || loading || uploading}
             className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-90 transition-all disabled:opacity-50"
           >
-            {loading || uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            {uploading ? "Uploading image..." : loading ? "Sending..." : "Send Notification"}
+            {previewLoading || loading || uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {uploading ? "Uploading image..." : loading ? "Sending..." : previewLoading ? "Resolving audience..." : "Send Notification"}
           </button>
         </div>
       </form>
+
+      {previewOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setPreviewOpen(false)} />
+          <div className="relative z-10 w-full max-w-sm rounded-sm border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="rounded-full bg-primary/10 p-3"><Send className="h-6 w-6 text-primary" /></div>
+              <h3 className="text-lg font-bold">Send this notification?</h3>
+              <p className="text-sm text-muted-foreground">
+                This will be sent to{" "}
+                <span className="font-bold text-foreground">{previewCount ?? 0} {previewCount === 1 ? "user" : "users"}</span>
+                {" "}right now. This cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setPreviewOpen(false)} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmSend}
+                disabled={loading || uploading}
+                className="flex-1 rounded-sm bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {loading || uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

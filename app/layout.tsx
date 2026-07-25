@@ -4,6 +4,8 @@ import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 import { BottomNav } from "@/components/bottom-nav";
 
+export const dynamic = "force-dynamic";
+
 const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-outfit",

@@ -65,7 +65,8 @@ export default function CircularsClient({ initialCirculars }: CircularsClientPro
     }
   }
 
-  const isPastDeadline = (date?: string) => !!date && new Date(date).getTime() < Date.now()
+  const [now] = useState(() => Date.now())
+  const isPastDeadline = (date?: string) => !!date && new Date(date).getTime() < now
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
