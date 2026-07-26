@@ -285,6 +285,7 @@ export default function SubscriptionsClient() {
   const [activeTab, setActiveTab] = useState<"subscribers" | "plans">("subscribers")
   const [subscribers, setSubscribers] = useState<UserSubscription[]>([])
   const [totalCount, setTotalCount] = useState(0)
+  const [totalRevenue, setTotalRevenue] = useState(0)
   const [offset, setOffset] = useState(0)
   const [plans, setPlans] = useState<SubscriptionPlan[]>([])
   const [universities, setUniversities] = useState<University[]>([])
@@ -306,6 +307,7 @@ export default function SubscriptionsClient() {
       ])
       setSubscribers(subRes.data)
       setTotalCount(subRes.count)
+      setTotalRevenue(subRes.total_revenue || 0)
       setOffset(newOffset)
       setPlans(allPlans)
       setUniversities(unis)
@@ -343,10 +345,10 @@ export default function SubscriptionsClient() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-4 border-l-4 border-l-primary">
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Pro Users</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Subscriptions</p>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-black">{subscribers.filter(s => s.end_date === null || new Date(s.end_date) > new Date()).length}</span>
-            <Badge variant="success">Active</Badge>
+            <span className="text-2xl font-black">{totalCount.toLocaleString()}</span>
+            <Badge variant="success">All Time</Badge>
           </div>
         </Card>
         <Card className="p-4 border-l-4 border-l-indigo-500">
@@ -359,7 +361,7 @@ export default function SubscriptionsClient() {
         <Card className="p-4 border-l-4 border-l-orange-500">
           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Revenue</p>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-black">{subscribers.reduce((s, sub) => s + (sub.price || 0), 0).toLocaleString()} TK</span>
+            <span className="text-2xl font-black">{totalRevenue.toLocaleString()} TK</span>
             <Badge variant="success">Collected</Badge>
           </div>
         </Card>
@@ -394,6 +396,7 @@ export default function SubscriptionsClient() {
                   <th className="px-4 py-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground">User Profile</th>
                   <th className="px-4 py-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Package</th>
                   <th className="px-4 py-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Amount</th>
+                  <th className="px-4 py-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Buy Date</th>
                   <th className="px-4 py-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Time Remaining</th>
                   <th className="px-4 py-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Pro Status</th>
                   <th className="px-4 py-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground text-right pr-6">Action</th>
@@ -401,7 +404,7 @@ export default function SubscriptionsClient() {
               </thead>
               <tbody className="divide-y">
                 {subscribers.length === 0 ? (
-                  <tr><td colSpan={6} className="px-4 py-16 text-center text-muted-foreground italic">No subscription history available.</td></tr>
+                  <tr><td colSpan={7} className="px-4 py-16 text-center text-muted-foreground italic">No subscription history available.</td></tr>
                 ) : (
                   subscribers.map(sub => {
                     const isExpired = sub.end_date !== null && new Date(sub.end_date) < new Date()
@@ -425,12 +428,15 @@ export default function SubscriptionsClient() {
                           <span className="text-sm font-bold">{(sub.price || 0).toLocaleString()} TK</span>
                         </td>
                         <td className="px-4 py-4">
+                          <span className="text-xs font-medium">{new Date(sub.start_date).toLocaleDateString("en-GB")}</span>
+                        </td>
+                        <td className="px-4 py-4">
                           <div className="flex flex-col">
                             {sub.end_date === null ? (
                               <Badge variant="indigo">Lifetime</Badge>
                             ) : (
                               <>
-                                <span className="text-xs font-bold">{new Date(sub.end_date).toLocaleDateString()}</span>
+                                <span className="text-xs font-bold">{new Date(sub.end_date).toLocaleDateString("en-GB")}</span>
                                 <span className="text-[10px] text-muted-foreground italic">Expires at midnight</span>
                               </>
                             )}

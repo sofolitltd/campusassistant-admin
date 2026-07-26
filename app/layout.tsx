@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/sidebar";
-import { BottomNav } from "@/components/bottom-nav";
+import { AppShell } from "@/components/app-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -24,13 +23,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${outfit.variable} font-sans h-full antialiased`}>
       <body className="flex h-full overflow-hidden bg-background">
-        <Sidebar />
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-20 md:pb-8 text-foreground">
-            {children}
-          </main>
-          <BottomNav />
-        </div>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

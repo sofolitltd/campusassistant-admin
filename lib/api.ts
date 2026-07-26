@@ -14,21 +14,26 @@ export function getApiUrl(): string {
 
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const url = `${getApiUrl()}${endpoint}`;
-  
-  const headers = {
-    ...options.headers,
-    'X-API-Key': getApiKey(),
-    'Content-Type': 'application/json',
-  };
 
-  const response = await fetch(url, { ...options, headers });
-  
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || errorData.message || `API error: ${response.status}`);
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string>),
+    "X-API-Key": getApiKey(),
+    "Content-Type": "application/json",
   }
-  
-  return response.json();
+
+  const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`
+  }
+
+  const response = await fetch(url, { ...options, headers })
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    throw new Error(errorData.error || errorData.message || `API error: ${response.status}`)
+  }
+
+  return response.json()
 }
 
 export function getFullImageUrl(url?: string) {
@@ -764,6 +769,7 @@ export interface PaginatedResponse<T> {
   count: number;
   limit: number;
   offset: number;
+  total_revenue?: number;
 }
 
 export interface User {
@@ -786,6 +792,15 @@ export interface User {
   created_at: string;
 }
 
+export interface Admin {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  is_active: boolean;
+  created_at: string;
+}
+
 export interface DailyCount {
   date: string;
   count: number;
@@ -795,6 +810,7 @@ export interface RecentSubscriber {
   user_id: string;
   name: string;
   plan: string;
+  price: number;
   status: string;
   date: string;
 }
@@ -829,6 +845,26 @@ export interface DashboardStats {
 
 export const api = {
   fetchWithAuth,
+  auth: {
+    adminLogin: async (email: string, password: string) => {
+      const baseUrl = getApiUrl()
+      const response = await fetch(`${baseUrl}/auth/admin-login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: "Login failed" }))
+        throw new Error(error.error || "Login failed")
+      }
+      return response.json() as Promise<{
+        access_token: string
+        refresh_token: string
+        expires_in: number
+        admin: { id: string; email: string; name: string; role: string }
+      }>
+    },
+  },
   stats: {
     getDashboard: (): Promise<DashboardStats> =>
       fetchWithAuth('/stats'),
@@ -851,6 +887,28 @@ export const api = {
     delete: (id: string) => fetchWithAuth(`/users/${id}`, {
       method: 'DELETE',
     }),
+  },
+  admins: {
+    getAll: (): Promise<Admin[]> =>
+      fetchWithAuth('/admins'),
+    create: (data: { email: string; password: string; name: string; role?: string }) =>
+      fetchWithAuth('/admins', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    update: (id: string, data: { name?: string }) =>
+      fetchWithAuth(`/admins/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) => fetchWithAuth(`/admins/${id}`, {
+      method: 'DELETE',
+    }),
+    changePassword: (id: string, password: string) =>
+      fetchWithAuth(`/admins/${id}/password`, {
+        method: 'PUT',
+        body: JSON.stringify({ password }),
+      }),
   },
   universities: {
     getAll: (params?: string): Promise<University[]> =>

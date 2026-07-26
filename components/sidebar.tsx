@@ -2,7 +2,8 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { removeToken } from "@/lib/auth"
 import {
   LayoutDashboard,
   Users,
@@ -22,7 +23,8 @@ import {
   ShoppingBag,
   Landmark,
   PackageSearch,
-  Briefcase
+  Briefcase,
+  Shield,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -42,6 +44,11 @@ const navItems = [
     title: "Users",
     href: "/users",
     icon: Users,
+  },
+  {
+    title: "Admins",
+    href: "/admins",
+    icon: Shield,
   },
   {
     title: "Banners",
@@ -102,7 +109,13 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const [isCollapsed, setIsCollapsed] = React.useState(false)
+
+  function handleLogout() {
+    removeToken()
+    router.push("/login")
+  }
 
   return (
     <aside
@@ -154,6 +167,7 @@ export function Sidebar() {
           {!isCollapsed && <span>Settings</span>}
         </Link>
         <button
+          onClick={handleLogout}
           className={cn(
             "group flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
           )}

@@ -18,6 +18,7 @@ import {
   Handshake,
   PackageSearch,
   Briefcase,
+  Shield,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -36,6 +37,11 @@ const navItems = [
     title: "Users",
     href: "/users",
     icon: Users,
+  },
+  {
+    title: "Admin",
+    href: "/admins",
+    icon: Shield,
   },
   {
     title: "Banners",
