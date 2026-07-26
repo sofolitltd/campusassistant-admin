@@ -100,7 +100,7 @@ export function StudentModal({
 
   return (
     <Modal open={open} onClose={onClose} title={isEdit ? "Edit Student" : "Add Student"}>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4 p-6">
 
         {/* Row: Name */}
         <Field label="Full Name" required>
@@ -174,26 +174,43 @@ export function StudentModal({
           </div>
         </Field>
 
-        {/* Row: Status Toggles */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* Row: Regular / Irregular + Weight */}
+        {isRegular ? (
           <div className="flex items-center justify-between rounded-sm border p-3">
             <span className="text-sm font-medium">Regular?</span>
-            <button type="button" onClick={() => setIsRegular(!isRegular)} className="transition-all">
-              {isRegular ? <ToggleRight className="h-7 w-7 text-primary" /> : <ToggleLeft className="h-7 w-7 text-muted-foreground" />}
+            <button type="button" onClick={() => { setIsRegular(false); setWeight(1) }} className="transition-all">
+              <ToggleRight className="h-7 w-7 text-green-500" />
             </button>
           </div>
-          <div className="flex items-center justify-between rounded-sm border p-3">
-            <span className="text-sm font-medium">Class CR?</span>
-            <button type="button" onClick={() => setIsCr(!isCr)} className="transition-all">
-              {isCr ? <ToggleRight className="h-7 w-7 text-primary" /> : <ToggleLeft className="h-7 w-7 text-muted-foreground" />}
-            </button>
+        ) : (
+          <div className="flex gap-3">
+            <div className="flex-[3] flex items-center justify-between rounded-sm border p-3">
+              <span className="text-sm font-medium">Irregular?</span>
+              <button type="button" onClick={() => { setIsRegular(true); setWeight(0) }} className="transition-all">
+                <ToggleLeft className="h-7 w-7 text-muted-foreground" />
+              </button>
+            </div>
+            <div className="flex-[2]">
+              <Field label="Priority">
+                <select value={weight} onChange={(e) => setWeight(Number(e.target.value))} className={selectCls}>
+                  <option value={1}>1</option>
+                  <option value={2}>2</option>
+                  <option value={3}>3</option>
+                  <option value={4}>4</option>
+                  <option value={5}>5</option>
+                </select>
+              </Field>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Row: Weight */}
-        <Field label="Weight (higher = shown first)">
-          <input type="number" value={weight} onChange={(e) => setWeight(Number(e.target.value))} className={inputCls} />
-        </Field>
+        {/* Row: Class CR */}
+        <div className="flex items-center justify-between rounded-sm border p-3">
+          <span className="text-sm font-medium">Class CR?</span>
+          <button type="button" onClick={() => setIsCr(!isCr)} className="transition-all">
+              {isCr ? <ToggleRight className="h-7 w-7 text-green-500" /> : <ToggleLeft className="h-7 w-7 text-muted-foreground" />}
+          </button>
+        </div>
 
         {/* Row: Member Since */}
         <Field label="Member Since (Registration Date)">

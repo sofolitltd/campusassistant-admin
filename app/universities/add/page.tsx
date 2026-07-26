@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { 
   ArrowLeft, 
@@ -42,23 +42,15 @@ export default function AddUniversityPage() {
     about: ""
   })
 
-  // Auto-generate slug from name
-  useEffect(() => {
-    const slug = formData.name
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, "")
-      .replace(/[\s_-]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-    
-    setFormData(prev => ({ ...prev, slug }))
-  }, [formData.name])
+  const slugify = (val: string) =>
+    val.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/[\s_-]+/g, "-").replace(/^-+|-+$/g, "")
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({
       ...prev,
-      [name]: name === "latitude" || name === "longitude" ? parseFloat(value) || 0 : value
+      [name]: name === "latitude" || name === "longitude" ? parseFloat(value) || 0 : value,
+      ...(name === "name" ? { slug: slugify(value) } : {}),
     }))
   }
 

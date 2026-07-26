@@ -88,7 +88,8 @@ export function BannerForm({ initialData, defaultScope = "National", fixedUniver
     if (targetScope === "Department" && uniId && !fixedDepartmentId) {
       api.departments.getAllByUniversity(uniId).then(res => setDepartments(res)).catch(console.error)
     } else if (targetScope !== "Department" || !uniId) {
-      setDepartments([])
+      const id = setTimeout(() => setDepartments([]))
+      return () => clearTimeout(id)
     }
   }, [targetScope, selectedUniIdForDept, fixedUniversityId, fixedDepartmentId])
 

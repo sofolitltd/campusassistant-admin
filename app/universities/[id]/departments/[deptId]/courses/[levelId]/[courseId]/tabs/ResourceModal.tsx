@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react"
 import { api, Resource, ResourceType, Batch } from "@/lib/api"
-import { 
-  X, Plus, Users, HardDrive, FilePlus2, BookOpen, Loader2, AlertTriangle 
+import {
+  X, Plus, Users, HardDrive, FilePlus2, BookOpen, Loader2, AlertTriangle, Bell, Download, Eye, Star
 } from "lucide-react"
 import { BatchSelectionModal } from "@/components/BatchSelectionModal"
 import { uploadFile, deleteFile } from "./resource-utils"
@@ -39,6 +39,7 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
   const [thumbnailUrl, setThumbnailUrl] = useState("")
   const [accessLevel, setAccessLevel] = useState<"basic" | "pro">("basic")
   const [selectedBatchIds, setSelectedBatchIds] = useState<string[]>([])
+  const [notifyBatches, setNotifyBatches] = useState(true)
   const [tags, setTags] = useState("")
   const [metaAuthor, setMetaAuthor] = useState("")
   const [metaPublisher, setMetaPublisher] = useState("")
@@ -117,14 +118,14 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
       }
       setUploading(false)
 
-      const meta: Record<string, any> = (resource?.metadata ?? {})
+      const meta: Record<string, any> = { ...(resource?.metadata ?? {}) }
       if (type === "book") { if (metaAuthor) meta.author = metaAuthor; if (metaPublisher) meta.publisher = metaPublisher; if (metaEdition) meta.edition = metaEdition }
       if (type === "question") { if (metaExamType) meta.exam_type = metaExamType; if (metaYear) meta.year = parseInt(metaYear) }
       if (type === "syllabus") { if (metaAcadYear) meta.academic_year = metaAcadYear }
       if (type === "video") { if (metaDuration) meta.duration = metaDuration }
       if (metaPages) meta.pages = parseInt(metaPages)
 
-      const payload: Partial<Resource> & { batch_ids?: string[]; file_size_bytes?: number; lesson_no?: number } = {
+      const payload: Partial<Resource> & { batch_ids?: string[]; file_size_bytes?: number; lesson_no?: number; notify?: boolean } = {
         type, title: finalTitle || "Untitled Video", description: description.trim(),
         course_code: courseCode,
         file_url: finalUrl,
@@ -137,6 +138,7 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
         tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
         metadata: { ...meta, is_edited: isEdit ? true : meta.is_edited },
         batch_ids: selectedBatchIds,
+        notify: notifyBatches,
         file_size_bytes: pickedFile?.size ?? undefined,
       }
       if (isEdit) { await api.resources.update(resource!.id, payload) }
@@ -175,7 +177,7 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
   const selectCls = "w-full rounded-sm border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none"
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-end animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[110] flex items-center justify-end animate-in fade-in duration-300">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       
       <div className="relative flex h-full w-full max-w-md flex-col bg-background shadow-2xl animate-in slide-in-from-right duration-500 border-l">
@@ -191,6 +193,16 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+          {isEdit && (
+            <div className="flex items-center gap-4 rounded-sm border bg-muted/10 px-4 py-3 text-xs font-bold text-muted-foreground">
+              <span className="flex items-center gap-1.5"><Download className="h-3.5 w-3.5" /> {resource!.download_count} downloads</span>
+              <span className="flex items-center gap-1.5"><Eye className="h-3.5 w-3.5" /> {resource!.view_count} views</span>
+              <span className="flex items-center gap-1.5">
+                <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                {resource!.rating_count > 0 ? `${resource!.rating_avg.toFixed(1)} (${resource!.rating_count})` : "No ratings"}
+              </span>
+            </div>
+          )}
           <div className="space-y-4">
             <div className="rounded-sm border-2 border-dashed border-muted-foreground/20 bg-muted/5 p-1 transition-all hover:border-primary/40 group overflow-hidden">
               {pickedFile || fileUrl ? (
@@ -330,6 +342,19 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
                   )
                 })}
               </div>
+            )}
+
+            {selectedBatchIds.length > 0 && (
+              <label className="flex items-center gap-2.5 mt-3 rounded-sm border border-dashed border-muted-foreground/20 bg-muted/5 px-4 py-3 cursor-pointer hover:border-primary/40 transition-all">
+                <input
+                  type="checkbox"
+                  checked={notifyBatches}
+                  onChange={(e) => setNotifyBatches(e.target.checked)}
+                  className="h-4 w-4 rounded-sm accent-primary"
+                />
+                <Bell className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-bold text-muted-foreground">Notify selected batches</span>
+              </label>
             )}
           </div>
 

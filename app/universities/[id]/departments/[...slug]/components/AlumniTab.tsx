@@ -13,13 +13,14 @@ import { cn } from "@/lib/utils"
 
 type AlumniFormData = Omit<Alumni, "id" | "created_at">
 
-function AlumniModal({
+export function AlumniModal({
   open,
   onClose,
   alumni,
   universityId,
   departmentId,
   onSuccess,
+  initialData,
 }: {
   open: boolean
   onClose: () => void
@@ -27,6 +28,7 @@ function AlumniModal({
   universityId: string
   departmentId: string
   onSuccess: () => void
+  initialData?: Partial<AlumniFormData>
 }) {
   const isEdit = !!alumni
   const [loading, setLoading] = useState(false)
@@ -43,6 +45,10 @@ function AlumniModal({
   const [showSearchResults, setShowSearchResults] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
 
+  const [batches, setBatches] = useState<{ id: string; name: string }[]>([])
+  const [designations, setDesignations] = useState<string[]>([])
+  const [desigQuery, setDesigQuery] = useState("")
+  const [showDesigDropdown, setShowDesigDropdown] = useState(false)
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [orgQuery, setOrgQuery] = useState("")
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null)
@@ -77,6 +83,7 @@ function AlumniModal({
               department_id: departmentId,
               current_status: "employed",
               social_links: {},
+              ...initialData,
             }
       )
       setSelectedStudent(alumni?.student_profile || null)
@@ -94,13 +101,36 @@ function AlumniModal({
           } else {
             setSelectedOrg(null)
           }
+        } else if (initialData?.organization) {
+          setOrgQuery(initialData.organization)
+          const matched = orgs.find((o) => o.name.toLowerCase() === initialData.organization!.toLowerCase())
+          if (matched) {
+            setSelectedOrg(matched)
+            setForm((p) => ({ ...p, organization_id: matched.id }))
+          } else {
+            setSelectedOrg(null)
+          }
         } else {
           setOrgQuery("")
           setSelectedOrg(null)
         }
       }).catch(console.error)
+
+      api.batches.getAllByDepartment(departmentId).then((b) => {
+        setBatches(b.map((b) => ({ id: b.id, name: b.name })).sort((a, b) => b.name.localeCompare(a.name, undefined, { numeric: true })))
+      }).catch(console.error)
+
+      api.alumni.getAllByDepartment(universityId, departmentId).then((al) => {
+        const unique = [...new Set(al.map((a) => a.designation).filter(Boolean))]
+        setDesignations(unique)
+        if (alumni) {
+          setDesigQuery(alumni.designation || "")
+        } else {
+          setDesigQuery(initialData?.designation || "")
+        }
+      }).catch(console.error)
     }
-  }, [open, alumni, universityId, departmentId])
+  }, [open, alumni, universityId, departmentId, initialData])
 
   useEffect(() => {
     const handleOutsideClick = () => {
@@ -180,11 +210,19 @@ function AlumniModal({
             </p>
             {selectedStudent ? (
               <div className="flex items-center justify-between bg-background border p-3 rounded-sm">
-                <div className="flex items-center gap-3">
-                  <Avatar name={selectedStudent.name} imageUrl={selectedStudent.user?.avatar_url} size="sm" />
-                  <div>
-                    <p className="text-sm font-bold">{selectedStudent.name}</p>
-                    <p className="text-xs text-muted-foreground">{selectedStudent.student_id} • {selectedStudent.email || "No email"}</p>
+                <div className="flex items-center gap-3 min-w-0">
+                  {selectedStudent.user?.avatar_url ? (
+                    <img src={selectedStudent.user.avatar_url} alt={selectedStudent.name} className="h-9 w-9 rounded-full object-cover border bg-muted shrink-0" />
+                  ) : (
+                    <Avatar name={selectedStudent.name} imageUrl={undefined} size="sm" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold truncate">{selectedStudent.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{selectedStudent.student_id} • {selectedStudent.email || "No email"}</p>
+                    <p className="text-[10px] text-muted-foreground/60 truncate">
+                      {selectedStudent.batch?.name && <span>Batch {selectedStudent.batch.name}</span>}
+                      {selectedStudent.session?.name && <span> • {selectedStudent.session.name}</span>}
+                    </p>
                   </div>
                 </div>
                 <button
@@ -192,7 +230,7 @@ function AlumniModal({
                   onClick={() => {
                     setSelectedStudent(null);
                     setForm(p => {
-                      const { student_profile_id, ...rest } = p;
+                      const { student_profile_id, batch, student_id, full_name, email, phone, ...rest } = p;
                       return rest;
                     });
                   }}
@@ -242,16 +280,21 @@ function AlumniModal({
                           }}
                           className="flex items-center justify-between p-3 hover:bg-muted cursor-pointer transition-colors"
                         >
-                          <div className="flex items-center gap-3">
-                            <Avatar name={s.name} imageUrl={s.user?.avatar_url} size="sm" />
-                            <div>
-                              <p className="text-sm font-bold">{s.name}</p>
-                              <p className="text-xs text-muted-foreground">{s.student_id} • {s.email || "No email"}</p>
+                          <div className="flex items-center gap-3 min-w-0">
+                            {s.user?.avatar_url ? (
+                              <img src={s.user.avatar_url} alt={s.name} className="h-9 w-9 rounded-full object-cover border bg-muted shrink-0" />
+                            ) : (
+                              <Avatar name={s.name} imageUrl={undefined} size="sm" />
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold truncate">{s.name}</p>
+                              <p className="text-xs text-muted-foreground truncate">{s.student_id} • {s.email || "No email"}</p>
+                              <p className="text-[10px] text-muted-foreground/60 truncate">
+                                {s.batch?.name && <span>Batch {s.batch.name}</span>}
+                                {s.session?.name && <span> • {s.session.name}</span>}
+                              </p>
                             </div>
                           </div>
-                          {s.batch?.name && (
-                            <Badge variant="default" className="text-[10px] uppercase font-black">{s.batch.name}</Badge>
-                          )}
                         </div>
                       ))
                     )}
@@ -275,11 +318,21 @@ function AlumniModal({
               </div>
               <div>
                 <label className={labelCls}>Batch</label>
-                <input className={inputCls} placeholder="e.g. 2018" value={form.batch ?? ""} onChange={(e) => set("batch", e.target.value)} />
+                <select className={inputCls} value={form.batch ?? ""} onChange={(e) => set("batch", e.target.value)}>
+                  <option value="">Select batch</option>
+                  {batches.map((b) => (
+                    <option key={b.id} value={b.name}>{b.name}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className={labelCls}>Passing Year</label>
-                <input className={inputCls} placeholder="e.g. 2022" value={form.passing_year ?? ""} onChange={(e) => set("passing_year", e.target.value)} />
+                <select className={inputCls} value={form.passing_year ?? ""} onChange={(e) => set("passing_year", e.target.value)}>
+                  <option value="">Select year</option>
+                  {Array.from({ length: new Date().getFullYear() - 1950 + 1 }, (_, i) => String(new Date().getFullYear() - i)).map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className={labelCls}>Current Status *</label>
@@ -410,9 +463,69 @@ function AlumniModal({
                   </div>
                 )}
               </div>
-              <div>
+              <div className="relative">
                 <label className={labelCls}>Designation</label>
-                <input className={inputCls} placeholder="e.g. Software Engineer" value={form.designation ?? ""} onChange={(e) => set("designation", e.target.value)} />
+                <div className="relative">
+                  <input
+                    type="text"
+                    className={inputCls}
+                    placeholder="e.g. Software Engineer"
+                    value={desigQuery}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setDesigQuery(val)
+                      set("designation", val)
+                      setShowDesigDropdown(true)
+                    }}
+                    onFocus={() => setShowDesigDropdown(true)}
+                  />
+                  {desigQuery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDesigQuery("")
+                        setForm((p) => ({ ...p, designation: "" }))
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded-full"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+
+                {showDesigDropdown && desigQuery.trim().length > 0 && (
+                  <div className="absolute z-20 left-0 right-0 mt-1 max-h-60 overflow-y-auto border bg-background rounded-sm shadow-lg divide-y">
+                    {designations
+                      .filter((d) => d.toLowerCase().includes(desigQuery.toLowerCase()))
+                      .map((d) => (
+                        <div
+                          key={d}
+                          onClick={() => {
+                            setDesigQuery(d)
+                            set("designation", d)
+                            setShowDesigDropdown(false)
+                          }}
+                          className="p-3 hover:bg-muted cursor-pointer transition-colors text-xs"
+                        >
+                          {d}
+                        </div>
+                      ))}
+
+                    {!designations.some((d) => d.toLowerCase() === desigQuery.trim().toLowerCase()) && (
+                      <div
+                        onClick={() => {
+                          setDesigQuery(desigQuery.trim())
+                          set("designation", desigQuery.trim())
+                          setShowDesigDropdown(false)
+                        }}
+                        className="flex items-center gap-2 p-3 hover:bg-primary/10 text-primary cursor-pointer transition-colors text-xs font-bold"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Add "{desigQuery.trim()}" as a new designation
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="sm:col-span-2">
                 <label className={labelCls}>Location</label>

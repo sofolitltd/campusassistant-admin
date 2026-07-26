@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { startTransition, useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -117,8 +117,7 @@ export default function CoursesClient({ universityId, departmentId, levelId, lev
   const [fixing, setFixing] = useState(false)
   const [fixDone, setFixDone] = useState(0)
 
-  const load = useCallback(async () => {
-    setLoading(true); setError("")
+  async function load() {
     try {
       const [c, cats, prefs, levs, bats, all] = await Promise.all([
         api.courses.getAllByLevel(levelId),
@@ -137,9 +136,12 @@ export default function CoursesClient({ universityId, departmentId, levelId, lev
       setBatches(bats)
     } catch (e: any) { setError(e.message) }
     finally { setLoading(false) }
-  }, [levelId, departmentId])
+  }
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    startTransition(() => { setLoading(true); setError("") })
+    load()
+  }, [levelId, departmentId])
 
   // Group by category
   const grouped: Record<string, Course[]> = {}
@@ -279,7 +281,7 @@ export default function CoursesClient({ universityId, departmentId, levelId, lev
               ) : fixDone > 0 ? (
                 <><CheckCircle className="h-3 w-3" /> Fixed {fixDone}</>
               ) : (
-                <><CheckCircle className="h-3 w-3" /> Assign "{levelName}" to All</>
+                <><CheckCircle className="h-3 w-3" /> Assign &ldquo;{levelName}&rdquo; to All</>
               )}
             </button>
           </div>

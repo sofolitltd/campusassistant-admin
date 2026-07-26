@@ -53,3 +53,67 @@ export async function optimizeImage(file: File): Promise<Blob> {
     img.src = URL.createObjectURL(file);
   });
 }
+
+function loadImageEl(file: File | Blob): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Failed to load image for optimization"));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function canvasToWebp(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("Failed to convert image to blob"))),
+      'image/webp',
+      quality
+    );
+  });
+}
+
+/**
+ * Compresses an image for a push-notification hero image (FCM's big-picture
+ * display, shown much larger than the 300px thumbnails optimizeImage() is
+ * for): resizes to maxWidth, converts to WebP, and iteratively lowers
+ * quality — then, if still over budget, shrinks the width and retries — until
+ * the result is under maxSizeKB.
+ */
+export async function compressForNotification(
+  file: File,
+  maxSizeKB = 100,
+  initialMaxWidth = 1024
+): Promise<Blob> {
+  const img = await loadImageEl(file);
+  let maxWidth = initialMaxWidth;
+  let blob: Blob;
+
+  for (;;) {
+    const scale = Math.min(1, maxWidth / img.width);
+    const targetWidth = Math.round(img.width * scale);
+    const targetHeight = Math.round(img.height * scale);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error("Could not create canvas context");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+    let quality = 0.8;
+    blob = await canvasToWebp(canvas, quality);
+    while (blob.size > maxSizeKB * 1024 && quality > 0.3) {
+      quality -= 0.15;
+      blob = await canvasToWebp(canvas, quality);
+    }
+
+    if (blob.size <= maxSizeKB * 1024 || maxWidth <= 320) break;
+    maxWidth = Math.round(maxWidth * 0.7);
+  }
+
+  URL.revokeObjectURL(img.src);
+  return blob;
+}

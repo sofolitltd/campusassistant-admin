@@ -2,7 +2,87 @@
 
 import { cn } from "@/lib/utils"
 import { X, Plus, AlertTriangle, Loader2, Trash2 } from "lucide-react"
-import { useEffect } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
+
+/**
+ * Dropdown menu rendered into document.body via a portal, positioned by the
+ * anchor button's viewport rect. Escapes any `overflow-hidden`/`overflow-x-auto`
+ * ancestor (card grids, scrollable tables) that would otherwise clip it.
+ */
+export function ActionMenu({
+  open,
+  anchorEl,
+  onClose,
+  children,
+  width = 208,
+}: {
+  open: boolean
+  anchorEl: HTMLElement | null
+  onClose: () => void
+  children: React.ReactNode
+  width?: number
+}) {
+  const [style, setStyle] = useState<React.CSSProperties | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close on outside click, but ignore mousedowns that land on the menu
+  // itself or its anchor button — otherwise the menu unmounts on mousedown,
+  // before the click on a menu item ever gets a chance to fire.
+  useEffect(() => {
+    if (!open) return
+    function handlePointerDown(e: MouseEvent) {
+      const target = e.target as Node
+      if (menuRef.current?.contains(target)) return
+      if (anchorEl?.contains(target)) return
+      onClose()
+    }
+    document.addEventListener("mousedown", handlePointerDown)
+    return () => document.removeEventListener("mousedown", handlePointerDown)
+  }, [open, anchorEl, onClose])
+
+  useLayoutEffect(() => {
+    if (!open || !anchorEl) {
+      setStyle(null)
+      return
+    }
+    const rect = anchorEl.getBoundingClientRect()
+    let left = rect.right - width
+    if (left < 8) left = 8
+    if (left + width > window.innerWidth - 8) left = window.innerWidth - width - 8
+
+    const spaceBelow = window.innerHeight - rect.bottom
+    if (spaceBelow < 180 && rect.top > 180) {
+      setStyle({ position: "fixed", left, bottom: window.innerHeight - rect.top + 4, zIndex: 200 })
+    } else {
+      setStyle({ position: "fixed", left, top: rect.bottom + 4, zIndex: 200 })
+    }
+  }, [open, anchorEl, width])
+
+  useEffect(() => {
+    if (!open) return
+    const reposition = () => onClose()
+    window.addEventListener("scroll", reposition, true)
+    window.addEventListener("resize", reposition)
+    return () => {
+      window.removeEventListener("scroll", reposition, true)
+      window.removeEventListener("resize", reposition)
+    }
+  }, [open, onClose])
+
+  if (!open || !anchorEl || !style) return null
+
+  return createPortal(
+    <div
+      ref={menuRef}
+      style={{ ...style, width }}
+      className="bg-background border rounded-sm shadow-lg py-1 animate-in fade-in slide-in-from-top-1 duration-150"
+    >
+      {children}
+    </div>,
+    document.body
+  )
+}
 
 export function Avatar({ name, imageUrl, size = "md" }: { name: string; imageUrl?: string; size?: "sm" | "md" | "lg" }) {
   const sizes = { sm: "h-8 w-8 text-xs", md: "h-10 w-10 text-sm", lg: "h-14 w-14 text-lg" }

@@ -14,21 +14,26 @@ export function getApiUrl(): string {
 
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
   const url = `${getApiUrl()}${endpoint}`;
-  
-  const headers = {
-    ...options.headers,
-    'X-API-Key': getApiKey(),
-    'Content-Type': 'application/json',
-  };
 
-  const response = await fetch(url, { ...options, headers });
-  
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `API error: ${response.status}`);
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string>),
+    "X-API-Key": getApiKey(),
+    "Content-Type": "application/json",
   }
-  
-  return response.json();
+
+  const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`
+  }
+
+  const response = await fetch(url, { ...options, headers })
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    throw new Error(errorData.error || errorData.message || `API error: ${response.status}`)
+  }
+
+  return response.json()
 }
 
 export function getFullImageUrl(url?: string) {
@@ -68,9 +73,18 @@ export interface Department {
   website_url: string;
   logo_url: string;
   university_id: string;
+  faculty_id?: string | null;
+  faculty?: Faculty;
 }
 
 export interface Hall {
+  id: string;
+  name: string;
+  slug: string;
+  university_id: string;
+}
+
+export interface Faculty {
   id: string;
   name: string;
   slug: string;
@@ -276,6 +290,7 @@ export interface Resource {
   download_count: number;
   view_count: number;
   rating_avg: number;
+  rating_count: number;
   tags: string[];
   is_public: boolean;
   metadata?: Record<string, unknown>;
@@ -336,6 +351,30 @@ export interface Banner {
   created_at: string;
 }
 
+export interface Notice {
+  id: string;
+  uploader: string;
+  message: string;
+  image_urls: string[];
+  university_id: string;
+  department_id: string;
+  created_at: string;
+}
+
+export interface Contributor {
+  id: string;
+  name: string;
+  image_url: string;
+  tier: string;
+  university_id: string;
+  university_name: string;
+  department_id: string;
+  department_name: string;
+  session: string;
+  student_profile_id?: string;
+  created_at: string;
+}
+
 export interface EmergencyContact {
   id: string;
   title: string;
@@ -357,6 +396,7 @@ export interface SubscriptionPlan {
   price: number;
   discount: number;
   duration_days: number;
+  is_lifetime: boolean;
   index: number;
   targets: SubscriptionTarget[];
 }
@@ -368,6 +408,351 @@ export interface SubscriptionTarget {
   department_id: string;
 }
 
+// SkillTarget links a Skill to a university/department. A Skill with zero
+// targets is global (visible to everyone) — unlike SubscriptionTarget,
+// this is optional, not required.
+export interface SkillTarget {
+  id?: string;
+  skill_id?: string;
+  university_id: string;
+  department_id: string;
+}
+
+export interface SkillVideo {
+  id: string;
+  skill_id: string;
+  youtube_url: string;
+  title: string;
+  thumbnail_url: string;
+  duration: string;
+  index: number;
+}
+
+export interface Skill {
+  id: string;
+  title: string;
+  description: string;
+  thumbnail_url: string;
+  index: number;
+  is_published: boolean;
+  targets: SkillTarget[];
+  videos?: SkillVideo[];
+}
+
+export type MerchantStatus = 'pending' | 'approved' | 'rejected';
+
+export interface Merchant {
+  id: string;
+  user_id: string;
+  // Preloaded read-only — lets an admin cross-check the applicant's real
+  // account identity against their uploaded ID proofs.
+  user?: { id: string; email: string; first_name: string; last_name: string };
+  business_name: string;
+  description: string;
+  logo_url: string;
+  business_type?: string;
+  // Contact-only fields — the app's public storefront lookup redacts these;
+  // the admin panel (this API) always receives them in full.
+  phone?: string;
+  email?: string;
+  commission_rate: number;
+  status: MerchantStatus;
+  is_platform: boolean;
+  rejection_reason?: string;
+  website?: string;
+  social_media_link?: string;
+  // Verification documents uploaded by the applicant — admin-only, use to
+  // confirm identity before approving. These are attachment IDs (private
+  // storage), not directly-loadable URLs — resolve via api.attachments.getUrl.
+  student_id_proof_url?: string;
+  nid_proof_url?: string;
+  payout_method?: string;
+  payout_account?: string;
+  created_at: string;
+}
+
+// ProductTarget links a Product to a university/department. A Product with
+// zero targets is global (visible to everyone), same shape as SkillTarget.
+export interface ProductTarget {
+  id?: string;
+  product_id?: string;
+  university_id: string;
+  department_id: string;
+}
+
+export interface Product {
+  id: string;
+  merchant_id: string;
+  merchant?: Merchant;
+  title: string;
+  description: string;
+  price: number;
+  stock: number;
+  image_urls: string[];
+  category_id?: string;
+  category?: MarketplaceCategory;
+  is_published: boolean;
+  targets: ProductTarget[];
+  created_at: string;
+}
+
+export type OrderStatus = 'pending_payment' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+
+export interface OrderItem {
+  id: string;
+  product_id: string;
+  product_title: string;
+  merchant_id: string;
+  quantity: number;
+  unit_price: number;
+  commission_rate_snapshot: number;
+  created_at: string;
+}
+
+export interface Order {
+  id: string;
+  buyer_id: string;
+  shipping_recipient_name: string;
+  shipping_phone: string;
+  shipping_address_line: string;
+  shipping_city: string;
+  total_amount: number;
+  status: OrderStatus;
+  items: OrderItem[];
+  created_at: string;
+}
+
+export interface MarketplaceCategory {
+  id: string;
+  name: string;
+  image_url: string;
+  description: string;
+  index: number;
+  created_at: string;
+}
+
+export type LostFoundType = 'lost' | 'found';
+export type LostFoundStatus = 'open' | 'claimed' | 'resolved' | 'removed';
+export type LostFoundClaimStatus = 'pending' | 'accepted' | 'rejected';
+export type LostFoundReportStatus = 'pending' | 'resolved' | 'dismissed';
+
+export interface LostFoundCategory {
+  id: string;
+  name: string;
+  icon_key: string;
+  index: number;
+  created_at: string;
+}
+
+// LostFoundItemTarget links an item to a university/department. An item with
+// zero targets is global (visible campus-wide), same shape as ProductTarget.
+export interface LostFoundItemTarget {
+  id?: string;
+  item_id?: string;
+  university_id: string;
+  department_id: string;
+}
+
+export interface LostFoundUser {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface LostFoundItem {
+  id: string;
+  type: LostFoundType;
+  title: string;
+  description: string;
+  category_id?: string;
+  category?: LostFoundCategory;
+  image_urls: string[];
+  location: string;
+  event_date?: string;
+  status: LostFoundStatus;
+  removal_reason?: string;
+  resolved_at?: string;
+  poster_id: string;
+  poster?: LostFoundUser;
+  targets: LostFoundItemTarget[];
+  created_at: string;
+}
+
+export interface LostFoundClaim {
+  id: string;
+  item_id: string;
+  claimer_id: string;
+  claimer?: LostFoundUser;
+  message: string;
+  status: LostFoundClaimStatus;
+  created_at: string;
+}
+
+export interface LostFoundReport {
+  id: string;
+  item_id: string;
+  item?: LostFoundItem;
+  reporter_id: string;
+  reporter?: LostFoundUser;
+  reason: string;
+  status: LostFoundReportStatus;
+  created_at: string;
+}
+
+export interface CareerCircularCategory {
+  id: string;
+  name: string;
+  icon_key: string;
+  index: number;
+  created_at: string;
+}
+
+// CareerCircularTarget links a circular to a university/department. A
+// circular with zero targets is global, same shape as ProductTarget.
+export interface CareerCircularTarget {
+  id?: string;
+  circular_id?: string;
+  university_id: string;
+  department_id: string;
+}
+
+export interface CareerCircular {
+  id: string;
+  title: string;
+  organization: string;
+  category_id?: string;
+  category?: CareerCircularCategory;
+  description: string;
+  attachment_urls: string[];
+  post_link: string;
+  resource_link: string;
+  publish_date?: string;
+  deadline_date?: string;
+  views_count: number;
+  is_published: boolean;
+  targets: CareerCircularTarget[];
+  created_at: string;
+}
+
+export type ClubType = 'department' | 'university';
+
+export const CLUB_CATEGORIES = [
+  'Academic',
+  'Cultural',
+  'Sports',
+  'Technology',
+  'Arts',
+  'Social Service',
+  'Debate',
+  'Other',
+] as const;
+export type ClubCategory = typeof CLUB_CATEGORIES[number];
+
+export interface Club {
+  id: string;
+  name: string;
+  description: string;
+  club_type: ClubType;
+  university_id: string;
+  department_id?: string | null;
+  logo_url?: string;
+  banner_url?: string;
+  founded_year?: number;
+  is_active: boolean;
+  social_links?: { facebook?: string; instagram?: string; linkedin?: string };
+  contact_email?: string;
+  contact_phone?: string;
+  followers_count: number;
+  category?: string;
+  is_verified: boolean;
+  created_at: string;
+}
+
+export interface ClubEvent {
+  id: string;
+  club_id: string;
+  title: string;
+  description: string;
+  image_url: string;
+  location: string;
+  start_at: string;
+  end_at?: string;
+  // Toggling this on at create time is what triggers the push notification
+  // to the club's followers — see ClubEventManager for the confirmation UI.
+  is_published: boolean;
+  created_at: string;
+}
+
+export type AssociationType = 'district' | 'sub_district';
+
+export const ASSOCIATION_CATEGORIES = [
+  'Regional Welfare',
+  'Cultural',
+  'Sports',
+  'Social Service',
+  'Academic',
+  'Networking',
+  'Other',
+] as const;
+export type AssociationCategory = typeof ASSOCIATION_CATEGORIES[number];
+
+export interface BDSubDistrict {
+  id: string;
+  name: string;
+}
+
+export interface BDDistrict {
+  id: string;
+  name: string;
+  division?: string;
+  sub_districts: BDSubDistrict[];
+}
+
+export interface Association {
+  id: string;
+  name: string;
+  description: string;
+  association_type: AssociationType;
+  university_id: string;
+  district_id: string;
+  district_name: string;
+  sub_district_id?: string | null;
+  sub_district_name?: string | null;
+  logo_url?: string;
+  banner_url?: string;
+  founded_year?: number;
+  is_active: boolean;
+  social_links?: { facebook?: string; instagram?: string; linkedin?: string };
+  contact_email?: string;
+  contact_phone?: string;
+  followers_count: number;
+  category?: string;
+  is_verified: boolean;
+  created_at: string;
+}
+
+export interface AssociationMemberSummary {
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  avatar_url?: string;
+  role?: string;
+}
+
+export interface AssociationEvent {
+  id: string;
+  association_id: string;
+  title: string;
+  description: string;
+  image_url: string;
+  location: string;
+  start_at: string;
+  end_at?: string;
+  is_published: boolean;
+  created_at: string;
+}
+
 export interface UserSubscription {
   id: string;
   user_id: string;
@@ -375,7 +760,7 @@ export interface UserSubscription {
   plan: string;
   price: number;
   start_date: string;
-  end_date: string;
+  end_date: string | null; // null = Lifetime plan, never expires
   created_at: string;
 }
 
@@ -384,6 +769,7 @@ export interface PaginatedResponse<T> {
   count: number;
   limit: number;
   offset: number;
+  total_revenue?: number;
 }
 
 export interface User {
@@ -406,6 +792,15 @@ export interface User {
   created_at: string;
 }
 
+export interface Admin {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  is_active: boolean;
+  created_at: string;
+}
+
 export interface DailyCount {
   date: string;
   count: number;
@@ -415,8 +810,24 @@ export interface RecentSubscriber {
   user_id: string;
   name: string;
   plan: string;
+  price: number;
   status: string;
   date: string;
+}
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  body: string;
+  type: string;
+  scope: string; // "user" | "batch" | "department" | "university"
+  target_id?: string | null;
+  image_url?: string;
+  data: Record<string, string> | null;
+  created_at: string;
+  updated_at: string;
+  recipient_count: number;
+  read_count: number;
 }
 
 export interface DashboardStats {
@@ -434,6 +845,26 @@ export interface DashboardStats {
 
 export const api = {
   fetchWithAuth,
+  auth: {
+    adminLogin: async (email: string, password: string) => {
+      const baseUrl = getApiUrl()
+      const response = await fetch(`${baseUrl}/auth/admin-login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: "Login failed" }))
+        throw new Error(error.error || "Login failed")
+      }
+      return response.json() as Promise<{
+        access_token: string
+        refresh_token: string
+        expires_in: number
+        admin: { id: string; email: string; name: string; role: string }
+      }>
+    },
+  },
   stats: {
     getDashboard: (): Promise<DashboardStats> =>
       fetchWithAuth('/stats'),
@@ -456,6 +887,28 @@ export const api = {
     delete: (id: string) => fetchWithAuth(`/users/${id}`, {
       method: 'DELETE',
     }),
+  },
+  admins: {
+    getAll: (): Promise<Admin[]> =>
+      fetchWithAuth('/admins'),
+    create: (data: { email: string; password: string; name: string; role?: string }) =>
+      fetchWithAuth('/admins', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    update: (id: string, data: { name?: string }) =>
+      fetchWithAuth(`/admins/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) => fetchWithAuth(`/admins/${id}`, {
+      method: 'DELETE',
+    }),
+    changePassword: (id: string, password: string) =>
+      fetchWithAuth(`/admins/${id}/password`, {
+        method: 'PUT',
+        body: JSON.stringify({ password }),
+      }),
   },
   universities: {
     getAll: (params?: string): Promise<University[]> =>
@@ -508,6 +961,127 @@ export const api = {
       fetchWithAuth(`/halls/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/halls/${id}`, { method: 'DELETE' }),
+  },
+  faculties: {
+    getAllByUniversity: (universityId: string): Promise<Faculty[]> =>
+      fetchWithAuth(`/faculties?university_id=${universityId}`).then((res: PaginatedResponse<Faculty>) => res.data ?? []),
+    create: (data: Partial<Faculty>): Promise<Faculty> =>
+      fetchWithAuth('/faculties', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<Faculty>): Promise<Faculty> =>
+      fetchWithAuth(`/faculties/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/faculties/${id}`, { method: 'DELETE' }),
+  },
+  skills: {
+    getAll: (): Promise<Skill[]> =>
+      fetchWithAuth('/skills').then((res: PaginatedResponse<Skill>) => res.data ?? []),
+    getById: (id: string): Promise<Skill> =>
+      fetchWithAuth(`/skills/${id}`),
+    create: (data: Partial<Skill>): Promise<Skill> =>
+      fetchWithAuth('/skills', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<Skill>): Promise<Skill> =>
+      fetchWithAuth(`/skills/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/skills/${id}`, { method: 'DELETE' }),
+  },
+  skillVideos: {
+    getBySkill: (skillId: string): Promise<SkillVideo[]> =>
+      fetchWithAuth(`/skill-videos?skill_id=${skillId}`).then((res: PaginatedResponse<SkillVideo>) => res.data ?? []),
+    create: (data: Partial<SkillVideo>): Promise<SkillVideo> =>
+      fetchWithAuth('/skill-videos', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<SkillVideo>): Promise<SkillVideo> =>
+      fetchWithAuth(`/skill-videos/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/skill-videos/${id}`, { method: 'DELETE' }),
+  },
+  merchants: {
+    getAll: (status?: MerchantStatus): Promise<Merchant[]> =>
+      fetchWithAuth(`/merchants${status ? `?status=${status}` : ''}`).then((res: PaginatedResponse<Merchant>) => res.data ?? []),
+    getById: (id: string): Promise<Merchant> =>
+      fetchWithAuth(`/merchants/${id}`),
+    getPlatform: (): Promise<Merchant> =>
+      fetchWithAuth('/merchants/platform'),
+    update: (id: string, data: Partial<Merchant>): Promise<Merchant> =>
+      fetchWithAuth(`/merchants/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    approve: (id: string): Promise<void> =>
+      fetchWithAuth(`/merchants/${id}/approve`, { method: 'PUT' }),
+    reject: (id: string, reason?: string): Promise<void> =>
+      fetchWithAuth(`/merchants/${id}/reject`, { method: 'PUT', body: JSON.stringify({ reason }) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/merchants/${id}`, { method: 'DELETE' }),
+  },
+  attachments: {
+    // Resolves any attachment id to a viewing URL — a short-lived signed
+    // URL for private documents (e.g. merchant verification photos), or
+    // the permanent public URL otherwise. Never cache the returned URL.
+    getUrl: (id: string): Promise<{ url: string; expires_in_seconds?: number }> =>
+      fetchWithAuth(`/attachments/${id}/url`),
+  },
+  products: {
+    getAll: (merchantId?: string): Promise<Product[]> =>
+      fetchWithAuth(`/products${merchantId ? `?merchant_id=${merchantId}` : ''}`).then((res: PaginatedResponse<Product>) => res.data ?? []),
+    getById: (id: string): Promise<Product> =>
+      fetchWithAuth(`/products/${id}`),
+    create: (data: Partial<Product>): Promise<Product> =>
+      fetchWithAuth('/products', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<Product>): Promise<Product> =>
+      fetchWithAuth(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/products/${id}`, { method: 'DELETE' }),
+  },
+  clubs: {
+    getAll: (params?: string): Promise<Club[]> =>
+      fetchWithAuth(`/clubs?limit=500&${params || ''}`).then((res: PaginatedResponse<Club>) => res.data ?? []),
+    getById: (id: string): Promise<Club> =>
+      fetchWithAuth(`/clubs/${id}`),
+    create: (data: Partial<Club>): Promise<Club> =>
+      fetchWithAuth('/clubs', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<Club>): Promise<Club> =>
+      fetchWithAuth(`/clubs/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/clubs/${id}`, { method: 'DELETE' }),
+  },
+  clubEvents: {
+    getByClub: (clubId: string): Promise<ClubEvent[]> =>
+      fetchWithAuth(`/club-events?club_id=${clubId}`).then((res: PaginatedResponse<ClubEvent>) => res.data ?? []),
+    create: (data: Partial<ClubEvent>): Promise<ClubEvent> =>
+      fetchWithAuth('/club-events', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<ClubEvent>): Promise<ClubEvent> =>
+      fetchWithAuth(`/club-events/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/club-events/${id}`, { method: 'DELETE' }),
+  },
+  bdDistricts: {
+    getAll: (): Promise<BDDistrict[]> =>
+      fetchWithAuth(`/bd-districts`),
+  },
+  associations: {
+    getAll: (params?: string): Promise<Association[]> =>
+      fetchWithAuth(`/associations?limit=500&${params || ''}`).then((res: PaginatedResponse<Association>) => res.data ?? []),
+    getById: (id: string): Promise<Association> =>
+      fetchWithAuth(`/associations/${id}`),
+    create: (data: Partial<Association>): Promise<Association> =>
+      fetchWithAuth('/associations', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<Association>): Promise<Association> =>
+      fetchWithAuth(`/associations/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/associations/${id}`, { method: 'DELETE' }),
+    getPendingMembers: (id: string): Promise<AssociationMemberSummary[]> =>
+      fetchWithAuth(`/associations/${id}/members/pending`),
+    approveMember: (id: string, userId: string): Promise<void> =>
+      fetchWithAuth(`/associations/${id}/members/${userId}/approve`, { method: 'POST' }),
+    rejectMember: (id: string, userId: string): Promise<void> =>
+      fetchWithAuth(`/associations/${id}/members/${userId}/reject`, { method: 'POST' }),
+  },
+  associationEvents: {
+    getByAssociation: (associationId: string): Promise<AssociationEvent[]> =>
+      fetchWithAuth(`/association-events?association_id=${associationId}`).then((res: PaginatedResponse<AssociationEvent>) => res.data ?? []),
+    create: (data: Partial<AssociationEvent>): Promise<AssociationEvent> =>
+      fetchWithAuth('/association-events', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<AssociationEvent>): Promise<AssociationEvent> =>
+      fetchWithAuth(`/association-events/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/association-events/${id}`, { method: 'DELETE' }),
   },
   sessions: {
     getAll: (params?: string): Promise<Session[]> =>
@@ -646,6 +1220,8 @@ export const api = {
       fetchWithAuth(`/resources/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/resources/${id}`, { method: 'DELETE' }),
+    permanentDelete: (id: string): Promise<void> =>
+      fetchWithAuth(`/resources/${id}?permanent=true`, { method: 'DELETE' }),
     approve: (id: string): Promise<Resource> =>
       fetchWithAuth(`/resources/${id}/approve`, { method: 'PATCH' }),
   },
@@ -664,6 +1240,30 @@ export const api = {
       fetchWithAuth(`/banners/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/banners/${id}`, { method: 'DELETE' }),
+  },
+  notices: {
+    getAllByDepartment: (deptId: string): Promise<Notice[]> =>
+      fetchWithAuth(`/notices?department_id=${deptId}&limit=100`).then((res: PaginatedResponse<Notice>) => res.data ?? []),
+    create: (data: Partial<Notice>): Promise<Notice> =>
+      fetchWithAuth('/notices', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<Notice>): Promise<Notice> =>
+      fetchWithAuth(`/notices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/notices/${id}`, { method: 'DELETE' }),
+  },
+  contributors: {
+    getAll: (): Promise<Contributor[]> =>
+      fetchWithAuth(`/contributors?limit=200`).then((res: PaginatedResponse<Contributor>) => res.data ?? []),
+    getAllByDepartment: (deptId: string): Promise<Contributor[]> =>
+      fetchWithAuth(`/contributors?department_id=${deptId}&limit=200`).then((res: PaginatedResponse<Contributor>) => res.data ?? []),
+    create: (data: Partial<Contributor>): Promise<Contributor> =>
+      fetchWithAuth('/contributors', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<Contributor>): Promise<Contributor> =>
+      fetchWithAuth(`/contributors/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/contributors/${id}`, { method: 'DELETE' }),
+    hardDelete: (id: string): Promise<void> =>
+      fetchWithAuth(`/contributors/${id}?permanent=true`, { method: 'DELETE' }),
   },
   emergencyContacts: {
     getAll: (params?: string): Promise<EmergencyContact[]> =>
@@ -738,5 +1338,101 @@ export const api = {
       fetchWithAuth(`/transports/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/transports/${id}`, { method: 'DELETE' }),
+  },
+  marketplaceCategories: {
+    getAll: (params?: string): Promise<MarketplaceCategory[]> =>
+      fetchWithAuth(`/marketplace-categories?${params || ''}`).then((res: PaginatedResponse<MarketplaceCategory>) => res.data ?? []),
+    getById: (id: string): Promise<MarketplaceCategory> =>
+      fetchWithAuth(`/marketplace-categories/${id}`),
+    create: (data: Partial<MarketplaceCategory>): Promise<MarketplaceCategory> =>
+      fetchWithAuth('/marketplace-categories', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<MarketplaceCategory>): Promise<MarketplaceCategory> =>
+      fetchWithAuth(`/marketplace-categories/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/marketplace-categories/${id}`, { method: 'DELETE' }),
+  },
+  orders: {
+    getAll: (status?: string): Promise<Order[]> =>
+      fetchWithAuth(`/orders${status ? `?status=${status}` : ''}`).then((res: PaginatedResponse<Order>) => res.data ?? []),
+    getById: (id: string): Promise<Order> =>
+      fetchWithAuth(`/orders/${id}`),
+    updateStatus: (id: string, status: OrderStatus): Promise<void> =>
+      fetchWithAuth(`/orders/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
+  },
+  lostFoundCategories: {
+    getAll: (params?: string): Promise<LostFoundCategory[]> =>
+      fetchWithAuth(`/lost-found-categories?${params || ''}`).then((res: PaginatedResponse<LostFoundCategory>) => res.data ?? []),
+    getById: (id: string): Promise<LostFoundCategory> =>
+      fetchWithAuth(`/lost-found-categories/${id}`),
+    create: (data: Partial<LostFoundCategory>): Promise<LostFoundCategory> =>
+      fetchWithAuth('/lost-found-categories', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<LostFoundCategory>): Promise<LostFoundCategory> =>
+      fetchWithAuth(`/lost-found-categories/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/lost-found-categories/${id}`, { method: 'DELETE' }),
+  },
+  lostFoundItems: {
+    getAll: (params?: string): Promise<LostFoundItem[]> =>
+      fetchWithAuth(`/lost-found-items?limit=200&${params || ''}`).then((res: PaginatedResponse<LostFoundItem>) => res.data ?? []),
+    getById: (id: string): Promise<LostFoundItem> =>
+      fetchWithAuth(`/lost-found-items/${id}`),
+    updateStatus: (id: string, status: LostFoundStatus, removalReason?: string): Promise<void> =>
+      fetchWithAuth(`/lost-found-items/${id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ status, removal_reason: removalReason }),
+      }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/lost-found-items/${id}`, { method: 'DELETE' }),
+  },
+  lostFoundReports: {
+    getAll: (status?: LostFoundReportStatus): Promise<LostFoundReport[]> =>
+      fetchWithAuth(`/lost-found-reports${status ? `?status=${status}` : ''}`).then((res: PaginatedResponse<LostFoundReport>) => res.data ?? []),
+    resolve: (id: string): Promise<void> =>
+      fetchWithAuth(`/lost-found-reports/${id}/resolve`, { method: 'PUT', body: JSON.stringify({ status: 'resolved' }) }),
+    dismiss: (id: string): Promise<void> =>
+      fetchWithAuth(`/lost-found-reports/${id}/resolve`, { method: 'PUT', body: JSON.stringify({ status: 'dismissed' }) }),
+  },
+  careerCircularCategories: {
+    getAll: (params?: string): Promise<CareerCircularCategory[]> =>
+      fetchWithAuth(`/career-circular-categories?${params || ''}`).then((res: PaginatedResponse<CareerCircularCategory>) => res.data ?? []),
+    getById: (id: string): Promise<CareerCircularCategory> =>
+      fetchWithAuth(`/career-circular-categories/${id}`),
+    create: (data: Partial<CareerCircularCategory>): Promise<CareerCircularCategory> =>
+      fetchWithAuth('/career-circular-categories', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<CareerCircularCategory>): Promise<CareerCircularCategory> =>
+      fetchWithAuth(`/career-circular-categories/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/career-circular-categories/${id}`, { method: 'DELETE' }),
+  },
+  careerCirculars: {
+    getAll: (params?: string): Promise<CareerCircular[]> =>
+      fetchWithAuth(`/career-circulars?limit=200&${params || ''}`).then((res: PaginatedResponse<CareerCircular>) => res.data ?? []),
+    getById: (id: string): Promise<CareerCircular> =>
+      fetchWithAuth(`/career-circulars/${id}`),
+    create: (data: Partial<CareerCircular>): Promise<CareerCircular> =>
+      fetchWithAuth('/career-circulars', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<CareerCircular>): Promise<CareerCircular> =>
+      fetchWithAuth(`/career-circulars/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/career-circulars/${id}`, { method: 'DELETE' }),
+  },
+  notifications: {
+    getAll: (offset = 0, limit = 20): Promise<PaginatedResponse<AppNotification>> =>
+      fetchWithAuth(`/admin/notifications?offset=${offset}&limit=${limit}`),
+    create: (data: Record<string, unknown>) =>
+      fetchWithAuth('/admin/notifications', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    // Resolves the audience for data without sending anything — used to show
+    // "this will reach N users" before an admin commits to an otherwise
+    // irreversible broadcast.
+    preview: (data: Record<string, unknown>): Promise<{ count: number }> =>
+      fetchWithAuth('/admin/notifications/preview', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      fetchWithAuth(`/admin/notifications/${id}`, { method: 'DELETE' }),
   },
 };

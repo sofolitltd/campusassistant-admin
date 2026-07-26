@@ -78,10 +78,10 @@ export default function DashboardClient({ stats }: DashboardClientProps) {
         ))}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        <div className="rounded-xl border bg-card p-6 shadow-sm lg:col-span-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <div className="rounded-xl border bg-card p-4 shadow-sm lg:col-span-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold">User Growth</h3>
+            <h3 className="text-base font-bold">User Growth</h3>
             <select className="rounded-md border bg-background px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20">
               <option>Last 7 days</option>
               <option>Last 30 days</option>
@@ -114,36 +114,36 @@ export default function DashboardClient({ stats }: DashboardClientProps) {
           </div>
         </div>
 
-        <div className="rounded-xl border bg-card p-6 shadow-sm lg:col-span-3">
-          <h3 className="text-lg font-bold">Recent Subscriptions</h3>
-          <div className="mt-6 space-y-6">
+        <div className="rounded-xl border bg-card p-4 shadow-sm lg:col-span-3">
+          <h3 className="text-base font-bold">Recent Subscriptions</h3>
+          <div className="mt-4 space-y-0.5">
             {subs.length > 0 ? subs.map((sub, i) => (
-              <div key={sub.user_id} className="flex items-center justify-between group cursor-pointer hover:bg-muted/50 -mx-2 p-2 rounded-lg transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-xs uppercase border border-primary/20">
+              <div key={sub.user_id} className="flex items-center justify-between group cursor-pointer hover:bg-muted/50 -mx-2 p-1.5 rounded-lg transition-colors">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-[10px] uppercase border border-primary/20">
                     {sub.name.charAt(0)}
                   </div>
                   <div>
-                    <p className="text-sm font-bold">{sub.name}</p>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">{sub.plan} Plan</p>
+                    <p className="text-sm font-bold leading-tight">{sub.name}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">{sub.plan} Plan — {sub.price.toLocaleString()} TK</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className={cn(
-                    "text-[10px] font-black px-2 py-0.5 rounded-full uppercase",
-                    sub.status === "Active" ? "bg-emerald-100 text-emerald-700" : 
-                    sub.status === "Pending" ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700"
-                  )}>
-                    {sub.status}
-                  </span>
-                  <p className="text-[10px] text-muted-foreground font-medium mt-1">{sub.date}</p>
-                </div>
+                  <div className="text-right">
+                    <span className={cn(
+                      "text-[10px] font-black px-1.5 py-0.5 rounded-full uppercase",
+                      sub.status === "Active" ? "bg-emerald-100 text-emerald-700" : 
+                      sub.status === "Pending" ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700"
+                    )}>
+                      {sub.status}
+                    </span>
+                    <p className="text-[10px] text-muted-foreground font-medium">{sub.date}</p>
+                  </div>
               </div>
             )) : (
               <div className="py-12 text-center text-sm text-muted-foreground">No recent subscriptions</div>
             )}
           </div>
-          <Link href="/subscriptions" className="mt-8 w-full rounded-lg border py-2.5 text-xs font-bold uppercase tracking-widest hover:bg-muted transition-all active:scale-[0.98] block text-center">
+          <Link href="/subscriptions" className="mt-4 w-full rounded-lg border py-2 text-xs font-bold uppercase tracking-widest hover:bg-muted transition-all active:scale-[0.98] block text-center">
             View All Subscriptions
           </Link>
         </div>

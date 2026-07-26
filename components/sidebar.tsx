@@ -2,11 +2,12 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { 
-  LayoutDashboard, 
-  Users, 
-  Image as ImageIcon, 
+import { usePathname, useRouter } from "next/navigation"
+import { removeToken } from "@/lib/auth"
+import {
+  LayoutDashboard,
+  Users,
+  Image as ImageIcon,
   CreditCard,
   School,
   Settings,
@@ -15,7 +16,15 @@ import {
   ChevronRight,
   Search,
   Bell,
-  Phone
+  Phone,
+  Handshake,
+  Sparkles,
+  Users2,
+  ShoppingBag,
+  Landmark,
+  PackageSearch,
+  Briefcase,
+  Shield,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -37,6 +46,11 @@ const navItems = [
     icon: Users,
   },
   {
+    title: "Admins",
+    href: "/admins",
+    icon: Shield,
+  },
+  {
     title: "Banners",
     href: "/banners",
     icon: ImageIcon,
@@ -47,15 +61,61 @@ const navItems = [
     icon: CreditCard,
   },
   {
+    title: "Skills",
+    href: "/skills",
+    icon: Sparkles,
+  },
+  {
+    title: "Clubs",
+    href: "/clubs",
+    icon: Users2,
+  },
+  {
+    title: "Associations",
+    href: "/associations",
+    icon: Landmark,
+  },
+  {
+    title: "Marketplace",
+    href: "/marketplace",
+    icon: ShoppingBag,
+  },
+  {
+    title: "Lost & Found",
+    href: "/lost-and-found",
+    icon: PackageSearch,
+  },
+  {
+    title: "Career",
+    href: "/career",
+    icon: Briefcase,
+  },
+  {
+    title: "Notifications",
+    href: "/notifications",
+    icon: Bell,
+  },
+  {
     title: "Contacts",
     href: "/contacts",
     icon: Phone,
+  },
+  {
+    title: "Contributors",
+    href: "/contributors",
+    icon: Handshake,
   },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const [isCollapsed, setIsCollapsed] = React.useState(false)
+
+  function handleLogout() {
+    removeToken()
+    router.push("/login")
+  }
 
   return (
     <aside
@@ -107,6 +167,7 @@ export function Sidebar() {
           {!isCollapsed && <span>Settings</span>}
         </Link>
         <button
+          onClick={handleLogout}
           className={cn(
             "group flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
           )}
