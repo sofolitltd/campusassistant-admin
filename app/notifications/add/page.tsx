@@ -166,7 +166,7 @@ export default function AddNotificationPage() {
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">
-                Title <span className="text-red-500 ml-0.5">*</span>
+                Title <span className="text-destructive ml-0.5">*</span>
               </label>
               <span className="text-[10px] text-muted-foreground font-medium">{form.title.length}/{TITLE_MAX_LENGTH}</span>
             </div>
@@ -183,7 +183,7 @@ export default function AddNotificationPage() {
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">
-                Body <span className="text-red-500 ml-0.5">*</span>
+                Body <span className="text-destructive ml-0.5">*</span>
               </label>
               <span className="text-[10px] text-muted-foreground font-medium">{form.body.length}/{BODY_MAX_LENGTH}</span>
             </div>
@@ -199,7 +199,7 @@ export default function AddNotificationPage() {
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium">
-              Type <span className="text-red-500 ml-0.5">*</span>
+              Type <span className="text-destructive ml-0.5">*</span>
             </label>
             <select
               className={selectCls}
@@ -228,7 +228,7 @@ export default function AddNotificationPage() {
                   <button
                     type="button"
                     onClick={() => { setPickedImage(null); if (fileInputRef.current) fileInputRef.current.value = "" }}
-                    className="absolute top-2 right-2 p-1.5 rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-destructive-subtle text-destructive hover:bg-destructive/90 hover:text-white transition-all shadow-sm"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -244,7 +244,7 @@ export default function AddNotificationPage() {
               )}
               <input ref={fileInputRef} type="file" onChange={handleFilePick} className="hidden" accept="image/*" />
             </div>
-            {imageError && <p className="text-[10px] text-red-500 font-medium">{imageError}</p>}
+            {imageError && <p className="text-[10px] text-destructive font-medium">{imageError}</p>}
           </div>
         </div>
 

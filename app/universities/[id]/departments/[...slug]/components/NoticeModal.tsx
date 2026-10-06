@@ -108,7 +108,7 @@ export function NoticeModal({ open, onClose, notice, universityId, departmentId,
     <Modal open={open} onClose={onClose} title={notice ? "Edit Notice" : "Add Notice"} className="max-w-xl">
       <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
         {error && (
-          <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 rounded-sm mb-4 border border-red-100 shrink-0 mx-6 mt-4">
+          <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive-subtle rounded-sm mb-4 border border-destructive/30 shrink-0 mx-6 mt-4">
             <AlertCircle className="h-4 w-4" /> {error}
           </div>
         )}
@@ -132,7 +132,7 @@ export function NoticeModal({ open, onClose, notice, universityId, departmentId,
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold truncate pr-8">{pickedBlob ? "New image selected" : "Current image"}</p>
                   </div>
-                  <button type="button" onClick={removeImage} className="absolute top-2 right-2 p-1.5 rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm">
+                  <button type="button" onClick={removeImage} className="absolute top-2 right-2 p-1.5 rounded-full bg-destructive-subtle text-destructive hover:bg-destructive/90 hover:text-white transition-all shadow-sm">
                     <X className="h-3.5 w-3.5" />
                   </button>
                 </div>

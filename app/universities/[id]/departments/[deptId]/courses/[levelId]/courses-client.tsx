@@ -20,13 +20,13 @@ function ConfirmDelete({ open, label, onClose, onConfirm, loading }: { open: boo
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-full max-w-sm rounded-sm border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200">
         <div className="flex flex-col items-center text-center gap-3">
-          <div className="rounded-full bg-red-100 p-3 dark:bg-red-900/30"><AlertTriangle className="h-6 w-6 text-red-600" /></div>
+          <div className="rounded-full bg-destructive-subtle p-3"><AlertTriangle className="h-6 w-6 text-destructive" /></div>
           <h3 className="text-lg font-bold">Delete {label}?</h3>
           <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
         </div>
         <div className="flex gap-3 mt-6">
           <button onClick={onClose} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
-          <button onClick={onConfirm} disabled={loading} className="flex-1 rounded-sm bg-red-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+          <button onClick={onConfirm} disabled={loading} className="flex-1 rounded-sm bg-destructive px-4 py-2.5 text-sm font-bold text-white hover:bg-destructive/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}Delete
           </button>
         </div>
@@ -76,7 +76,7 @@ function ConfigModal({ open, onClose, title, items, onAdd, onDelete, placeholder
                 <span className="text-sm font-medium">{item.name ?? item.prefix}</span>
                 <button onClick={async () => { setDeletingId(item.id); await onDelete(item.id); setDeletingId(null) }}
                   disabled={deletingId === item.id}
-                  className="rounded-full p-1 hover:bg-red-50 hover:text-red-500 transition-all text-muted-foreground">
+                  className="rounded-full p-1 hover:bg-destructive-subtle hover:text-destructive transition-all text-muted-foreground">
                   {deletingId === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                 </button>
               </div>
@@ -219,7 +219,7 @@ export default function CoursesClient({ universityId, departmentId, levelId, lev
           <Loader2 className="h-8 w-8 animate-spin text-primary opacity-30" />
         </div>
       ) : error ? (
-        <div className="rounded-sm border border-red-200 bg-red-50 dark:bg-red-900/10 p-6 text-center text-red-500 text-sm">{error}</div>
+        <div className="rounded-sm border border-destructive/30 bg-destructive-subtle p-6 text-center text-destructive text-sm">{error}</div>
       ) : courses.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 rounded-sm border border-dashed bg-muted/20">
           <div className="rounded-full bg-muted p-6 mb-4"><GraduationCap className="h-10 w-10 text-muted-foreground/40" /></div>
@@ -263,18 +263,18 @@ export default function CoursesClient({ universityId, departmentId, levelId, lev
 
       {/* ── Unassigned Courses Section ──────────────────────────────── */}
       {!loading && unassigned.length > 0 && (
-        <div className="mt-8 rounded-sm border border-red-200 bg-red-50/50 dark:bg-red-900/5">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-red-200">
+        <div className="mt-8 rounded-sm border border-destructive/30 bg-destructive-subtle">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-destructive/30">
             <div className="flex items-center gap-3">
-              <AlertTriangle className="h-4 w-4 text-red-500" />
-              <span className="text-sm font-bold text-red-700 dark:text-red-400">
+              <AlertTriangle className="h-4 w-4 text-destructive" />
+              <span className="text-sm font-bold text-destructive">
                 {unassigned.length} course{unassigned.length !== 1 ? "s" : ""} without level
               </span>
             </div>
             <button
               onClick={handleFixAll}
               disabled={fixing}
-              className="flex items-center gap-2 rounded-sm bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-700 transition-all disabled:opacity-50"
+              className="flex items-center gap-2 rounded-sm bg-destructive px-3 py-1.5 text-xs font-bold text-white hover:bg-destructive/90 transition-all disabled:opacity-50"
             >
               {fixing ? (
                 <><Loader2 className="h-3 w-3 animate-spin" /> Fixing {fixDone}/{unassigned.length}</>
@@ -287,8 +287,8 @@ export default function CoursesClient({ universityId, departmentId, levelId, lev
           </div>
           <div className="p-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3 max-h-48 overflow-y-auto">
             {unassigned.map((cr) => (
-              <div key={cr.id} className="flex items-center gap-2 rounded-sm bg-white dark:bg-red-900/10 border px-3 py-2 text-sm">
-                <span className="font-bold text-red-600 text-xs shrink-0">{cr.course_code}</span>
+              <div key={cr.id} className="flex items-center gap-2 rounded-sm bg-white border px-3 py-2 text-sm">
+                <span className="font-bold text-destructive text-xs shrink-0">{cr.course_code}</span>
                 <span className="truncate text-muted-foreground">{cr.course_title}</span>
               </div>
             ))}
@@ -397,14 +397,14 @@ function CourseCard({ course, universityId, departmentId, levelId, levelName, on
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0" data-no-nav>
             <button 
               onClick={(e) => { e.stopPropagation(); onEdit() }}
-              className="p-1.5 rounded-sm bg-background border shadow-sm hover:bg-muted text-muted-foreground hover:text-blue-500 transition-all"
+              className="p-1.5 rounded-sm bg-background border shadow-sm hover:bg-muted text-muted-foreground hover:text-info transition-all"
               title="Edit Course"
             >
               <Pencil className="h-3 w-3" />
             </button>
             <button 
               onClick={(e) => { e.stopPropagation(); onDelete() }}
-              className="p-1.5 rounded-sm bg-background border shadow-sm hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-all"
+              className="p-1.5 rounded-sm bg-background border shadow-sm hover:bg-destructive-subtle text-muted-foreground hover:text-destructive transition-all"
               title="Delete Course"
             >
               <Trash2 className="h-3 w-3" />

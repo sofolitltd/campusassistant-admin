@@ -14,7 +14,7 @@ import {
   X
 } from "lucide-react"
 import Link from "next/link"
-import { api, getApiKey, getApiUrl, Faculty } from "@/lib/api"
+import { api, getApiUrl, Faculty } from "@/lib/api"
 import { selectCls } from "../[...slug]/components/SharedUI"
 
 export default function AddDepartmentPage() {
@@ -93,9 +93,6 @@ export default function AddDepartmentPage() {
         
         const uploadRes = await fetch(`${getApiUrl()}/upload`, {
           method: 'POST',
-          headers: {
-            'X-API-Key': getApiKey(),
-          },
           body: uploadFormData,
         })
         

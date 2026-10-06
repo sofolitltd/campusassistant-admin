@@ -202,7 +202,7 @@ export default function ClubDetailClient({ club }: ClubDetailClientProps) {
                 <div className="flex items-center gap-2 text-sm">
                   <span
                     className={`inline-block h-2 w-2 rounded-full ${
-                      club.is_active ? "bg-emerald-500" : "bg-amber-500"
+                      club.is_active ? "bg-success" : "bg-warning"
                     }`}
                   />
                   <span>{club.is_active ? "Active" : "Pending approval"}</span>

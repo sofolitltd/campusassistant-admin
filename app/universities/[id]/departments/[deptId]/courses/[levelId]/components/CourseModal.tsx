@@ -35,7 +35,7 @@ const selectCls = "w-full rounded-sm border bg-background px-3 py-2.5 text-sm fo
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-medium">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
+      <label className="text-sm font-medium">{label}{required && <span className="text-destructive ml-0.5">*</span>}</label>
       {children}
     </div>
   )
@@ -233,7 +233,7 @@ export function CourseModal({
         <div className="grid grid-cols-2 gap-3">
           <Field label="Category" required>
             {categories.length === 0 ? (
-              <p className="text-[10px] text-amber-600 bg-amber-50 rounded-sm p-2">No categories yet.</p>
+              <p className="text-[10px] text-warning bg-warning-subtle rounded-sm p-2">No categories yet.</p>
             ) : (
               <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={selectCls}>
                 <option value="">Select category…</option>
@@ -276,7 +276,7 @@ export function CourseModal({
                     if (thumbnailUrl) setUrlToDelete(thumbnailUrl)
                     setPickedFile(null); setThumbnailUrl(""); setThumbnailBlob(null) 
                   }}
-                  className="absolute top-2 right-2 p-1.5 rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                  className="absolute top-2 right-2 p-1.5 rounded-full bg-destructive-subtle text-destructive hover:bg-destructive/90 hover:text-white transition-all shadow-sm"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -322,7 +322,7 @@ export function CourseModal({
                 return (
                   <span key={id} className="inline-flex items-center gap-1 rounded-sm bg-primary/5 px-2 py-0.5 text-[10px] font-bold text-primary border border-primary/10">
                     {b.name}
-                    <button type="button" onClick={() => toggleBatch(id)} className="hover:text-red-500 transition-all"><X className="h-2.5 w-2.5" /></button>
+                    <button type="button" onClick={() => toggleBatch(id)} className="hover:text-destructive transition-all"><X className="h-2.5 w-2.5" /></button>
                   </span>
                 )
               })}
@@ -330,7 +330,7 @@ export function CourseModal({
           )}
         </Field>
 
-        {error && <p className="rounded-sm bg-red-50 dark:bg-red-900/20 p-2 text-sm text-red-500">{error}</p>}
+        {error && <p className="rounded-sm bg-destructive-subtle p-2 text-sm text-destructive">{error}</p>}
 
         <div className="flex gap-3 pt-1">
           <button type="button" onClick={onClose} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>

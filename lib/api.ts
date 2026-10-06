@@ -4,12 +4,38 @@ function requireEnv(key: string, value: string | undefined, fallback?: string): 
   return val;
 }
 
-export function getApiKey(): string {
-  return requireEnv('NEXT_PUBLIC_API_KEY', process.env.NEXT_PUBLIC_API_KEY);
+const isServer = typeof window === "undefined"
+
+/**
+ * Where to send API calls.
+ *
+ * In the browser we never hold credentials, so requests go to a same-origin
+ * Route Handler (app/api/backend/[...path]) which attaches the API key and
+ * the bearer token server-side. On the server we already have both, so we
+ * talk to the Go backend directly and skip the extra hop.
+ */
+export function getApiUrl(): string {
+  if (!isServer) return "/api/backend"
+  const url = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL
+  return requireEnv('API_URL', url, 'http://localhost:8080/api/v1');
 }
 
-export function getApiUrl(): string {
-  return requireEnv('NEXT_PUBLIC_API_URL', process.env.NEXT_PUBLIC_API_URL, 'http://localhost:8080/api/v1');
+/**
+ * The access token, for server-side calls only. Reads the httpOnly cookie set
+ * by app/api/session. next/headers is imported dynamically because this module
+ * is also pulled into client bundles, where a static import would fail to
+ * build — the isServer guard means the import is never reached there.
+ */
+async function getServerToken(): Promise<string | null> {
+  if (!isServer) return null
+  try {
+    const { cookies } = await import("next/headers")
+    const store = await cookies()
+    return store.get("admin_token")?.value ?? null
+  } catch {
+    // Outside a request scope (e.g. build-time prerender) there is no cookie.
+    return null
+  }
 }
 
 export async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
@@ -17,13 +43,15 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
 
   const headers: Record<string, string> = {
     ...(options.headers as Record<string, string>),
-    "X-API-Key": getApiKey(),
     "Content-Type": "application/json",
   }
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`
+  // Browser requests are same-origin and carry the httpOnly cookie, which the
+  // proxy exchanges for real credentials. Only the server attaches them here.
+  if (isServer) {
+    if (process.env.API_KEY) headers["X-API-Key"] = process.env.API_KEY
+    const token = await getServerToken()
+    if (token) headers["Authorization"] = `Bearer ${token}`
   }
 
   const response = await fetch(url, { ...options, headers })
@@ -39,7 +67,10 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
 export function getFullImageUrl(url?: string) {
   if (!url) return "";
   if (url.startsWith('http')) return url;
-  const baseUrl = getApiUrl().replace('/api/v1', '');
+  // Images are fetched by the browser directly from the backend origin, not
+  // through /api/backend — so this needs the real host, never getApiUrl().
+  const publicUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1';
+  const baseUrl = publicUrl.replace('/api/v1', '');
   return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
 }
 
@@ -282,7 +313,7 @@ export interface Resource {
   lesson_no: number;
   status: ResourceStatus;
   access_level: ResourceAccessLevel;
-  uploader_name: string;
+  creator?: { id: string; name: string; email: string } | null;
   department_id: string;
   university_id: string;
   file_size_bytes: number;
@@ -408,6 +439,21 @@ export interface SubscriptionTarget {
   department_id: string;
 }
 
+export interface CouponCode {
+  id: string;
+  code: string;
+  discount_type: string;
+  discount_value: number;
+  max_uses: number;
+  used_count: number;
+  plan_id: string | null;
+  min_amount: number;
+  expires_at: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // SkillTarget links a Skill to a university/department. A Skill with zero
 // targets is global (visible to everyone) — unlike SubscriptionTarget,
 // this is optional, not required.
@@ -441,7 +487,25 @@ export interface Skill {
 
 export type MerchantStatus = 'pending' | 'approved' | 'rejected';
 
+export interface FeedbackItem {
+  id: string;
+  user_id: string;
+  user?: User;
+  category: string;
+  subject: string;
+  message: string;
+  attachment_url?: string;
+  status: string;
+  admin_reply?: string;
+  replied_at?: string;
+  replied_by_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Merchant {
+  rating_avg?: number;
+  rating_count?: number;
   id: string;
   user_id: string;
   // Preloaded read-only — lets an admin cross-check the applicant's real
@@ -480,7 +544,26 @@ export interface ProductTarget {
   department_id: string;
 }
 
+export interface ProductReview {
+  id: string;
+  product_id: string;
+  product_title: string;
+  user_id: string;
+  merchant_id: string;
+  order_id: string;
+  rating: number;
+  comment: string;
+  seller_reply: string;
+  seller_replied_at?: string;
+  is_hidden: boolean;
+  created_at: string;
+}
+
 export interface Product {
+  featured_until?: string | null;
+  view_count?: number;
+  rating_avg?: number;
+  rating_count?: number;
   id: string;
   merchant_id: string;
   merchant?: Merchant;
@@ -843,6 +926,184 @@ export interface DashboardStats {
   recent_subscriptions: RecentSubscriber[];
 }
 
+/**
+ * POST to an unauthenticated endpoint (login, password reset).
+ *
+ * Separate from fetchWithAuth because these routes sit outside the API-key
+ * middleware and are reached by callers who have no token yet.
+ */
+async function postPublic<T>(endpoint: string, body: unknown): Promise<T> {
+  const response = await fetch(`${getApiUrl()}${endpoint}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+
+  const data = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    throw new PublicApiError(
+      data.error || data.message || `Request failed (${response.status})`,
+      response.status,
+      data.attempts_remaining
+    )
+  }
+  return data as T
+}
+
+/** Error from a public endpoint, carrying the status and any attempts-left hint. */
+export class PublicApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public attemptsRemaining?: number
+  ) {
+    super(message)
+  }
+}
+
+// ─── Billing: ledger, payments, refunds, payouts, invoices, entitlements ───
+// All amounts are whole BDT (taka), the unit charged through bKash.
+
+export interface CommissionPolicy {
+  promo_active: boolean;
+  promo_rate: number;
+  promo_days: number;
+}
+
+export interface MarketplaceMetrics {
+  listed_products: number;
+  active_sellers: number;
+  sellers_with_sales_30d: number;
+  orders_30d: number;
+  gmv_30d: number;
+  buyers_30d: number;
+  repeat_buyer_rate: number;
+  delivered_30d: number;
+  cancelled_30d: number;
+  refunded_30d: number;
+  smooth_delivery_rate: number;
+  review_count: number;
+  avg_rating: number;
+}
+
+export interface SellerStats {
+  days: number;
+  orders: number;
+  delivered_orders: number;
+  units: number;
+  gross_revenue: number;
+  net_revenue: number;
+  views: number;
+  avg_order_value: number;
+  rating_avg: number;
+  rating_count: number;
+  avg_ship_hours: number;
+  shipped_count: number;
+  low_stock_products: number;
+  top_products: { product_id: string; title: string; units: number; revenue: number; views: number }[];
+}
+
+export interface BillingSummary {
+  subscription_revenue: number;
+  commission_revenue: number;
+  platform_sales: number;
+  total_revenue: number;
+  merchant_payable: number;
+  payouts_pending: number;
+  paid_out: number;
+  orders_escrow: number;
+  gateway_held: number;
+}
+
+export type PaymentStatus = 'initiated' | 'completed' | 'failed' | 'cancelled' | 'needs_review' | 'refunded';
+
+export interface AdminPayment {
+  id: string;
+  kind: 'subscription' | 'order';
+  payment_id: string;
+  trx_id: string;
+  amount: number;
+  status: PaymentStatus;
+  user_id: string;
+  user_email: string;
+  title: string;
+  order_id?: string;
+  created_at: string;
+}
+
+export type PayoutStatus = 'requested' | 'paid' | 'rejected';
+
+export interface MerchantPayout {
+  id: string;
+  merchant_id: string;
+  amount: number;
+  status: PayoutStatus;
+  method: string;
+  account: string;
+  reference: string;
+  note: string;
+  requested_by: string;
+  processed_by?: string;
+  processed_at?: string;
+  created_at: string;
+}
+
+export interface LedgerRow {
+  id: string;
+  created_at: string;
+  account: string;
+  debit: number;
+  credit: number;
+  kind: string;
+  source_type: string;
+  source_id: string;
+  memo: string;
+}
+
+export interface InvoiceLine {
+  description: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+}
+
+export interface Invoice {
+  id: string;
+  number: string;
+  user_id: string;
+  kind: 'subscription' | 'order';
+  customer_name: string;
+  customer_email: string;
+  currency: string;
+  subtotal: number;
+  discount: number;
+  total: number;
+  payment_method: string;
+  payment_ref: string;
+  issued_at: string;
+  voided_at?: string;
+  lines: InvoiceLine[];
+}
+
+export interface RefundRecord {
+  id: string;
+  kind: 'subscription' | 'order';
+  source_id: string;
+  user_id: string;
+  amount: number;
+  reference: string;
+  reason: string;
+  refunded_by: string;
+  created_at: string;
+}
+
+/** limit: -1 = unlimited. period only matters for capped features. */
+export interface PlanEntitlement {
+  feature: string;
+  limit: number;
+  period: 'none' | 'daily' | 'month';
+}
+
 export const api = {
   fetchWithAuth,
   auth: {
@@ -864,6 +1125,30 @@ export const api = {
         admin: { id: string; email: string; name: string; role: string }
       }>
     },
+
+    // Password reset. These are public endpoints — the caller is by
+    // definition locked out — so they use a raw fetch like adminLogin rather
+    // than fetchWithAuth. account_type is always "admin" from this app.
+    forgotPassword: (email: string): Promise<{ message: string }> =>
+      postPublic("/auth/forgot-password", { email, account_type: "admin" }),
+
+    verifyResetCode: (
+      email: string,
+      code: string
+    ): Promise<{ reset_token: string; expires_in: number }> =>
+      postPublic("/auth/verify-reset-code", { email, code, account_type: "admin" }),
+
+    resetPassword: (
+      email: string,
+      resetToken: string,
+      newPassword: string
+    ): Promise<{ message: string }> =>
+      postPublic("/auth/reset-password", {
+        email,
+        reset_token: resetToken,
+        new_password: newPassword,
+        account_type: "admin",
+      }),
   },
   stats: {
     getDashboard: (): Promise<DashboardStats> =>
@@ -1001,6 +1286,8 @@ export const api = {
       fetchWithAuth(`/merchants/${id}`),
     getPlatform: (): Promise<Merchant> =>
       fetchWithAuth('/merchants/platform'),
+    stats: (id: string): Promise<SellerStats> =>
+      fetchWithAuth(`/merchants/${id}/stats`),
     update: (id: string, data: Partial<Merchant>): Promise<Merchant> =>
       fetchWithAuth(`/merchants/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     approve: (id: string): Promise<void> =>
@@ -1028,6 +1315,9 @@ export const api = {
       fetchWithAuth(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/products/${id}`, { method: 'DELETE' }),
+    /** Feature a product for `days` days from now; 0 removes the feature. */
+    feature: (id: string, days: number): Promise<{ featured_until: string | null }> =>
+      fetchWithAuth(`/products/${id}/feature`, { method: 'PUT', body: JSON.stringify({ days }) }),
   },
   clubs: {
     getAll: (params?: string): Promise<Club[]> =>
@@ -1298,6 +1588,62 @@ export const api = {
       fetchWithAuth('/subscriptions', { method: 'POST', body: JSON.stringify(data) }),
     delete: (id: string) =>
       fetchWithAuth(`/subscriptions/${id}`, { method: 'DELETE' }),
+  },
+  coupons: {
+    getAll: (): Promise<CouponCode[]> =>
+      fetchWithAuth('/coupons'),
+    create: (data: Partial<CouponCode>) =>
+      fetchWithAuth('/coupons', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<CouponCode>) =>
+      fetchWithAuth(`/coupons/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  },
+  billing: {
+    summary: (): Promise<BillingSummary> =>
+      fetchWithAuth('/billing/summary'),
+    commissionPolicy: (): Promise<CommissionPolicy> =>
+      fetchWithAuth('/billing/commission-policy'),
+    setCommissionPolicy: (p: CommissionPolicy): Promise<CommissionPolicy> =>
+      fetchWithAuth('/billing/commission-policy', { method: 'PUT', body: JSON.stringify(p) }),
+    marketplaceMetrics: (): Promise<MarketplaceMetrics> =>
+      fetchWithAuth('/billing/marketplace-metrics'),
+    ledger: (params?: string): Promise<{ entries: LedgerRow[] }> =>
+      fetchWithAuth(`/billing/ledger?${params || ''}`),
+    invoices: (params?: string): Promise<{ invoices: Invoice[]; total: number }> =>
+      fetchWithAuth(`/billing/invoices?${params || ''}`),
+    payments: (params?: string): Promise<{ payments: AdminPayment[] }> =>
+      fetchWithAuth(`/billing/payments?${params || ''}`),
+    payouts: (params?: string): Promise<{ payouts: MerchantPayout[]; total: number }> =>
+      fetchWithAuth(`/billing/payouts?${params || ''}`),
+    markPayoutPaid: (id: string, reference: string): Promise<MerchantPayout> =>
+      fetchWithAuth(`/billing/payouts/${id}/paid`, { method: 'PUT', body: JSON.stringify({ reference }) }),
+    rejectPayout: (id: string, note: string): Promise<MerchantPayout> =>
+      fetchWithAuth(`/billing/payouts/${id}/reject`, { method: 'PUT', body: JSON.stringify({ note }) }),
+    refunds: (params?: string): Promise<{ refunds: RefundRecord[]; total: number }> =>
+      fetchWithAuth(`/billing/refunds?${params || ''}`),
+    refund: (kind: 'subscription' | 'order', id: string, reference: string, reason: string): Promise<RefundRecord> =>
+      fetchWithAuth(`/billing/refunds/${kind}`, { method: 'POST', body: JSON.stringify({ id, reference, reason }) }),
+    merchantBalance: (merchantId: string): Promise<{ merchant_id: string; balance: number }> =>
+      fetchWithAuth(`/billing/merchants/${merchantId}/balance`),
+  },
+  reviews: {
+    list: (params?: string): Promise<{ reviews: ProductReview[]; total: number }> =>
+      fetchWithAuth(`/reviews?${params || ''}`),
+    setHidden: (id: string, hidden: boolean): Promise<{ message: string }> =>
+      fetchWithAuth(`/reviews/${id}/hide`, { method: 'PUT', body: JSON.stringify({ hidden }) }),
+  },
+  planEntitlements: {
+    get: (planId: string): Promise<{ entitlements: PlanEntitlement[]; default_when_empty: string[] }> =>
+      fetchWithAuth(`/subscription-plans/${planId}/entitlements`),
+    set: (planId: string, entitlements: PlanEntitlement[]): Promise<{ entitlements: PlanEntitlement[] }> =>
+      fetchWithAuth(`/subscription-plans/${planId}/entitlements`, { method: 'PUT', body: JSON.stringify({ entitlements }) }),
+  },
+  feedback: {
+    getAll: (params?: string): Promise<PaginatedResponse<FeedbackItem>> =>
+      fetchWithAuth(`/feedback?${params || ''}`),
+    getById: (id: string): Promise<FeedbackItem> =>
+      fetchWithAuth(`/feedback/${id}`),
+    update: (id: string, data: Record<string, unknown>) =>
+      fetchWithAuth(`/feedback/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   },
   alumni: {
     getAllByDepartment: (universityId: string, deptId: string): Promise<Alumni[]> =>

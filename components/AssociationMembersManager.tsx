@@ -76,7 +76,7 @@ export function AssociationMembersManager({ associationId }: AssociationMembersM
                 type="button"
                 onClick={() => handleApprove(member.user_id)}
                 disabled={actingId === member.user_id}
-                className="flex items-center gap-1 rounded-md bg-emerald-600 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50 transition-all flex-shrink-0"
+                className="flex items-center gap-1 rounded-md bg-success px-2.5 py-1.5 text-xs font-bold text-white hover:bg-success/90 disabled:opacity-50 transition-all flex-shrink-0"
               >
                 {actingId === member.user_id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
                 Approve

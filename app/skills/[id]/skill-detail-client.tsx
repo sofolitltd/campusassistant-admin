@@ -83,7 +83,7 @@ export default function SkillDetailClient({ skill }: SkillDetailClientProps) {
         )}
         <div className="absolute top-3 right-3">
           <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase shadow-sm ${
-            skill.is_published ? "bg-emerald-500 text-white" : "bg-slate-500 text-white"
+            skill.is_published ? "bg-success text-white" : "bg-muted-foreground text-white"
           }`}>
             {skill.is_published ? "Published" : "Draft"}
           </span>
@@ -124,7 +124,7 @@ export default function SkillDetailClient({ skill }: SkillDetailClientProps) {
                 <h2 className="text-lg font-bold mb-4">Targeting</h2>
                 {skill.targets.length === 0 ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Globe className="h-4 w-4 text-blue-500" />
+                    <Globe className="h-4 w-4 text-info" />
                     <span>This skill is visible to all universities (global).</span>
                   </div>
                 ) : (
@@ -135,7 +135,7 @@ export default function SkillDetailClient({ skill }: SkillDetailClientProps) {
                     <div className="grid gap-2 sm:grid-cols-2">
                       {skill.targets.map((t, i) => (
                         <div key={t.id || i} className="flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2">
-                          <Target className="h-3.5 w-3.5 text-indigo-500 flex-shrink-0" />
+                          <Target className="h-3.5 w-3.5 text-info flex-shrink-0" />
                           <span className="text-xs font-medium">
                             {t.university_id}
                             {t.department_id ? ` / ${t.department_id}` : ""}
@@ -159,7 +159,7 @@ export default function SkillDetailClient({ skill }: SkillDetailClientProps) {
                   <span>{skill.videos?.length ?? 0} video{(skill.videos?.length ?? 0) === 1 ? "" : "s"}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <span className={`inline-block h-2 w-2 rounded-full ${skill.is_published ? "bg-emerald-500" : "bg-slate-400"}`} />
+                  <span className={`inline-block h-2 w-2 rounded-full ${skill.is_published ? "bg-success" : "bg-muted-foreground"}`} />
                   <span>{skill.is_published ? "Published" : "Draft"}</span>
                 </div>
               </div>

@@ -404,7 +404,7 @@ export default function UniversityDetailClient({
                             e.stopPropagation();
                             setActiveMenu(activeMenu === dept.id ? null : dept.id);
                           }}
-                          className="rounded-full bg-white/90 p-1.5 text-slate-900 shadow-sm hover:bg-white border transition-colors"
+                          className="rounded-full bg-white/90 p-1.5 text-foreground shadow-sm hover:bg-white border transition-colors"
                         >
                           <MoreVertical className="h-4 w-4" />
                         </button>
@@ -449,7 +449,7 @@ export default function UniversityDetailClient({
                       <div className="mt-2 text-xs text-muted-foreground line-clamp-2 leading-relaxed min-h-[2.5rem]">
                         {dept.about || 'No description provided'}
                       </div>
-                      <div className="mt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-4">
+                      <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
                         <div className="flex items-center gap-4">
                           <div>
                             <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-black">Established</p>
@@ -754,7 +754,7 @@ export default function UniversityDetailClient({
                       
                       <div className="absolute top-2 right-2">
                         <span className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase shadow-sm ${
-                          banner.is_active ? "bg-emerald-500 text-white" : "bg-slate-500 text-white"
+                          banner.is_active ? "bg-success text-white" : "bg-muted-foreground text-white"
                         }`}>
                           {banner.is_active ? "Active" : "Draft"}
                         </span>
@@ -768,7 +768,7 @@ export default function UniversityDetailClient({
                             {banner.title}
                           </h3>
                           <div className="mt-1 flex items-center gap-1.5">
-                            <School className="h-3 w-3 text-orange-500" />
+                            <School className="h-3 w-3 text-warning" />
                             <span className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">{banner.target_scope}</span>
                           </div>
                         </div>

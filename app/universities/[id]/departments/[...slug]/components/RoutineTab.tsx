@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { api, Routine, getFullImageUrl, getApiKey, getApiUrl } from "@/lib/api"
+import { api, Routine, getFullImageUrl, getApiUrl } from "@/lib/api"
 import { EmptyState, ConfirmDelete, Modal, Field, inputCls } from "./SharedUI"
 import { Calendar, Plus, Edit2, Trash2, Save, AlertCircle, Clock, Upload, X, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -64,7 +64,6 @@ function RoutineModal({ open, onClose, routine, universityId, departmentId, onSu
           try {
             await fetch(`${getApiUrl()}/upload?url=${routine.image_url}`, {
               method: 'DELETE',
-              headers: { 'X-API-Key': getApiKey() },
             })
           } catch (err) {
             console.error("Failed to delete old image:", err)
@@ -78,7 +77,6 @@ function RoutineModal({ open, onClose, routine, universityId, departmentId, onSu
 
         const uploadRes = await fetch(`${getApiUrl()}/upload`, {
           method: 'POST',
-          headers: { 'X-API-Key': getApiKey() },
           body: uploadFormData,
         })
 
@@ -118,7 +116,7 @@ function RoutineModal({ open, onClose, routine, universityId, departmentId, onSu
     <Modal open={open} onClose={onClose} title={routine ? "Edit Routine" : "Add Routine"} className="max-w-md">
       <form onSubmit={handleSubmit} className="flex flex-col h-full">
         {error && (
-          <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 rounded-sm mb-4 border border-red-100 shrink-0 mx-6 mt-2">
+          <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive-subtle rounded-sm mb-4 border border-destructive/30 shrink-0 mx-6 mt-2">
             <AlertCircle className="h-4 w-4" /> {error}
           </div>
         )}
@@ -145,7 +143,7 @@ function RoutineModal({ open, onClose, routine, universityId, departmentId, onSu
                         setImageFile(null)
                         setImagePreview(null)
                       }}
-                      className="absolute top-2 right-2 rounded-full bg-red-600 p-1.5 text-white opacity-0 transition-opacity group-hover:opacity-100 shadow-md"
+                      className="absolute top-2 right-2 rounded-full bg-destructive p-1.5 text-white opacity-0 transition-opacity group-hover:opacity-100 shadow-md"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -244,7 +242,7 @@ export function RoutineTab({
                 </button>
                 <button
                   onClick={() => { setSelected(routine); setDeleteOpen(true) }}
-                  className="p-1.5 bg-background border rounded-sm hover:bg-muted text-red-600 transition-colors"
+                  className="p-1.5 bg-background border rounded-sm hover:bg-muted text-destructive transition-colors"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>

@@ -13,7 +13,7 @@ import {
   Phone,
 } from "lucide-react"
 import { api, Club, ClubType, CLUB_CATEGORIES, University } from "@/lib/api"
-import { getApiKey, getApiUrl } from "@/lib/api"
+import { getApiUrl } from "@/lib/api"
 import { Field, inputCls, selectCls } from "@/app/universities/[id]/departments/[...slug]/components/SharedUI"
 
 export interface ClubFormProps {
@@ -28,7 +28,6 @@ async function uploadImage(file: File, folder: string): Promise<string> {
 
   const uploadRes = await fetch(`${getApiUrl()}/upload`, {
     method: 'POST',
-    headers: { 'X-API-Key': getApiKey() },
     body: uploadFormData,
   })
 
@@ -41,7 +40,6 @@ async function deleteImage(url: string) {
   try {
     await fetch(`${getApiUrl()}/upload?url=${url}`, {
       method: 'DELETE',
-      headers: { 'X-API-Key': getApiKey() },
     })
   } catch (err) {
     console.error("Failed to delete old image:", err)
@@ -315,7 +313,7 @@ export function ClubForm({ initialData, returnUrl }: ClubFormProps) {
                   name="is_active"
                   checked={formData.is_active}
                   onChange={handleChange}
-                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                 />
                 <span className="text-sm font-medium">Active (visible to users)</span>
               </label>
@@ -325,7 +323,7 @@ export function ClubForm({ initialData, returnUrl }: ClubFormProps) {
                   name="is_verified"
                   checked={formData.is_verified}
                   onChange={handleChange}
-                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                 />
                 <span className="text-sm font-medium">Verified (shows an official badge)</span>
               </label>

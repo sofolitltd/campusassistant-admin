@@ -18,7 +18,7 @@ import {
   X
 } from "lucide-react"
 import Link from "next/link"
-import { api, University, getApiKey, getApiUrl } from "@/lib/api"
+import { api, University, getApiUrl } from "@/lib/api"
 
 export default function EditUniversityPage() {
   const router = useRouter()
@@ -128,7 +128,6 @@ export default function EditUniversityPage() {
           try {
             await fetch(`${getApiUrl()}/upload?url=${logoPreview}`, {
               method: 'DELETE',
-              headers: { 'X-API-Key': getApiKey() },
             })
           } catch (err) {
             console.error("Failed to delete old logo:", err)
@@ -141,9 +140,6 @@ export default function EditUniversityPage() {
         
         const uploadRes = await fetch(`${getApiUrl()}/upload`, {
           method: 'POST',
-          headers: {
-            'X-API-Key': getApiKey(),
-          },
           body: uploadFormData,
         })
         

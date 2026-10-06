@@ -86,7 +86,7 @@ export default function ReportsClient({ initialReports }: ReportsClientProps) {
                   <button
                     onClick={() => handleRemoveItem(report)}
                     disabled={removingId === report.id}
-                    className="flex-1 flex items-center justify-center gap-1.5 rounded-sm bg-red-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition-all disabled:opacity-50"
+                    className="flex-1 flex items-center justify-center gap-1.5 rounded-sm bg-destructive px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition-all disabled:opacity-50"
                   >
                     {removingId === report.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Ban className="h-3.5 w-3.5" />}
                     Remove Item

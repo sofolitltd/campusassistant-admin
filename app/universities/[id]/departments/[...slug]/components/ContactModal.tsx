@@ -131,7 +131,7 @@ export function ContactModal({ open, onClose, contact, universityId, departmentI
       <Modal open={open} onClose={onClose} title={contact ? "Edit Emergency Contact" : "Add Emergency Contact"} className="max-w-xl">
       <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
         {error && (
-          <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 rounded-sm mb-4 border border-red-100 shrink-0 mx-6 mt-2">
+          <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive-subtle rounded-sm mb-4 border border-destructive/30 shrink-0 mx-6 mt-2">
             <AlertCircle className="h-4 w-4" /> {error}
           </div>
         )}
@@ -195,11 +195,11 @@ export function ContactModal({ open, onClose, contact, universityId, departmentI
             <div className="flex flex-col gap-1.5 justify-center pt-5">
                <label className="flex items-center gap-2 cursor-pointer group">
                   <button type="button" onClick={() => setIsVerified(!isVerified)} className="transition-all">
-                    {isVerified ? <ToggleRight className="h-7 w-7 text-green-600" /> : <ToggleLeft className="h-7 w-7 text-muted-foreground" />}
+                    {isVerified ? <ToggleRight className="h-7 w-7 text-success" /> : <ToggleLeft className="h-7 w-7 text-muted-foreground" />}
                   </button>
                   <div className="flex flex-col">
                     <span className="text-sm font-bold flex items-center gap-1">
-                      Verified {isVerified && <ShieldCheck className="h-3 w-3 text-green-600" />}
+                      Verified {isVerified && <ShieldCheck className="h-3 w-3 text-success" />}
                     </span>
                   </div>
                </label>
@@ -266,7 +266,7 @@ export function ContactModal({ open, onClose, contact, universityId, departmentI
                       else newIds.delete(uni.id)
                       setSelectedUniIds(newIds)
                     }}
-                    className="h-5 w-5 rounded border-gray-300 text-primary"
+                    className="h-5 w-5 rounded border-border text-primary"
                   />
                 </label>
               ))}
@@ -312,7 +312,7 @@ export function ContactModal({ open, onClose, contact, universityId, departmentI
                           else newSet.delete(dept.id)
                           setSelectedDeptIds(newSet)
                         }}
-                        className="h-5 w-5 rounded border-gray-300 text-primary"
+                        className="h-5 w-5 rounded border-border text-primary"
                       />
                       <p className="text-sm font-bold truncate">{dept.name}</p>
                     </label>

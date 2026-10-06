@@ -136,7 +136,7 @@ export default function ResourcesTab({ type, courseCode, universityId, departmen
           <Loader2 className="h-7 w-7 animate-spin text-primary opacity-30" />
         </div>
       ) : error ? (
-        <p className="rounded-sm border border-red-200 bg-red-50 dark:bg-red-900/10 p-4 text-sm text-red-500">{error}</p>
+        <p className="rounded-sm border border-destructive/30 bg-destructive-subtle p-4 text-sm text-destructive">{error}</p>
       ) : filteredResources.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 rounded-sm border border-dashed bg-muted/20">
           <div className="rounded-full bg-muted p-5 mb-3"><Icon className="h-8 w-8 text-muted-foreground/40" /></div>

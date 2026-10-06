@@ -9,7 +9,9 @@ import {
   Pencil,
   Globe,
   Target,
-  Store
+  Store,
+  Search,
+  Star
 } from "lucide-react"
 import Link from "next/link"
 import { api, Product, getFullImageUrl } from "@/lib/api"
@@ -24,6 +26,27 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [query, setQuery] = useState("")
+  const [view, setView] = useState<"all" | "published" | "draft" | "featured">("all")
+
+  const isFeatured = (p: Product) => !!p.featured_until && new Date(p.featured_until) > new Date()
+  const visible = products.filter(p => {
+    if (view === "published" && !p.is_published) return false
+    if (view === "draft" && p.is_published) return false
+    if (view === "featured" && !isFeatured(p)) return false
+    const q = query.trim().toLowerCase()
+    return !q || p.title.toLowerCase().includes(q) || (p.merchant?.business_name ?? "").toLowerCase().includes(q)
+  })
+
+  async function toggleFeature(product: Product) {
+    try {
+      const days = isFeatured(product) ? 0 : 7
+      const res = await api.products.feature(product.id, days)
+      setProducts(prev => prev.map(p => p.id === product.id ? { ...p, featured_until: res.featured_until } : p))
+    } catch {
+      alert("Failed to update featured status")
+    }
+  }
 
   async function handleDelete() {
     if (!deleteId) return
@@ -55,6 +78,27 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
         </Link>
       </div>
 
+      {products.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative w-full max-w-xs">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search products or sellers"
+              className="w-full rounded-lg border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-primary"
+            />
+          </div>
+          <select value={view} onChange={e => setView(e.target.value as typeof view)} className="rounded-lg border bg-background px-3 py-2 text-sm font-medium">
+            <option value="all">All products</option>
+            <option value="published">Published</option>
+            <option value="draft">Drafts</option>
+            <option value="featured">Featured</option>
+          </select>
+          <span className="text-xs text-muted-foreground">{visible.length} of {products.length}</span>
+        </div>
+      )}
+
       {products.length === 0 ? (
         <div className="flex h-64 flex-col items-center justify-center rounded-xl border-2 border-dashed bg-card/50 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-3">
@@ -70,7 +114,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {products.map((product) => (
+          {visible.map((product) => (
             <div key={product.id} className="group overflow-hidden rounded-lg border bg-card shadow-xs transition-all hover:shadow-md border-border/60">
               <div className="relative h-36 w-full overflow-hidden bg-muted">
                 {product.image_urls?.[0] ? (
@@ -85,9 +129,16 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                   </div>
                 )}
 
+                {isFeatured(product) && (
+                  <div className="absolute top-2 left-2">
+                    <span className="flex items-center gap-1 rounded-full bg-warning px-2 py-0.5 text-[9px] font-bold uppercase text-warning-foreground shadow-sm">
+                      <Star className="h-2.5 w-2.5 fill-current" /> Featured
+                    </span>
+                  </div>
+                )}
                 <div className="absolute top-2 right-2">
                   <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase shadow-sm ${
-                    product.is_published ? "bg-emerald-500 text-white" : "bg-slate-500 text-white"
+                    product.is_published ? "bg-success text-white" : "bg-muted-foreground text-white"
                   }`}>
                     {product.is_published ? "Published" : "Draft"}
                   </span>
@@ -103,12 +154,12 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                     <div className="mt-1 flex items-center gap-1.5">
                       {product.targets.length === 0 ? (
                         <>
-                          <Globe className="h-3 w-3 text-blue-500" />
+                          <Globe className="h-3 w-3 text-info" />
                           <span className="text-[10px] font-bold uppercase tracking-tight text-muted-foreground">Global</span>
                         </>
                       ) : (
                         <>
-                          <Target className="h-3 w-3 text-indigo-500" />
+                          <Target className="h-3 w-3 text-info" />
                           <span className="text-[10px] font-bold uppercase tracking-tight text-muted-foreground">
                             {product.targets.length} target{product.targets.length === 1 ? "" : "s"}
                           </span>
@@ -128,13 +179,19 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
                     {activeMenu === product.id && (
                       <>
                         <div className="fixed inset-0 z-10" onClick={() => setActiveMenu(null)} />
-                        <div className="absolute right-0 top-8 w-32 rounded-md border bg-card p-1 shadow-lg z-20 animate-in fade-in zoom-in-95 duration-100">
+                        <div className="absolute right-0 top-8 w-44 rounded-md border bg-card p-1 shadow-lg z-20 animate-in fade-in zoom-in-95 duration-100">
                           <Link
                             href={`/marketplace/products/edit/${product.id}`}
                             className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs font-semibold hover:bg-accent transition-colors"
                           >
                             <Pencil className="h-3.5 w-3.5" /> Edit
                           </Link>
+                          <button
+                            onClick={() => { toggleFeature(product); setActiveMenu(null) }}
+                            className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs font-semibold hover:bg-accent transition-colors"
+                          >
+                            <Star className="h-3.5 w-3.5" /> {isFeatured(product) ? "Remove featured" : "Feature for 7 days"}
+                          </button>
                           <button
                             onClick={() => { setDeleteId(product.id); setActiveMenu(null) }}
                             className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 transition-colors"

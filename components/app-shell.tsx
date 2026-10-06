@@ -1,43 +1,21 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { Sidebar } from "./sidebar"
 import { BottomNav } from "./bottom-nav"
-import { getToken } from "@/lib/auth"
+
+// Layout only. Redirecting logged-out visitors is proxy.ts's job now — it runs
+// before the page renders and reads the httpOnly session cookie, so there is no
+// token check (and no mount flicker) left to do here.
+//
+// Routes reachable without a session; keep in sync with AUTH_PAGES in proxy.ts.
+const AUTH_PAGES = ["/login", "/forgot-password"]
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const router = useRouter()
-  const isAuthPage = pathname === "/login"
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  useEffect(() => {
-    if (!mounted) return
-    const token = getToken()
-    if (!token && !isAuthPage) {
-      router.push("/login")
-    } else if (token && isAuthPage) {
-      router.push("/")
-    }
-  }, [mounted, pathname, router, isAuthPage])
-
-  if (!mounted) {
-    return (
-      <div className="flex h-full w-full">
-        {isAuthPage ? children : null}
-      </div>
-    )
-  }
-
-  const token = getToken()
-
-  if (!token && !isAuthPage) return null
-  if (token && isAuthPage) return null
+  const isAuthPage = AUTH_PAGES.some(
+    (page) => pathname === page || pathname.startsWith(`${page}/`)
+  )
 
   if (isAuthPage) {
     return <>{children}</>

@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { removeToken } from "@/lib/auth"
+import { endSession } from "@/lib/auth"
 import {
   LayoutDashboard,
   Users,
@@ -25,6 +25,9 @@ import {
   PackageSearch,
   Briefcase,
   Shield,
+  TicketPercent,
+  MessageSquare,
+  Wallet,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -59,6 +62,21 @@ const navItems = [
     title: "Subscriptions",
     href: "/subscriptions",
     icon: CreditCard,
+  },
+  {
+    title: "Billing",
+    href: "/billing",
+    icon: Wallet,
+  },
+  {
+    title: "Coupons",
+    href: "/coupons",
+    icon: TicketPercent,
+  },
+  {
+    title: "Feedback",
+    href: "/feedback",
+    icon: MessageSquare,
   },
   {
     title: "Skills",
@@ -112,9 +130,10 @@ export function Sidebar() {
   const router = useRouter()
   const [isCollapsed, setIsCollapsed] = React.useState(false)
 
-  function handleLogout() {
-    removeToken()
-    router.push("/login")
+  async function handleLogout() {
+    await endSession()
+    router.replace("/login")
+    router.refresh()
   }
 
   return (

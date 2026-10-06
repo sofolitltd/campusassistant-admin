@@ -129,7 +129,7 @@ export default function ChapterDetailClient({
               Loading chapter context...
             </div>
           ) : (
-            <div className="text-red-500 text-sm">Failed to load course context. Please go back and try again.</div>
+            <div className="text-destructive text-sm">Failed to load course context. Please go back and try again.</div>
           )
         )}
       </div>

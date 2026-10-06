@@ -13,7 +13,7 @@ import {
   Globe
 } from "lucide-react"
 import Link from "next/link"
-import { api, Banner, getFullImageUrl, getApiKey, getApiUrl } from "@/lib/api"
+import { api, Banner, getFullImageUrl, getApiUrl } from "@/lib/api"
 import { ConfirmDelete } from "../universities/[id]/departments/[...slug]/components/SharedUI"
 
 interface BannersClientProps {
@@ -37,7 +37,6 @@ export default function BannersClient({ initialBanners }: BannersClientProps) {
         try {
           fetch(`${getApiUrl()}/upload?url=${bannerToDelete.image_url}`, {
             method: 'DELETE',
-            headers: { 'X-API-Key': getApiKey() },
           })
         } catch (imgErr) {
           console.error("Failed to delete image from storage:", imgErr)
@@ -100,7 +99,7 @@ export default function BannersClient({ initialBanners }: BannersClientProps) {
                 
                 <div className="absolute top-2 right-2">
                   <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase shadow-sm ${
-                    banner.is_active ? "bg-emerald-500 text-white" : "bg-slate-500 text-white"
+                    banner.is_active ? "bg-success text-white" : "bg-muted-foreground text-white"
                   }`}>
                     {banner.is_active ? "Active" : "Draft"}
                   </span>
@@ -114,7 +113,7 @@ export default function BannersClient({ initialBanners }: BannersClientProps) {
                       {banner.title}
                     </h3>
                     <div className="mt-1 flex items-center gap-1.5">
-                      <Globe className="h-3 w-3 text-blue-500" />
+                      <Globe className="h-3 w-3 text-info" />
                       <span className="text-[10px] font-bold uppercase tracking-tight text-muted-foreground">{banner.target_scope}</span>
                     </div>
                   </div>

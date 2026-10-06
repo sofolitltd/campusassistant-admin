@@ -68,7 +68,7 @@ export function ResourceCard({ resource, onEdit, onDelete, onPermanentDelete, on
       <span className="flex items-center gap-0.5"><Download className="h-2.5 w-2.5" /> {resource.download_count ?? 0}</span>
       <span className="flex items-center gap-0.5"><Eye className="h-2.5 w-2.5" /> {resource.view_count ?? 0}</span>
       {(resource.rating_count ?? 0) > 0 && (
-        <span className="flex items-center gap-0.5 text-amber-600"><Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" /> {resource.rating_avg.toFixed(1)} ({resource.rating_count})</span>
+        <span className="flex items-center gap-0.5 text-warning"><Star className="h-2.5 w-2.5 fill-warning text-warning" /> {resource.rating_avg.toFixed(1)} ({resource.rating_count})</span>
       )}
     </span>
   )
@@ -103,10 +103,10 @@ export function ResourceCard({ resource, onEdit, onDelete, onPermanentDelete, on
             </div>
           )}
           {resource.access_level === "pro" && (
-            <div className="absolute top-1 left-1 px-1 py-0.5 rounded-sm bg-amber-500 text-[8px] font-black text-white shadow-sm z-10">PRO</div>
+            <div className="absolute top-1 left-1 px-1 py-0.5 rounded-sm bg-warning text-[8px] font-black text-white shadow-sm z-10">PRO</div>
           )}
           {meta.is_edited && (
-            <div className="absolute bottom-1 right-1 px-1 py-0.5 rounded-sm bg-blue-500/80 backdrop-blur-sm text-[7px] font-black text-white shadow-sm z-10 uppercase tracking-tighter">Edited</div>
+            <div className="absolute bottom-1 right-1 px-1 py-0.5 rounded-sm bg-info backdrop-blur-sm text-[7px] font-black text-white shadow-sm z-10 uppercase tracking-tighter">Edited</div>
           )}
         </div>
 
@@ -136,7 +136,7 @@ export function ResourceCard({ resource, onEdit, onDelete, onPermanentDelete, on
                 <Pencil className="h-3 w-3" />
               </button>
               <div className="relative" ref={menuRef}>
-                <button onClick={() => setMenuOpen(!menuOpen)} className="p-1.5 hover:bg-red-50 hover:text-red-500 rounded-sm transition-all text-muted-foreground">
+                <button onClick={() => setMenuOpen(!menuOpen)} className="p-1.5 hover:bg-destructive-subtle hover:text-destructive rounded-sm transition-all text-muted-foreground">
                   <Trash2 className="h-3 w-3" />
                 </button>
                 {menuOpen && (
@@ -145,8 +145,8 @@ export function ResourceCard({ resource, onEdit, onDelete, onPermanentDelete, on
                       <Trash2 className="h-3.5 w-3.5 text-muted-foreground" /> Soft Delete
                     </button>
                     {onPermanentDelete && (
-                      <button onClick={() => { setMenuOpen(false); onPermanentDelete() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium hover:bg-red-50 hover:text-red-600 transition-colors text-left border-t">
-                        <AlertTriangle className="h-3.5 w-3.5 text-red-500" /> Permanent Delete
+                      <button onClick={() => { setMenuOpen(false); onPermanentDelete() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium hover:bg-destructive-subtle hover:text-destructive transition-colors text-left border-t">
+                        <AlertTriangle className="h-3.5 w-3.5 text-destructive" /> Permanent Delete
                       </button>
                     )}
                   </div>
@@ -191,10 +191,10 @@ export function ResourceCard({ resource, onEdit, onDelete, onPermanentDelete, on
           </div>
         )}
         {resource.access_level === "pro" && (
-          <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded-sm bg-amber-500 text-[9px] font-black text-white shadow-sm">PRO</div>
+          <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded-sm bg-warning text-[9px] font-black text-white shadow-sm">PRO</div>
         )}
         {meta.is_edited && (
-          <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-sm bg-blue-500/80 backdrop-blur-sm text-[8px] font-black text-white shadow-sm uppercase">Edited</div>
+          <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-sm bg-info backdrop-blur-sm text-[8px] font-black text-white shadow-sm uppercase">Edited</div>
         )}
       </div>
 
@@ -208,7 +208,7 @@ export function ResourceCard({ resource, onEdit, onDelete, onPermanentDelete, on
 
         <div className="flex flex-wrap gap-2 mt-auto pt-2 items-center">
           {meta.author && <span className="text-[10px] font-medium text-muted-foreground truncate max-w-[120px]">by {meta.author}</span>}
-          {meta.exam_type && <span className="text-[9px] font-black bg-amber-100 text-amber-700 rounded-sm px-1.5 py-0.5 uppercase tracking-tighter">{meta.exam_type}</span>}
+          {meta.exam_type && <span className="text-[9px] font-black bg-warning-subtle text-warning rounded-sm px-1.5 py-0.5 uppercase tracking-tighter">{meta.exam_type}</span>}
           {meta.year && <span className="text-[10px] font-medium text-muted-foreground">{meta.year}</span>}
           {engagementStats}
           <div className="flex items-center gap-2 ml-auto">
@@ -228,7 +228,7 @@ export function ResourceCard({ resource, onEdit, onDelete, onPermanentDelete, on
             <Pencil className="h-3.5 w-3.5" />
           </button>
           <div className="relative" ref={menuRef}>
-            <button onClick={() => setMenuOpen(!menuOpen)} className="rounded-sm p-1.5 hover:bg-red-50 hover:text-red-500 transition-all text-muted-foreground" title="Delete">
+            <button onClick={() => setMenuOpen(!menuOpen)} className="rounded-sm p-1.5 hover:bg-destructive-subtle hover:text-destructive transition-all text-muted-foreground" title="Delete">
               <Trash2 className="h-3.5 w-3.5" />
             </button>
             {menuOpen && (
@@ -237,8 +237,8 @@ export function ResourceCard({ resource, onEdit, onDelete, onPermanentDelete, on
                   <Trash2 className="h-3.5 w-3.5 text-muted-foreground" /> Soft Delete
                 </button>
                 {onPermanentDelete && (
-                  <button onClick={() => { setMenuOpen(false); onPermanentDelete() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium hover:bg-red-50 hover:text-red-600 transition-colors text-left border-t">
-                    <AlertTriangle className="h-3.5 w-3.5 text-red-500" /> Permanent Delete
+                  <button onClick={() => { setMenuOpen(false); onPermanentDelete() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium hover:bg-destructive-subtle hover:text-destructive transition-colors text-left border-t">
+                    <AlertTriangle className="h-3.5 w-3.5 text-destructive" /> Permanent Delete
                   </button>
                 )}
               </div>

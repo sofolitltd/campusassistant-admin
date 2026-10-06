@@ -185,7 +185,7 @@ export default function ContactsClient({ initialContacts }: ContactsClientProps)
                         {contact.logo_url ? (
                           <img src={contact.logo_url} alt={contact.title} className="h-full w-full object-cover" />
                         ) : (
-                          <ShieldAlert className="h-5 w-5 text-red-500/40" />
+                          <ShieldAlert className="h-5 w-5 text-destructive/40" />
                         )}
                       </div>
                       <div className="min-w-0">
@@ -194,7 +194,7 @@ export default function ContactsClient({ initialContacts }: ContactsClientProps)
 
                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider leading-none mt-1 line-clamp-1">{contact.designation || "Support Personnel"}</p>
                                 {contact.is_verified && (
-                          <div className="mt-1 flex items-center gap-1 text-[9px] font-black text-emerald-600 uppercase tracking-tighter">
+                          <div className="mt-1 flex items-center gap-1 text-[9px] font-black text-success uppercase tracking-tighter">
                             <BadgeCheck className="h-3 w-3" /> Verified
                           </div>
                         )}
@@ -224,9 +224,9 @@ export default function ContactsClient({ initialContacts }: ContactsClientProps)
                       <div className="flex items-center gap-1.5 flex-wrap pt-2">
                         <span className={cn(
                           "px-1.5 py-[1px] rounded bg-muted text-[9px] font-bold uppercase tracking-tighter",
-                          contact.target_scope === "National" && "bg-blue-100 text-blue-700",
-                          contact.target_scope === "University" && "bg-purple-100 text-purple-700",
-                          contact.target_scope === "Department" && "bg-orange-100 text-orange-700"
+                          contact.target_scope === "National" && "bg-info-subtle text-info",
+                          contact.target_scope === "University" && "bg-info-subtle text-info",
+                          contact.target_scope === "Department" && "bg-warning-subtle text-warning"
                         )}>
                           {contact.target_scope}
                         </span>

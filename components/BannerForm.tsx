@@ -16,7 +16,7 @@ import {
   Target,
   Plus
 } from "lucide-react"
-import { api, Department, University, Banner, getFullImageUrl, getApiKey, getApiUrl } from "@/lib/api"
+import { api, Department, University, Banner, getFullImageUrl, getApiUrl } from "@/lib/api"
 import { Modal } from "@/app/universities/[id]/departments/[...slug]/components/SharedUI"
 
 export interface BannerFormProps {
@@ -158,7 +158,6 @@ export function BannerForm({ initialData, defaultScope = "National", fixedUniver
           try {
             await fetch(`${getApiUrl()}/upload?url=${initialData.image_url}`, {
               method: 'DELETE',
-              headers: { 'X-API-Key': getApiKey() },
             })
           } catch (err) {
             console.error("Failed to delete old image:", err)
@@ -172,7 +171,6 @@ export function BannerForm({ initialData, defaultScope = "National", fixedUniver
         
         const uploadRes = await fetch(`${getApiUrl()}/upload`, {
           method: 'POST',
-          headers: { 'X-API-Key': getApiKey() },
           body: uploadFormData,
         })
         
@@ -276,7 +274,7 @@ export function BannerForm({ initialData, defaultScope = "National", fixedUniver
                     name="is_active"
                     checked={formData.is_active}
                     onChange={handleChange}
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                   />
                   <span className="text-sm font-medium">Active (Visible)</span>
                 </label>
@@ -381,7 +379,7 @@ export function BannerForm({ initialData, defaultScope = "National", fixedUniver
                           else newIds.delete(uni.id)
                           setSelectedUniIds(newIds)
                         }}
-                        className="h-5 w-5 rounded border-gray-300 text-primary"
+                        className="h-5 w-5 rounded border-border text-primary"
                       />
                     </label>
                   ))}
@@ -435,7 +433,7 @@ export function BannerForm({ initialData, defaultScope = "National", fixedUniver
                                 else newSet.delete(dept.id)
                                 setSelectedDeptIds(newSet)
                               }}
-                              className="h-5 w-5 rounded border-gray-300 text-primary"
+                              className="h-5 w-5 rounded border-border text-primary"
                             />
                             <div className="min-w-0">
                               <p className="text-sm font-bold truncate">{dept.name}</p>

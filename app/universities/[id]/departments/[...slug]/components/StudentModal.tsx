@@ -179,7 +179,7 @@ export function StudentModal({
           <div className="flex items-center justify-between rounded-sm border p-3">
             <span className="text-sm font-medium">Regular?</span>
             <button type="button" onClick={() => { setIsRegular(false); setWeight(1) }} className="transition-all">
-              <ToggleRight className="h-7 w-7 text-green-500" />
+              <ToggleRight className="h-7 w-7 text-success" />
             </button>
           </div>
         ) : (
@@ -208,7 +208,7 @@ export function StudentModal({
         <div className="flex items-center justify-between rounded-sm border p-3">
           <span className="text-sm font-medium">Class CR?</span>
           <button type="button" onClick={() => setIsCr(!isCr)} className="transition-all">
-              {isCr ? <ToggleRight className="h-7 w-7 text-green-500" /> : <ToggleLeft className="h-7 w-7 text-muted-foreground" />}
+              {isCr ? <ToggleRight className="h-7 w-7 text-success" /> : <ToggleLeft className="h-7 w-7 text-muted-foreground" />}
           </button>
         </div>
 
@@ -221,7 +221,7 @@ export function StudentModal({
             className={inputCls} 
           />
         </Field>
-        {error && <p className="text-sm text-red-500 rounded-sm bg-red-50 dark:bg-red-900/20 p-2">{error}</p>}
+        {error && <p className="text-sm text-destructive rounded-sm bg-destructive-subtle p-2">{error}</p>}
         <div className="flex gap-3 pt-2">
           <button type="button" onClick={onClose} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
           <button type="submit" disabled={loading} className="flex-1 rounded-sm bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">

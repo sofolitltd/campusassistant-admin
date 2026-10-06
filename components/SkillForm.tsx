@@ -14,7 +14,7 @@ import {
   Check,
   Globe
 } from "lucide-react"
-import { api, Skill, SkillTarget, University, getApiKey, getApiUrl } from "@/lib/api"
+import { api, Skill, SkillTarget, University, getApiUrl } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 // A target with this department_id means "whole university" — a real UUID
@@ -92,7 +92,7 @@ function TargetSelector({
                   type="button"
                   onClick={() => toggleTarget(uni.id, dept.id)}
                   className={cn("w-full flex items-center justify-between p-1.5 rounded-sm text-left transition-all",
-                    isTargeted(uni.id, dept.id) ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600" : "hover:bg-muted/50 text-muted-foreground"
+                    isTargeted(uni.id, dept.id) ? "bg-info-subtle text-info" : "hover:bg-muted/50 text-muted-foreground"
                   )}
                 >
                   <span className="text-xs font-medium">{dept.name}</span>
@@ -173,7 +173,6 @@ export function SkillForm({ initialData, returnUrl, onSaved }: SkillFormProps) {
           try {
             await fetch(`${getApiUrl()}/upload?url=${initialData.thumbnail_url}`, {
               method: 'DELETE',
-              headers: { 'X-API-Key': getApiKey() },
             })
           } catch (err) {
             console.error("Failed to delete old thumbnail:", err)
@@ -186,7 +185,6 @@ export function SkillForm({ initialData, returnUrl, onSaved }: SkillFormProps) {
 
         const uploadRes = await fetch(`${getApiUrl()}/upload`, {
           method: 'POST',
-          headers: { 'X-API-Key': getApiKey() },
           body: uploadFormData,
         })
 
@@ -281,7 +279,7 @@ export function SkillForm({ initialData, returnUrl, onSaved }: SkillFormProps) {
                     name="is_published"
                     checked={formData.is_published}
                     onChange={handleChange}
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                   />
                   <span className="text-sm font-medium">Published (visible to users)</span>
                 </label>

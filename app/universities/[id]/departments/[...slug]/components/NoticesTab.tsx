@@ -51,7 +51,7 @@ export function NoticesTab({ notices, universityId, departmentId, onRefresh }: {
             <div key={n.id} className="group rounded-sm border bg-card overflow-hidden shadow-sm hover:shadow-md transition-all relative">
               <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                 <button onClick={() => { setSelected(n); setModalOpen(true) }} className="p-1.5 bg-background/80 backdrop-blur-sm border rounded-sm hover:bg-background text-primary transition-colors"><Edit2 className="h-3.5 w-3.5" /></button>
-                <button onClick={() => { setSelected(n); setDeleteOpen(true) }} className="p-1.5 bg-background/80 backdrop-blur-sm border rounded-sm hover:bg-background text-red-600 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                <button onClick={() => { setSelected(n); setDeleteOpen(true) }} className="p-1.5 bg-background/80 backdrop-blur-sm border rounded-sm hover:bg-background text-destructive transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
               </div>
 
               {n.image_urls?.[0] && (

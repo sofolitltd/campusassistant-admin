@@ -20,7 +20,6 @@ import {
   CareerCircularTarget,
   CareerCircularCategory,
   University,
-  getApiKey,
   getApiUrl,
 } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -98,7 +97,7 @@ function TargetSelector({
                   type="button"
                   onClick={() => toggleTarget(uni.id, dept.id)}
                   className={cn("w-full flex items-center justify-between p-1.5 rounded-sm text-left transition-all",
-                    isTargeted(uni.id, dept.id) ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600" : "hover:bg-muted/50 text-muted-foreground"
+                    isTargeted(uni.id, dept.id) ? "bg-info-subtle text-info" : "hover:bg-muted/50 text-muted-foreground"
                   )}
                 >
                   <span className="text-xs font-medium">{dept.name}</span>
@@ -179,7 +178,6 @@ export function CareerCircularForm({ initialData, returnUrl, onSaved }: CareerCi
 
         const uploadRes = await fetch(`${getApiUrl()}/upload`, {
           method: 'POST',
-          headers: { 'X-API-Key': getApiKey() },
           body: uploadFormData,
         })
         if (uploadRes.ok) {
@@ -354,7 +352,7 @@ export function CareerCircularForm({ initialData, returnUrl, onSaved }: CareerCi
                 name="is_published"
                 checked={formData.is_published}
                 onChange={handleChange}
-                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
               />
               <span className="text-sm font-medium">Published (visible to students)</span>
             </label>

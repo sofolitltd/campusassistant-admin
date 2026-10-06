@@ -41,6 +41,8 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
   const [selectedBatchIds, setSelectedBatchIds] = useState<string[]>([])
   const [notifyBatches, setNotifyBatches] = useState(true)
   const [tags, setTags] = useState("")
+  const [metaCreator, setMetaCreator] = useState("")
+  const [metaChapter, setMetaChapter] = useState("")
   const [metaAuthor, setMetaAuthor] = useState("")
   const [metaPublisher, setMetaPublisher] = useState("")
   const [metaEdition, setMetaEdition] = useState("")
@@ -68,6 +70,8 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
       setAccessLevel(resource?.access_level ?? "basic")
       setSelectedBatchIds(resource?.batches?.map((b) => b.id) ?? [])
       setTags((resource?.tags ?? []).join(", "))
+      setMetaCreator(meta.creator ?? meta.teacher ?? "") // fallback for old data
+      setMetaChapter(meta.chapter ?? (resource ? "" : lessonNo != null ? String(lessonNo) : ""))
       setMetaAuthor(meta.author ?? "")
       setMetaPublisher(meta.publisher ?? "")
       setMetaEdition(meta.edition ?? "")
@@ -119,6 +123,7 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
       setUploading(false)
 
       const meta: Record<string, any> = { ...(resource?.metadata ?? {}) }
+      if (type === "note") { if (metaCreator) meta.creator = metaCreator; if (metaChapter) meta.chapter = metaChapter }
       if (type === "book") { if (metaAuthor) meta.author = metaAuthor; if (metaPublisher) meta.publisher = metaPublisher; if (metaEdition) meta.edition = metaEdition }
       if (type === "question") { if (metaExamType) meta.exam_type = metaExamType; if (metaYear) meta.year = parseInt(metaYear) }
       if (type === "syllabus") { if (metaAcadYear) meta.academic_year = metaAcadYear }
@@ -198,7 +203,7 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
               <span className="flex items-center gap-1.5"><Download className="h-3.5 w-3.5" /> {resource!.download_count} downloads</span>
               <span className="flex items-center gap-1.5"><Eye className="h-3.5 w-3.5" /> {resource!.view_count} views</span>
               <span className="flex items-center gap-1.5">
-                <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                <Star className="h-3.5 w-3.5 fill-warning text-warning" />
                 {resource!.rating_count > 0 ? `${resource!.rating_avg.toFixed(1)} (${resource!.rating_count})` : "No ratings"}
               </span>
             </div>
@@ -226,7 +231,7 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
                   <button 
                     type="button" 
                     onClick={() => { setPickedFile(null); setFileUrl(""); setThumbnailBlob(null); setThumbnailUrl("") }}
-                    className="absolute top-2 right-2 p-1.5 rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-destructive-subtle text-destructive hover:bg-destructive/90 hover:text-white transition-all shadow-sm"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -273,6 +278,18 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
           </div>
 
           <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+            {type === "note" && (
+              <>
+                <div className="space-y-1.5">
+                  <label className={labelCls}>Creator</label>
+                  <input value={metaCreator} onChange={(e) => setMetaCreator(e.target.value)} placeholder="Teacher / creator name" className={inputCls} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className={labelCls}>Chapter</label>
+                  <input value={metaChapter} onChange={(e) => setMetaChapter(e.target.value)} placeholder="e.g. Chapter 3" className={inputCls} />
+                </div>
+              </>
+            )}
             {type === "book" && (
               <>
                 <div className="space-y-1.5">
@@ -337,7 +354,7 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
                   return (
                     <span key={id} className="inline-flex items-center gap-1 rounded-sm bg-primary/5 px-2 py-0.5 text-[10px] font-bold text-primary border border-primary/10">
                       {b.name}
-                      <button type="button" onClick={() => toggleBatch(id)} className="hover:text-red-500 transition-all"><X className="h-2.5 w-2.5" /></button>
+                      <button type="button" onClick={() => toggleBatch(id)} className="hover:text-destructive transition-all"><X className="h-2.5 w-2.5" /></button>
                     </span>
                   )
                 })}
@@ -358,7 +375,7 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
             )}
           </div>
 
-          {error && <p className="rounded-sm bg-red-50 dark:bg-red-900/20 p-3 text-xs font-bold text-red-500 border border-red-100 flex items-center gap-2">
+          {error && <p className="rounded-sm bg-destructive-subtle p-3 text-xs font-bold text-destructive border border-destructive/30 flex items-center gap-2">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> {error}
           </p>}
         </form>

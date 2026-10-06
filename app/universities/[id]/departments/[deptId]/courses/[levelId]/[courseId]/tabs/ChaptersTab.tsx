@@ -75,19 +75,19 @@ function ChapterModal({ open, onClose, chapter, courseCode, universityId, depart
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 overflow-y-auto">
           {error && (
-            <div className="mx-5 mt-5 rounded-sm border border-red-200 bg-red-50 dark:bg-red-900/10 px-4 py-3 text-sm text-red-600">
+            <div className="mx-5 mt-5 rounded-sm border border-destructive/30 bg-destructive-subtle px-4 py-3 text-sm text-destructive">
               {error}
             </div>
           )}
           <div className="px-5 space-y-4">
             <div className="grid grid-cols-[1fr_2fr] gap-3">
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">No. <span className="text-red-500">*</span></label>
+                <label className="text-sm font-medium">No. <span className="text-destructive">*</span></label>
                 <input type="number" min={1} value={number} onChange={(e) => setNumber(e.target.value)} placeholder="1"
                   className="w-full rounded-sm border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Title <span className="text-red-500">*</span></label>
+                <label className="text-sm font-medium">Title <span className="text-destructive">*</span></label>
                 <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Introduction"
                   className="w-full rounded-sm border bg-background px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
               </div>
@@ -124,7 +124,7 @@ function ChapterModal({ open, onClose, chapter, courseCode, universityId, depart
                       return (
                         <span key={id} className="inline-flex items-center gap-1 rounded-sm bg-primary/5 px-2 py-0.5 text-[10px] font-bold text-primary border border-primary/10">
                           {b.name}
-                          <button type="button" onClick={() => toggleBatch(id)} className="hover:text-red-500 transition-all"><X className="h-2.5 w-2.5" /></button>
+                          <button type="button" onClick={() => toggleBatch(id)} className="hover:text-destructive transition-all"><X className="h-2.5 w-2.5" /></button>
                         </span>
                       )
                     })}
@@ -165,13 +165,13 @@ function ConfirmDelete({ open, label, onClose, onConfirm, loading }: { open: boo
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-full max-w-sm rounded-sm border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200">
         <div className="flex flex-col items-center text-center gap-3">
-          <div className="rounded-full bg-red-100 p-3 dark:bg-red-900/30"><AlertTriangle className="h-6 w-6 text-red-600" /></div>
+          <div className="rounded-full bg-destructive-subtle p-3"><AlertTriangle className="h-6 w-6 text-destructive" /></div>
           <h3 className="text-lg font-bold">Delete {label}?</h3>
           <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
         </div>
         <div className="flex gap-3 mt-6">
           <button onClick={onClose} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
-          <button onClick={onConfirm} disabled={loading} className="flex-1 rounded-sm bg-red-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+          <button onClick={onConfirm} disabled={loading} className="flex-1 rounded-sm bg-destructive px-4 py-2.5 text-sm font-bold text-white hover:bg-destructive/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}Delete
           </button>
         </div>
@@ -240,7 +240,7 @@ export default function ChaptersTab({ courseCode, universityId, departmentId, le
           <Loader2 className="h-7 w-7 animate-spin text-primary opacity-30" />
         </div>
       ) : error ? (
-        <p className="rounded-sm border border-red-200 bg-red-50 dark:bg-red-900/10 p-4 text-sm text-red-500">{error}</p>
+        <p className="rounded-sm border border-destructive/30 bg-destructive-subtle p-4 text-sm text-destructive">{error}</p>
       ) : chapters.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 rounded-sm border border-dashed bg-muted/20">
           <div className="rounded-full bg-muted p-5 mb-3"><BookMarked className="h-8 w-8 text-muted-foreground/40" /></div>
@@ -275,13 +275,13 @@ export default function ChaptersTab({ courseCode, universityId, departmentId, le
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                 <button
                   onClick={(e) => { e.preventDefault(); setEditTarget(ch); setModal(true) }}
-                  className="rounded-full p-1.5 hover:bg-blue-50 hover:text-blue-500 dark:hover:bg-blue-900/20 transition-all"
+                  className="rounded-full p-1.5 hover:bg-info-subtle hover:text-info transition-all"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={(e) => { e.preventDefault(); setDeleteTarget(ch) }}
-                  className="rounded-full p-1.5 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 transition-all"
+                  className="rounded-full p-1.5 hover:bg-destructive-subtle hover:text-destructive transition-all"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>

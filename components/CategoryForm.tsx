@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Layers, Type, FileText, Hash, Image } from "lucide-react"
-import { api, getApiUrl, getApiKey, MarketplaceCategory } from "@/lib/api"
+import { api, getApiUrl, MarketplaceCategory } from "@/lib/api"
 
 interface CategoryFormProps {
   initialData?: MarketplaceCategory
@@ -51,7 +51,6 @@ export function CategoryForm({ initialData, returnUrl, onSaved }: CategoryFormPr
           try {
             await fetch(`${getApiUrl()}/upload?url=${initialData.image_url}`, {
               method: 'DELETE',
-              headers: { 'X-API-Key': getApiKey() },
             })
           } catch (err) {
             console.error("Failed to delete old image:", err)
@@ -64,7 +63,6 @@ export function CategoryForm({ initialData, returnUrl, onSaved }: CategoryFormPr
 
         const uploadRes = await fetch(`${getApiUrl()}/upload`, {
           method: 'POST',
-          headers: { 'X-API-Key': getApiKey() },
           body: uploadFormData,
         })
 

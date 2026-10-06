@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+/*
+  Colour system.
+
+  These variables are the admin half of one shared system — the same role names
+  exist as Dart fields in the app's lib/core/theme/app_colors.dart. One
+  vocabulary, two implementations, no translation layer.
+
+  The rule: use the semantic classes (bg-primary, text-muted-foreground,
+  border-border, bg-destructive, …). Do not reach for raw Tailwind palette
+  classes like bg-red-500 or text-slate-600 — those bypass the system and, in
+  practice, are also the ones that break in dark mode because they never get a
+  dark: variant.
+
+  Shadcn's role names (background/foreground/card/muted/…) are kept because the
+  codebase already uses them ~2,850 times; success/warning/info are added to
+  match the app's status roles.
+*/
+
 @theme {
   --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
   --color-background: var(--background);
@@ -10,6 +28,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-subtle: var(--primary-subtle);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -18,61 +37,116 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-subtle: var(--destructive-subtle);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-subtle: var(--success-subtle);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-subtle: var(--info-subtle);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --radius-xl: 0px;
-  --radius-2xl: 0px;
-  --radius-full: 0px;
+
+  /*
+    These were all 0px, which silently squared off every one of the ~1,100
+    rounded-* usages in the codebase — components asked for rounded corners and
+    got none. This is the real ramp.
+  */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-full: 9999px;
 }
 
 @layer base {
   :root {
-    --background: #f8fafc;
-    --foreground: #0f172a;
+    /* Neutrals are teal-tinted rather than pure grey so the UI reads as one
+       system; --foreground is #14211f rather than #000 because pure black on
+       white causes halation. */
+    --background: #f7f9f9;
+    --foreground: #14211f;
     --card: #ffffff;
-    --card-foreground: #0f172a;
+    --card-foreground: #14211f;
     --popover: #ffffff;
-    --popover-foreground: #0f172a;
-    --primary: #0f172a;
-    --primary-foreground: #f8fafc;
-    --secondary: #f1f5f9;
-    --secondary-foreground: #0f172a;
-    --muted: #f1f5f9;
-    --muted-foreground: #64748b;
-    --accent: #f1f5f9;
-    --accent-foreground: #0f172a;
-    --destructive: #ef4444;
-    --destructive-foreground: #f8fafc;
-    --border: #e2e8f0;
-    --input: #e2e8f0;
-    --ring: #0f172a;
+    --popover-foreground: #14211f;
+
+    /* Brand. Teal 700 rather than Teal 300: #4db6ac measures ~2.1:1 on white
+       and fails contrast for text; this is ~5.3:1 and passes AA. */
+    --primary: #00796b;
+    --primary-foreground: #ffffff;
+    --primary-subtle: #e0f2f1;
+
+    --secondary: #eff4f3;
+    --secondary-foreground: #14211f;
+    --muted: #eff4f3;
+    --muted-foreground: #5a6b68;
+    --accent: #e0f2f1;
+    --accent-foreground: #004d40;
+
+    --destructive: #d93036;
+    --destructive-foreground: #ffffff;
+    --destructive-subtle: #fee2e2;
+    --success: #15803d;
+    --success-foreground: #ffffff;
+    --success-subtle: #dcfce7;
+    --warning: #b45309;
+    --warning-foreground: #ffffff;
+    --warning-subtle: #fef3c7;
+    /* Indigo, not blue — blue sits too close to the brand teal to read as a
+       distinct status. */
+    --info: #4338ca;
+    --info-foreground: #ffffff;
+    --info-subtle: #e0e7ff;
+
+    --border: #e2e8e7;
+    --input: #e2e8e7;
+    --ring: #00796b;
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: #020617;
-    --foreground: #f8fafc;
-    --card: #0f172a;
-    --card-foreground: #f8fafc;
-    --popover: #0f172a;
-    --popover-foreground: #f8fafc;
-    --primary: #f8fafc;
-    --primary-foreground: #0f172a;
-    --secondary: #1e293b;
-    --secondary-foreground: #f8fafc;
-    --muted: #1e293b;
-    --muted-foreground: #94a3b8;
-    --accent: #1e293b;
-    --accent-foreground: #f8fafc;
-    --destructive: #7f1d1d;
-    --destructive-foreground: #f8fafc;
-    --border: #1e293b;
-    --input: #1e293b;
-    --ring: #cbd5e1;
+    --background: #101414;
+    --foreground: #eaf0ef;
+    --card: #1a1f1f;
+    --card-foreground: #eaf0ef;
+    --popover: #1a1f1f;
+    --popover-foreground: #eaf0ef;
+
+    /* Teal 300 in dark: light enough to sit on #101414, so "primary" keeps the
+       same identity in both themes instead of flipping dark/light. */
+    --primary: #4db6ac;
+    --primary-foreground: #06201d;
+    --primary-subtle: #1f3b38;
+
+    --secondary: #232929;
+    --secondary-foreground: #eaf0ef;
+    --muted: #232929;
+    --muted-foreground: #9aaaa7;
+    --accent: #1f3b38;
+    --accent-foreground: #eaf0ef;
+
+    --destructive: #ff6369;
+    --destructive-foreground: #2e0709;
+    --destructive-subtle: #3d1f22;
+    --success: #4ade80;
+    --success-foreground: #052e16;
+    --success-subtle: #14321f;
+    --warning: #fbbf24;
+    --warning-foreground: #2a1a05;
+    --warning-subtle: #3a2a0b;
+    --info: #818cf8;
+    --info-foreground: #14133a;
+    --info-subtle: #232152;
+
+    --border: #2a3130;
+    --input: #2a3130;
+    --ring: #4db6ac;
   }
 }
 

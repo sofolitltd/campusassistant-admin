@@ -129,7 +129,7 @@ export default function DepartmentResourceList({ title, type, universityId, depa
           <Loader2 className="h-8 w-8 animate-spin text-primary opacity-30" />
         </div>
       ) : error ? (
-        <div className="rounded-sm border border-red-200 bg-red-50 dark:bg-red-900/10 p-6 text-center text-sm text-red-500">{error}</div>
+        <div className="rounded-sm border border-destructive/30 bg-destructive-subtle p-6 text-center text-sm text-destructive">{error}</div>
       ) : resources.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 rounded-sm border border-dashed bg-muted/20">
           <div className="rounded-full bg-muted p-6 mb-4"><Icon className="h-10 w-10 text-muted-foreground/40" /></div>
@@ -213,7 +213,7 @@ function ResourceRow({ resource }: { resource: Resource }) {
           </div>
         )}
         {resource.access_level === "pro" && (
-          <div className="absolute top-1 left-1 px-1 py-0.5 rounded-sm bg-amber-500 text-[8px] font-black text-white shadow-sm z-10">PRO</div>
+          <div className="absolute top-1 left-1 px-1 py-0.5 rounded-sm bg-warning text-[8px] font-black text-white shadow-sm z-10">PRO</div>
         )}
       </div>
 

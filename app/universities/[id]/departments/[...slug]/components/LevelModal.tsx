@@ -176,7 +176,7 @@ export function LevelModal({
           </Field>
         )}
 
-        {error && <p className="rounded-sm bg-red-50 dark:bg-red-900/20 p-2 text-sm text-red-500">{error}</p>}
+        {error && <p className="rounded-sm bg-destructive-subtle p-2 text-sm text-destructive">{error}</p>}
 
         <div className="flex gap-3 pt-1">
           <button

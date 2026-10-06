@@ -101,7 +101,7 @@ export function BatchesTab({ batches, universityId, departmentId, onRefresh }: B
                     <Pencil className="h-3 w-3" />
                   </button>
                   <button onClick={() => setDeleting(b)} 
-                    className="p-1.5 rounded-sm border bg-background hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-all shadow-xs" 
+                    className="p-1.5 rounded-sm border bg-background hover:bg-destructive-subtle text-muted-foreground hover:text-destructive transition-all shadow-xs" 
                     title="Delete"
                   >
                     <Trash2 className="h-3 w-3" />

@@ -104,7 +104,7 @@ export function SessionsTab({ sessions, batches = [], universityId, departmentId
                   </button>
                   <button 
                     onClick={() => setDeleting(s)} 
-                    className="p-1.5 rounded-sm border bg-background hover:bg-red-50 text-muted-foreground hover:text-red-500 transition-all shadow-xs" 
+                    className="p-1.5 rounded-sm border bg-background hover:bg-destructive-subtle text-muted-foreground hover:text-destructive transition-all shadow-xs" 
                     title="Delete"
                   >
                     <Trash2 className="h-3 w-3" />

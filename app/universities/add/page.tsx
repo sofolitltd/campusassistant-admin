@@ -18,7 +18,7 @@ import {
   X
 } from "lucide-react"
 import Link from "next/link"
-import { api, getApiKey, getApiUrl } from "@/lib/api"
+import { api, getApiUrl } from "@/lib/api"
 
 export default function AddUniversityPage() {
   const router = useRouter()
@@ -81,9 +81,6 @@ export default function AddUniversityPage() {
         
         const uploadRes = await fetch(`${getApiUrl()}/upload`, {
           method: 'POST',
-          headers: {
-            'X-API-Key': getApiKey(),
-          },
           body: uploadFormData,
         })
         

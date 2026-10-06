@@ -17,8 +17,8 @@ export function ConfirmDelete({ open, label, onClose, onConfirm, loading, perman
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-full max-w-sm rounded-sm border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200">
         <div className="flex flex-col items-center text-center gap-3">
-          <div className={`rounded-full p-3 ${permanent ? 'bg-orange-100 dark:bg-orange-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
-            {permanent ? <Flame className="h-6 w-6 text-orange-600" /> : <AlertTriangle className="h-6 w-6 text-red-600" />}
+          <div className={`rounded-full p-3 ${permanent ? 'bg-warning-subtle ' : 'bg-destructive-subtle '}`}>
+            {permanent ? <Flame className="h-6 w-6 text-warning" /> : <AlertTriangle className="h-6 w-6 text-destructive" />}
           </div>
           <h3 className="text-lg font-bold">{permanent ? 'Permanently' : ''} Delete {label}?</h3>
           <p className="text-sm text-muted-foreground">
@@ -29,7 +29,7 @@ export function ConfirmDelete({ open, label, onClose, onConfirm, loading, perman
         </div>
         <div className="flex gap-3 mt-6">
           <button onClick={onClose} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
-          <button onClick={onConfirm} disabled={loading} className={`flex-1 rounded-sm px-4 py-2.5 text-sm font-bold text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2 ${permanent ? 'bg-orange-600 hover:bg-orange-700' : 'bg-red-600 hover:bg-red-700'}`}>
+          <button onClick={onConfirm} disabled={loading} className={`flex-1 rounded-sm px-4 py-2.5 text-sm font-bold text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2 ${permanent ? 'bg-warning hover:bg-warning/90' : 'bg-destructive hover:bg-destructive/90'}`}>
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : permanent ? <Flame className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />}
             {permanent ? 'Permanent Delete' : 'Delete'}
           </button>

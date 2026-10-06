@@ -97,7 +97,7 @@ export function TeacherModal({ open, onClose, teacher, universityId, departmentI
     <Modal open={open} onClose={onClose} title={teacher ? "Edit Faculty Member" : "Add Faculty Member"} className="max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
       <form onSubmit={handleSubmit} className="flex flex-col h-full overflow-hidden">
         {error && (
-          <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 rounded-sm mb-4 border border-red-100 shrink-0 mx-6 mt-2">
+          <div className="flex items-center gap-2 p-3 text-sm text-destructive bg-destructive-subtle rounded-sm mb-4 border border-destructive/30 shrink-0 mx-6 mt-2">
             <AlertCircle className="h-4 w-4" /> {error}
           </div>
         )}

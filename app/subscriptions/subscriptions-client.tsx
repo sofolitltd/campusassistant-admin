@@ -30,9 +30,9 @@ function Card({ children, className }: { children: React.ReactNode; className?: 
 function Badge({ children, variant = "default" }: { children: React.ReactNode; variant?: "default" | "success" | "warning" | "indigo" }) {
   const cls = {
     default: "bg-muted text-muted-foreground",
-    success: "bg-emerald-500/10 text-emerald-600",
-    warning: "bg-amber-500/10 text-amber-600",
-    indigo: "bg-indigo-500/10 text-indigo-600",
+    success: "bg-success-subtle text-success",
+    warning: "bg-warning-subtle text-warning",
+    indigo: "bg-info-subtle text-info",
   }[variant]
   return <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest", cls)}>{children}</span>
 }
@@ -110,7 +110,7 @@ function TargetSelector({
                   type="button"
                   onClick={() => toggleTarget(uni.id, dept.id)}
                   className={cn("w-full flex items-center justify-between p-1.5 rounded-sm text-left transition-all",
-                    isTargeted(uni.id, dept.id) ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600" : "hover:bg-muted/50 text-muted-foreground"
+                    isTargeted(uni.id, dept.id) ? "bg-info-subtle text-info" : "hover:bg-muted/50 text-muted-foreground"
                   )}
                 >
                   <span className="text-xs font-medium">{dept.name}</span>
@@ -351,14 +351,14 @@ export default function SubscriptionsClient() {
             <Badge variant="success">All Time</Badge>
           </div>
         </Card>
-        <Card className="p-4 border-l-4 border-l-indigo-500">
+        <Card className="p-4 border-l-4 border-l-info/30">
           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Plans</p>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="text-2xl font-black">{plans.length}</span>
             <Badge variant="indigo">Tiered</Badge>
           </div>
         </Card>
-        <Card className="p-4 border-l-4 border-l-orange-500">
+        <Card className="p-4 border-l-4 border-l-warning/30">
           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Revenue</p>
           <div className="mt-1 flex items-baseline gap-2">
             <span className="text-2xl font-black">{totalRevenue.toLocaleString()} TK</span>
@@ -446,7 +446,7 @@ export default function SubscriptionsClient() {
                           {isExpired ? <Badge variant="warning">Expired</Badge> : <Badge variant="success">Active Pro</Badge>}
                         </td>
                         <td className="px-4 py-4 text-right pr-6">
-                          <button onClick={() => {}} className="rounded-full p-2 hover:bg-indigo-50 hover:text-indigo-500 transition-all text-muted-foreground">
+                          <button onClick={() => {}} className="rounded-full p-2 hover:bg-info-subtle hover:text-info transition-all text-muted-foreground">
                             <Pencil className="h-4 w-4" />
                           </button>
                         </td>
@@ -505,7 +505,7 @@ export default function SubscriptionsClient() {
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
                   <button onClick={() => { setEditPlan(plan); setPlanModal(true) }} className="p-1.5 hover:bg-muted rounded-sm transition-all text-muted-foreground hover:text-primary"><Pencil className="h-3.5 w-3.5" /></button>
-                  <button onClick={async () => { if (confirm("Delete this elite plan?")) { await api.subscriptions.deletePlan(plan.id); loadData(0) } }} className="p-1.5 hover:bg-red-50 rounded-sm transition-all text-muted-foreground hover:text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button onClick={async () => { if (confirm("Delete this elite plan?")) { await api.subscriptions.deletePlan(plan.id); loadData(0) } }} className="p-1.5 hover:bg-destructive-subtle rounded-sm transition-all text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
               </div>
 
@@ -531,7 +531,7 @@ export default function SubscriptionsClient() {
               </div>
 
               <div className="mt-6 pt-4 border-t flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-600">
+                <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-success">
                   <Check className="h-3 w-3" /> Production Active
                 </div>
                 <div className="text-[10px] font-bold text-muted-foreground italic">

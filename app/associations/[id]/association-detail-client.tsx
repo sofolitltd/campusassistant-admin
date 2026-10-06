@@ -217,7 +217,7 @@ export default function AssociationDetailClient({ association }: AssociationDeta
                 <div className="flex items-center gap-2 text-sm">
                   <span
                     className={`inline-block h-2 w-2 rounded-full ${
-                      association.is_active ? "bg-emerald-500" : "bg-amber-500"
+                      association.is_active ? "bg-success" : "bg-warning"
                     }`}
                   />
                   <span>{association.is_active ? "Active" : "Pending approval"}</span>

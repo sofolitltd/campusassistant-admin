@@ -32,7 +32,7 @@ export function CRsTab({ crs }: { crs: CR[] }) {
           <div className="border-t pt-3 space-y-1.5">
             {cr.phone && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Phone className="h-3 w-3" />{cr.phone}</p>}
             {cr.email && <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Mail className="h-3 w-3" />{cr.email}</p>}
-            {cr.fb && <a href={cr.fb} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline flex items-center gap-1"><ExternalLink className="h-3 w-3" />Facebook</a>}
+            {cr.fb && <a href={cr.fb} target="_blank" rel="noopener noreferrer" className="text-xs text-info hover:underline flex items-center gap-1"><ExternalLink className="h-3 w-3" />Facebook</a>}
             {(cr.term_start || cr.term_end) && (
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <CalendarDays className="h-3 w-3" />
@@ -94,7 +94,7 @@ export function BannersTab({ banners, universityId, departmentId, onRefresh }: {
                 >
                   <Edit2 className="h-3.5 w-3.5" />
                 </Link>
-                <button onClick={() => { setSelected(b); setDeleteOpen(true) }} className="p-1.5 bg-background/80 backdrop-blur-sm border rounded-sm hover:bg-background text-red-600 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                <button onClick={() => { setSelected(b); setDeleteOpen(true) }} className="p-1.5 bg-background/80 backdrop-blur-sm border rounded-sm hover:bg-background text-destructive transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
               </div>
 
               {b.image_url ? (
@@ -119,7 +119,7 @@ export function BannersTab({ banners, universityId, departmentId, onRefresh }: {
                     {new Date(b.start_at).toLocaleDateString()} – {new Date(b.end_at).toLocaleDateString()}
                   </p>
                   {b.click_url && (
-                    <a href={b.click_url} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-blue-500 hover:underline flex items-center gap-1 uppercase tracking-widest">
+                    <a href={b.click_url} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-info hover:underline flex items-center gap-1 uppercase tracking-widest">
                       <ExternalLink className="h-3 w-3" /> Link
                     </a>
                   )}
@@ -207,7 +207,7 @@ export function ContactsTab({ contacts, universityId, departmentId, onRefresh }:
                   <div key={c.id} className="group rounded-sm border bg-card p-5 shadow-sm hover:shadow-md transition-all relative">
                     <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                       <button onClick={() => { setSelected(c); setModalOpen(true) }} className="p-1.5 bg-background border rounded-sm hover:bg-muted text-primary transition-colors"><Edit2 className="h-3.5 w-3.5" /></button>
-                      <button onClick={() => { setSelected(c); setDeleteOpen(true) }} className="p-1.5 bg-background border rounded-sm hover:bg-muted text-red-600 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                      <button onClick={() => { setSelected(c); setDeleteOpen(true) }} className="p-1.5 bg-background border rounded-sm hover:bg-muted text-destructive transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
                     </div>
 
                     <div className="flex items-start gap-4 mb-4">
@@ -216,15 +216,15 @@ export function ContactsTab({ contacts, universityId, departmentId, onRefresh }:
                           <img src={c.logo_url} alt={c.title} className="h-full w-full object-cover" />
                         </div>
                       ) : (
-                        <div className="h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center shrink-0 border border-red-200 dark:border-red-800">
-                          <ShieldAlert className="h-6 w-6 text-red-600 dark:text-red-400" />
+                        <div className="h-12 w-12 rounded-full bg-destructive-subtle flex items-center justify-center shrink-0 border border-destructive/30">
+                          <ShieldAlert className="h-6 w-6 text-destructive" />
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="font-bold truncate text-base">{c.title}</p>
                         {c.designation && <p className="text-xs text-muted-foreground font-medium">{c.designation}</p>}
                         {c.is_verified && (
-                          <div className="flex items-center gap-1 text-[10px] font-bold text-green-600 dark:text-green-400 mt-1 uppercase tracking-wider">
+                          <div className="flex items-center gap-1 text-[10px] font-bold text-success mt-1 uppercase tracking-wider">
                             <BadgeCheck className="h-3 w-3" /> Verified Source
                           </div>
                         )}

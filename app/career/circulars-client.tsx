@@ -129,14 +129,14 @@ export default function CircularsClient({ initialCirculars }: CircularsClientPro
                     )}
                   </div>
                   <span className={cn("flex-shrink-0 inline-block rounded-full px-2 py-0.5 text-[9px] font-bold uppercase shadow-sm",
-                    circular.is_published ? "bg-emerald-500 text-white" : "bg-amber-500 text-white")}>
+                    circular.is_published ? "bg-success text-white" : "bg-warning text-white")}>
                     {circular.is_published ? "Published" : "Draft"}
                   </span>
                 </div>
 
                 <div className="space-y-1 rounded-sm border border-dashed border-border/60 bg-muted/20 p-2">
                   {circular.deadline_date && (
-                    <div className={cn("flex items-center gap-1.5 text-[11px]", isPastDeadline(circular.deadline_date) ? "text-red-600" : "text-muted-foreground")}>
+                    <div className={cn("flex items-center gap-1.5 text-[11px]", isPastDeadline(circular.deadline_date) ? "text-destructive" : "text-muted-foreground")}>
                       <Calendar className="h-3 w-3 flex-shrink-0" />
                       <span>Deadline: {new Date(circular.deadline_date).toLocaleDateString()}</span>
                     </div>

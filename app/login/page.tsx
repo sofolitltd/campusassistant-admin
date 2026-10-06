@@ -1,13 +1,25 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useState } from "react"
+import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
 import { api } from "@/lib/api"
-import { setToken, setAdmin } from "@/lib/auth"
-import { Loader2 } from "lucide-react"
+import { startSession } from "@/lib/auth"
+import { Loader2, CheckCircle2 } from "lucide-react"
 
 export default function LoginPage() {
+  // useSearchParams needs a Suspense boundary or the whole route bails out of
+  // static rendering.
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  )
+}
+
+function LoginForm() {
   const router = useRouter()
+  const justReset = useSearchParams().get("reset") === "1"
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -20,9 +32,15 @@ export default function LoginPage() {
 
     try {
       const res = await api.auth.adminLogin(email, password)
-      setToken(res.access_token)
-      setAdmin(res.admin)
-      router.push("/")
+      await startSession({
+        access_token: res.access_token,
+        expires_in: res.expires_in,
+        admin: res.admin,
+      })
+      // refresh() so Server Components re-render with the new session cookie;
+      // push() alone can serve a cached logged-out render.
+      router.replace("/")
+      router.refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed")
     } finally {
@@ -41,6 +59,13 @@ export default function LoginPage() {
           <p className="mt-1 text-sm text-muted-foreground">Sign in to your account</p>
         </div>
 
+        {justReset && (
+          <div className="mb-4 flex items-start gap-2 rounded-md bg-success-subtle p-3 text-sm text-success">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>Password updated. Sign in with your new password.</span>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="text-sm font-medium text-foreground">
@@ -58,9 +83,17 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label htmlFor="password" className="text-sm font-medium text-foreground">
-              Password
-            </label>
+            <div className="flex items-center justify-between">
+              <label htmlFor="password" className="text-sm font-medium text-foreground">
+                Password
+              </label>
+              <Link
+                href="/forgot-password"
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <input
               id="password"
               type="password"

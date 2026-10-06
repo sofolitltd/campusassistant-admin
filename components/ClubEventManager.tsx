@@ -103,15 +103,15 @@ export function ClubEventManager({ clubId }: ClubEventManagerProps) {
           <input value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Auditorium, Building 2" className={inputCls} />
         </Field>
 
-        <label className="flex items-start gap-2 cursor-pointer rounded-md bg-amber-50 dark:bg-amber-900/10 p-2.5 border border-amber-200 dark:border-amber-900/30">
+        <label className="flex items-start gap-2 cursor-pointer rounded-md bg-warning-subtle p-2.5 border border-warning/30 ">
           <input
             type="checkbox"
             checked={publishNow}
             onChange={e => setPublishNow(e.target.checked)}
-            className="h-4 w-4 mt-0.5 rounded border-gray-300 text-primary focus:ring-primary"
+            className="h-4 w-4 mt-0.5 rounded border-border text-primary focus:ring-primary"
           />
           <span className="text-xs">
-            <span className="flex items-center gap-1 font-bold text-amber-700 dark:text-amber-400">
+            <span className="flex items-center gap-1 font-bold text-warning ">
               <Bell className="h-3 w-3" /> Publish &amp; notify followers
             </span>
             <span className="text-muted-foreground">Sends a one-time push notification to everyone following this club. Cannot be undone.</span>
@@ -152,7 +152,7 @@ export function ClubEventManager({ clubId }: ClubEventManagerProps) {
                   {event.location && (
                     <span className="flex items-center gap-0.5"><MapPin className="h-2.5 w-2.5" />{event.location}</span>
                   )}
-                  <span className={`rounded-full px-1.5 py-0.5 font-bold uppercase ${event.is_published ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"}`}>
+                  <span className={`rounded-full px-1.5 py-0.5 font-bold uppercase ${event.is_published ? "bg-success-subtle text-success " : "bg-muted text-muted-foreground "}`}>
                     {event.is_published ? "Notified" : "Draft"}
                   </span>
                 </div>

@@ -101,7 +101,7 @@ export default function UniversitiesClient({ initialUniversities }: Universities
                     e.preventDefault();
                     setActiveMenu(activeMenu === uni.id ? null : uni.id);
                   }}
-                  className="rounded-full bg-white/90 p-1.5 text-slate-900 shadow-sm hover:bg-white border transition-colors"
+                  className="rounded-full bg-white/90 p-1.5 text-foreground shadow-sm hover:bg-white border transition-colors"
                 >
                   <MoreVertical className="h-4 w-4" />
                 </button>
@@ -160,7 +160,7 @@ export default function UniversitiesClient({ initialUniversities }: Universities
                     <span className="line-clamp-2 leading-relaxed">{uni.address || 'No address provided'}</span>
                   </div>
 
-                  <div className="mt-auto pt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-800">
+                  <div className="mt-auto pt-4 flex items-center justify-between border-t border-border ">
                     <div className="flex items-center gap-6">
                       <div>
                         <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-black">Established</p>

@@ -19,6 +19,9 @@ import {
   PackageSearch,
   Briefcase,
   Shield,
+  TicketPercent,
+  Wallet,
+  MessageSquare,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -52,6 +55,21 @@ const navItems = [
     title: "Subs",
     href: "/subscriptions",
     icon: CreditCard,
+  },
+  {
+    title: "Billing",
+    href: "/billing",
+    icon: Wallet,
+  },
+  {
+    title: "Coupons",
+    href: "/coupons",
+    icon: TicketPercent,
+  },
+  {
+    title: "Feedback",
+    href: "/feedback",
+    icon: MessageSquare,
   },
   {
     title: "Notify",

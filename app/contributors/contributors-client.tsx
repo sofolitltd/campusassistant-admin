@@ -15,10 +15,10 @@ import { ConfirmDelete, Modal, Field, selectCls } from "../universities/[id]/dep
 const CONTRIBUTOR_TIERS = ["Platinum", "Gold", "Silver", "Bronze"]
 
 const TIER_COLORS: Record<string, string> = {
-  Platinum: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20",
-  Gold: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-  Silver: "bg-slate-500/10 text-slate-600 border-slate-500/20",
-  Bronze: "bg-orange-700/10 text-orange-700 border-orange-700/20",
+  Platinum: "bg-info-subtle text-info border-info/30",
+  Gold: "bg-warning-subtle text-warning border-warning/30",
+  Silver: "bg-muted-foreground/10 text-muted-foreground border-border/20",
+  Bronze: "bg-warning-subtle text-warning border-warning/30",
 }
 
 interface ContributorsClientProps {

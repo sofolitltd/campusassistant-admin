@@ -99,9 +99,9 @@ export function Avatar({ name, imageUrl, size = "md" }: { name: string; imageUrl
 export function Badge({ children, variant = "default", className }: { children: React.ReactNode; variant?: "default" | "success" | "danger" | "warn" | "info"; className?: string }) {
   const colors = {
     default: "bg-muted text-muted-foreground",
-    success: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 font-bold",
-    danger: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 font-bold",
-    warn: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-bold",
+    success: "bg-success-subtle text-success font-bold",
+    danger: "bg-destructive-subtle text-destructive font-bold",
+    warn: "bg-warning-subtle text-warning font-bold",
     info: "bg-primary/10 text-primary border border-primary/20 font-bold",
   }
   return <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] uppercase tracking-wider", colors[variant], className)}>{children}</span>
@@ -157,13 +157,13 @@ export function ConfirmDelete({ open, label, onClose, onConfirm, loading }: { op
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-full max-w-sm rounded-sm border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200">
         <div className="flex flex-col items-center text-center gap-3">
-          <div className="rounded-full bg-red-100 p-3 dark:bg-red-900/30"><AlertTriangle className="h-6 w-6 text-red-600" /></div>
+          <div className="rounded-full bg-destructive-subtle p-3"><AlertTriangle className="h-6 w-6 text-destructive" /></div>
           <h3 className="text-lg font-bold">Delete {label}?</h3>
           <p className="text-sm text-muted-foreground">This action cannot be undone and will delete all associated data.</p>
         </div>
         <div className="flex gap-3 mt-6">
           <button onClick={onClose} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
-          <button onClick={onConfirm} disabled={loading} className="flex-1 rounded-sm bg-red-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+          <button onClick={onConfirm} disabled={loading} className="flex-1 rounded-sm bg-destructive px-4 py-2.5 text-sm font-bold text-white hover:bg-destructive/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}Delete
           </button>
         </div>
@@ -175,7 +175,7 @@ export function ConfirmDelete({ open, label, onClose, onConfirm, loading }: { op
 export function Field({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-sm font-medium">{label}{required && <span className="text-red-500 ml-0.5">*</span>}</label>
+      <label className="text-sm font-medium">{label}{required && <span className="text-destructive ml-0.5">*</span>}</label>
       {children}
     </div>
   )

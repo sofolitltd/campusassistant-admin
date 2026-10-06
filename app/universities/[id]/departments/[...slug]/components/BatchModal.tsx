@@ -31,7 +31,7 @@ function SessionSelectorTrigger({ allSessions, selectedIds, onToggle, loading }:
           selectedList.map(s => (
             <span key={s.id} className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary flex items-center gap-1 border border-primary/20">
               {s.name}
-              <button key={`rem-${s.id}`} onClick={(e) => { e.stopPropagation(); onToggle(s.id) }} className="hover:text-red-500">
+              <button key={`rem-${s.id}`} onClick={(e) => { e.stopPropagation(); onToggle(s.id) }} className="hover:text-destructive">
                 <X className="h-3 w-3" />
               </button>
             </span>
@@ -239,7 +239,7 @@ export function BatchModal({
             {isStudying ? <ToggleRight className="h-7 w-7 text-primary" /> : <ToggleLeft className="h-7 w-7 text-muted-foreground" />}
           </button>
         </div>
-        {error && <p className="text-sm text-red-500 rounded-sm bg-red-50 dark:bg-red-900/20 p-2">{error}</p>}
+        {error && <p className="text-sm text-destructive rounded-sm bg-destructive-subtle p-2">{error}</p>}
         <div className="flex gap-3 pt-2">
           <button type="button" onClick={onClose} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
           <button type="submit" disabled={loading} className="flex-1 rounded-sm bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">

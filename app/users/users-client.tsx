@@ -218,24 +218,24 @@ export default function UsersClient({
                       {/* Role Details Column */}
                       <td className="px-6 py-4">
                         {studentInfo ? (
-                          <div className="bg-blue-50/50 dark:bg-blue-950/20 rounded-lg p-2.5 border border-blue-100/50 dark:border-blue-900/30 flex flex-col gap-1.5 min-w-[160px]">
+                          <div className="bg-info-subtle rounded-lg p-2.5 border border-info/30 flex flex-col gap-1.5 min-w-[160px]">
                             <div className="flex items-center justify-between gap-4">
-                              <span className="text-[9px] font-bold text-blue-600 dark:text-blue-400 uppercase flex items-center gap-1">
+                              <span className="text-[9px] font-bold text-info uppercase flex items-center gap-1">
                                 <GraduationCap className="h-3 w-3" /> Student Card
                               </span>
-                              <span className="text-[10px] font-mono font-black bg-white dark:bg-black px-1.5 rounded border border-blue-100 py-0.5 shadow-xs">
+                              <span className="text-[10px] font-mono font-black bg-white dark:bg-black px-1.5 rounded border border-info/30 py-0.5 shadow-xs">
                                 {studentInfo.student_id}
                               </span>
                             </div>
-                            <div className="grid grid-cols-2 gap-2 mt-1 border-t border-blue-100/50 pt-1.5">
+                            <div className="grid grid-cols-2 gap-2 mt-1 border-t border-info/30 pt-1.5">
                               <div className="flex flex-col">
-                                <span className="text-[8px] text-blue-500/70 uppercase font-bold leading-none">Batch</span>
+                                <span className="text-[8px] text-info/70 uppercase font-bold leading-none">Batch</span>
                                 <span className="text-[10px] font-bold mt-0.5 truncate">
                                   {studentInfo.batch?.name || (studentInfo.batch_id ? batchMap.get(studentInfo.batch_id)?.name : "N/A")}
                                 </span>
                               </div>
                               <div className="flex flex-col">
-                                <span className="text-[8px] text-blue-500/70 uppercase font-bold leading-none">Session</span>
+                                <span className="text-[8px] text-info/70 uppercase font-bold leading-none">Session</span>
                                 <span className="text-[10px] font-bold mt-0.5 truncate">
                                   {studentInfo.session?.name || (studentInfo.session_id ? sessionMap.get(studentInfo.session_id)?.name : "N/A")}
                                 </span>
@@ -243,16 +243,16 @@ export default function UsersClient({
                             </div>
                           </div>
                         ) : teacherInfo ? (
-                          <div className="bg-amber-50/50 dark:bg-amber-950/20 rounded-lg p-2.5 border border-amber-100/50 dark:border-amber-900/30 flex flex-col gap-1.5 min-w-[160px]">
+                          <div className="bg-warning-subtle rounded-lg p-2.5 border border-warning/30 flex flex-col gap-1.5 min-w-[160px]">
                              <div className="flex items-center gap-1">
-                              <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase flex items-center gap-1">
+                              <span className="text-[9px] font-bold text-warning uppercase flex items-center gap-1">
                                 <Briefcase className="h-3 w-3" /> Teacher Card
                               </span>
                             </div>
-                            <div className="flex flex-col gap-1 mt-1 border-t border-amber-100/50 pt-1.5">
+                            <div className="flex flex-col gap-1 mt-1 border-t border-warning/30 pt-1.5">
                               <span className="text-[11px] font-bold truncate leading-none">{teacherInfo.designation}</span>
                               {teacherInfo.phd && (
-                                <span className="text-[10px] text-amber-700/80 dark:text-amber-300/80 flex items-center gap-1 font-medium">
+                                <span className="text-[10px] text-warning/80 flex items-center gap-1 font-medium">
                                   <Award className="h-3 w-3" /> {teacherInfo.phd}
                                 </span>
                               )}
@@ -286,10 +286,10 @@ export default function UsersClient({
                       <td className="px-6 py-4 text-center">
                         <div className="flex flex-col items-center gap-1">
                           <div className={`h-2 w-2 rounded-full shadow-[0_0_8px] ${
-                            user.is_active ? "bg-emerald-500 shadow-emerald-500/50" : "bg-red-500 shadow-red-500/50"
+                            user.is_active ? "bg-success shadow-success/30" : "bg-destructive shadow-destructive/30"
                           }`} />
                           <span className={`text-[9px] font-black uppercase tracking-tighter ${
-                            user.is_active ? "text-emerald-600" : "text-red-600"
+                            user.is_active ? "text-success" : "text-destructive"
                           }`}>
                             {user.is_active ? "Active" : "Banned"}
                           </span>
@@ -316,14 +316,14 @@ export default function UsersClient({
                             {user.is_active ? (
                               <button
                                 onClick={(e) => { e.stopPropagation(); setActiveMenu(null) }}
-                                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-left hover:bg-red-50 hover:text-red-600 transition-all"
+                                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-left hover:bg-destructive-subtle hover:text-destructive transition-all"
                               >
                                 <Ban className="h-3.5 w-3.5" /> Ban User
                               </button>
                             ) : (
                               <button
                                 onClick={(e) => { e.stopPropagation(); setActiveMenu(null) }}
-                                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-left hover:bg-emerald-50 hover:text-emerald-600 transition-all"
+                                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-left hover:bg-success-subtle hover:text-success transition-all"
                               >
                                 <CheckCircle className="h-3.5 w-3.5" /> Unban User
                               </button>
@@ -331,7 +331,7 @@ export default function UsersClient({
                             <div className="border-t border-border/50" />
                             <button
                               onClick={(e) => { e.stopPropagation(); setDeleteTarget(user); setActiveMenu(null) }}
-                              className="flex w-full items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-left hover:bg-red-50 hover:text-red-600 transition-all"
+                              className="flex w-full items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-left hover:bg-destructive-subtle hover:text-destructive transition-all"
                             >
                               <Trash2 className="h-3.5 w-3.5" /> Delete User
                             </button>
@@ -377,21 +377,21 @@ export default function UsersClient({
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div className="relative z-10 w-full max-w-sm rounded-sm border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center text-center gap-3">
-              <div className="rounded-full bg-red-100 p-3 dark:bg-red-900/30">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
+              <div className="rounded-full bg-destructive-subtle p-3">
+                <AlertTriangle className="h-6 w-6 text-destructive" />
               </div>
               <h3 className="text-lg font-bold">Delete User?</h3>
               <p className="text-sm text-muted-foreground">
                 Delete <strong>{deleteTarget.first_name} {deleteTarget.last_name}</strong> ({deleteTarget.email})?
               </p>
               <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
-              {actionError && <p className="text-sm text-red-500 bg-red-50 dark:bg-red-900/20 w-full rounded-sm p-2">{actionError}</p>}
+              {actionError && <p className="text-sm text-destructive bg-destructive-subtle w-full rounded-sm p-2">{actionError}</p>}
             </div>
             <div className="flex gap-3 mt-6">
               <button onClick={() => { setDeleteTarget(null); setActionError("") }} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">
                 Cancel
               </button>
-              <button onClick={handleDelete} disabled={deleting} className="flex-1 rounded-sm bg-red-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+              <button onClick={handleDelete} disabled={deleting} className="flex-1 rounded-sm bg-destructive px-4 py-2.5 text-sm font-bold text-white hover:bg-destructive/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
                 {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}Delete
               </button>
             </div>

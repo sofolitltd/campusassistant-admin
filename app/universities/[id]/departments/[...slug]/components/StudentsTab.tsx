@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useDeferredValue, useRef } from "react"
-import { api, Student, Batch, Session, Contributor, getApiKey, getApiUrl } from "@/lib/api"
+import { api, Student, Batch, Session, Contributor, getApiUrl } from "@/lib/api"
 import { Avatar, Badge, ConfirmDelete, selectCls, inputCls, Modal, ActionMenu } from "./SharedUI"
 import { StudentModal } from "./StudentModal"
 import { Users, Plus, Pencil, Trash2, Mail, Phone, ExternalLink, Search, Copy, Share2, RefreshCcw, Loader2, LayoutGrid, List, ChevronLeft, ChevronRight, MoreVertical, GraduationCap, Handshake, UserCheck, Send, UserMinus } from "lucide-react"
@@ -72,11 +72,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
 
       // We use a raw fetch or update api.ts to support full response
       // For now, let's assume api.students.getAll is updated or we use fetchWithAuth
-      const response = await fetch(`${getApiUrl()}/students?${queryParams.toString()}`, {
-        headers: {
-          'X-API-Key': getApiKey(),
-        }
-      })
+      const response = await fetch(`${getApiUrl()}/students?${queryParams.toString()}`)
       const result = await response.json()
       
       setStudents(result.data || [])
@@ -105,7 +101,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
       const results = await Promise.allSettled(
         batches.map(async (b) => {
           const res = await fetch(`${getApiUrl()}/students?department_id=${departmentId}&batch_id=${b.id}&limit=1`, {
-            headers: { 'X-API-Key': getApiKey() }, signal: controller.signal
+            signal: controller.signal
           })
           const json = await res.json()
           return { id: b.id, count: json.count || 0 }
@@ -533,7 +529,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
                               <GraduationCap className="h-4 w-4 text-primary" /> Add to Alumni
                             </button>
                             {contributorsByStudentId[s.id] ? (
-                              <button onClick={() => { setActionMenuStudentId(null); setRemovingContributor(contributorsByStudentId[s.id]) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors text-red-500">
+                              <button onClick={() => { setActionMenuStudentId(null); setRemovingContributor(contributorsByStudentId[s.id]) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors text-destructive">
                                 <UserMinus className="h-4 w-4" /> Remove from Contributors
                               </button>
                             ) : (
@@ -575,7 +571,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
                             {s.verification_code || "------"}
                           </code>
                           {s.is_claimed && (
-                            <div className="h-4 w-4 rounded-full bg-green-500/10 text-green-600 flex items-center justify-center" title="Verified">
+                            <div className="h-4 w-4 rounded-full bg-success-subtle text-success flex items-center justify-center" title="Verified">
                                <RefreshCcw className="h-2.5 w-2.5" />
                             </div>
                           )}
@@ -675,7 +671,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
                                   <GraduationCap className="h-4 w-4 text-primary" /> Add to Alumni
                                 </button>
                                 {contributorsByStudentId[s.id] ? (
-                                  <button onClick={() => { setActionMenuStudentId(null); setRemovingContributor(contributorsByStudentId[s.id]) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors text-red-500">
+                                  <button onClick={() => { setActionMenuStudentId(null); setRemovingContributor(contributorsByStudentId[s.id]) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors text-destructive">
                                     <UserMinus className="h-4 w-4" /> Remove from Contributors
                                   </button>
                                 ) : (
@@ -802,7 +798,7 @@ function StudentPreviewModal({ student, onClose, batches, sessions }: { student:
             <div className="grid grid-cols-2 gap-4">
               <div className="rounded-lg border bg-muted/20 p-4 text-center">
                 <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-2">Blood Group</p>
-                <p className="text-2xl font-black text-red-500 tracking-tighter">{student.blood_group || "--"}</p>
+                <p className="text-2xl font-black text-destructive tracking-tighter">{student.blood_group || "--"}</p>
               </div>
               <div className="rounded-lg border bg-muted/20 p-4 text-center">
                 <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-2">Status</p>

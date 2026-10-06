@@ -84,7 +84,7 @@ export default function ClubsClient({ initialClubs }: ClubsClientProps) {
             >
               {label}
               {value === "pending" && pendingCount > 0 && (
-                <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-bold text-white">
+                <span className="rounded-full bg-warning px-1.5 py-0.5 text-[9px] font-bold text-white">
                   {pendingCount}
                 </span>
               )}
@@ -132,12 +132,12 @@ export default function ClubsClient({ initialClubs }: ClubsClientProps) {
 
                   <div className="absolute top-2 right-2 flex items-center gap-1">
                     {!club.is_active && (
-                      <span className="flex items-center gap-1 rounded-full bg-amber-500 px-2 py-0.5 text-[9px] font-bold uppercase text-white shadow-sm">
+                      <span className="flex items-center gap-1 rounded-full bg-warning px-2 py-0.5 text-[9px] font-bold uppercase text-white shadow-sm">
                         <Clock className="h-2.5 w-2.5" /> Pending
                       </span>
                     )}
                     <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase shadow-sm ${
-                      club.is_active ? "bg-emerald-500 text-white" : "bg-slate-500 text-white"
+                      club.is_active ? "bg-success text-white" : "bg-muted-foreground text-white"
                     }`}>
                       {club.is_active ? "Active" : "Inactive"}
                     </span>
@@ -150,7 +150,7 @@ export default function ClubsClient({ initialClubs }: ClubsClientProps) {
                       <h3 className="font-bold text-sm h-10 line-clamp-2 leading-tight group-hover:text-primary transition-colors" title={club.name}>
                         {club.name}
                         {club.is_verified && (
-                          <BadgeCheck className="ml-1 inline h-3.5 w-3.5 text-blue-500 align-text-top" />
+                          <BadgeCheck className="ml-1 inline h-3.5 w-3.5 text-info align-text-top" />
                         )}
                       </h3>
                       <div className="mt-1 flex items-center gap-1.5">

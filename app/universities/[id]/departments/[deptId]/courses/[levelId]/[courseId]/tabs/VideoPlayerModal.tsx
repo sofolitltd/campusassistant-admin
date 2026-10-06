@@ -27,8 +27,8 @@ export function VideoPlayerModal({ open, onClose, videoUrl, title, description }
       <div className="relative w-full max-w-4xl bg-[#1a1a1a] rounded-sm shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="rounded-full bg-red-500/20 p-2">
-              <Play className="h-4 w-4 text-red-600 fill-red-600" />
+            <div className="rounded-full bg-destructive-subtle p-2">
+              <Play className="h-4 w-4 text-destructive fill-destructive" />
             </div>
             <div className="min-w-0">
               <h2 className="text-sm font-bold truncate leading-none text-white">{title}</h2>
@@ -50,7 +50,7 @@ export function VideoPlayerModal({ open, onClose, videoUrl, title, description }
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-white p-8 text-center gap-3">
-              <AlertTriangle className="h-8 w-8 text-red-500" />
+              <AlertTriangle className="h-8 w-8 text-destructive" />
               <p className="text-sm font-bold">Invalid Video URL</p>
               <p className="text-xs text-white/40">{videoUrl}</p>
             </div>

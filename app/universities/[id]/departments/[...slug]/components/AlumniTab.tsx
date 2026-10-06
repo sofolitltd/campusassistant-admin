@@ -234,7 +234,7 @@ export function AlumniModal({
                       return rest;
                     });
                   }}
-                  className="text-xs font-bold text-red-600 hover:text-red-700 hover:underline flex items-center gap-1"
+                  className="text-xs font-bold text-destructive hover:text-destructive hover:underline flex items-center gap-1"
                 >
                   <X className="h-3.5 w-3.5" /> Unlink
                 </button>
@@ -752,7 +752,7 @@ export function AlumniTab({
                       </button>
                       <button
                         onClick={() => { setSelected(a); setDeleteOpen(true) }}
-                        className="p-1.5 bg-background border rounded-sm hover:bg-muted text-red-600 transition-colors"
+                        className="p-1.5 bg-background border rounded-sm hover:bg-muted text-destructive transition-colors"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -826,12 +826,12 @@ export function AlumniTab({
                         )}
                         <div className="flex items-center gap-2 pt-1">
                           {a.social_links?.facebook && (
-                            <a href={a.social_links.facebook} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline flex items-center gap-1">
+                            <a href={a.social_links.facebook} target="_blank" rel="noopener noreferrer" className="text-xs text-info hover:underline flex items-center gap-1">
                               <ExternalLink className="h-3 w-3" /> FB
                             </a>
                           )}
                           {a.social_links?.linkedin && (
-                            <a href={a.social_links.linkedin} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                            <a href={a.social_links.linkedin} target="_blank" rel="noopener noreferrer" className="text-xs text-info hover:underline flex items-center gap-1">
                               <Link2 className="h-3 w-3" /> LI
                             </a>
                           )}

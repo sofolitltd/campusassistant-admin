@@ -70,7 +70,7 @@ export function BatchSelectionModal({
               onClick={() => {
                 selectedIds.forEach(id => onToggle(id))
               }}
-              className="text-[10px] font-bold text-red-500 hover:underline"
+              className="text-[10px] font-bold text-destructive hover:underline"
             >
               Clear All
             </button>

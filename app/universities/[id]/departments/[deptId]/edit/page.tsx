@@ -14,7 +14,7 @@ import {
   X
 } from "lucide-react"
 import Link from "next/link"
-import { api, getApiKey, getApiUrl, Faculty } from "@/lib/api"
+import { api, getApiUrl, Faculty } from "@/lib/api"
 import { selectCls } from "../../[...slug]/components/SharedUI"
 
 export default function EditDepartmentPage() {
@@ -119,7 +119,6 @@ export default function EditDepartmentPage() {
           try {
             await fetch(`${getApiUrl()}/upload?url=${logoPreview}`, {
               method: 'DELETE',
-              headers: { 'X-API-Key': getApiKey() },
             })
           } catch (err) {
             console.error("Failed to delete old logo:", err)
@@ -132,9 +131,6 @@ export default function EditDepartmentPage() {
         
         const uploadRes = await fetch(`${getApiUrl()}/upload`, {
           method: 'POST',
-          headers: {
-            'X-API-Key': getApiKey(),
-          },
           body: uploadFormData,
         })
         

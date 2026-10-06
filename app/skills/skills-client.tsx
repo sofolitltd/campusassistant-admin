@@ -88,7 +88,7 @@ export default function SkillsClient({ initialSkills }: SkillsClientProps) {
 
                   <div className="absolute top-2 right-2">
                     <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase shadow-sm ${
-                      skill.is_published ? "bg-emerald-500 text-white" : "bg-slate-500 text-white"
+                      skill.is_published ? "bg-success text-white" : "bg-muted-foreground text-white"
                     }`}>
                       {skill.is_published ? "Published" : "Draft"}
                     </span>
@@ -104,12 +104,12 @@ export default function SkillsClient({ initialSkills }: SkillsClientProps) {
                       <div className="mt-1 flex items-center gap-1.5">
                         {skill.targets.length === 0 ? (
                           <>
-                            <Globe className="h-3 w-3 text-blue-500" />
+                            <Globe className="h-3 w-3 text-info" />
                             <span className="text-[10px] font-bold uppercase tracking-tight text-muted-foreground">Global</span>
                           </>
                         ) : (
                           <>
-                            <Target className="h-3 w-3 text-indigo-500" />
+                            <Target className="h-3 w-3 text-info" />
                             <span className="text-[10px] font-bold uppercase tracking-tight text-muted-foreground">
                               {skill.targets.length} target{skill.targets.length === 1 ? "" : "s"}
                             </span>

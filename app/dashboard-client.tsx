@@ -25,29 +25,29 @@ export default function DashboardClient({ stats }: DashboardClientProps) {
       title: "Total Users", 
       value: (stats.total_users || 0).toLocaleString(), 
       icon: Users, 
-      color: "text-blue-600", 
-      bg: "bg-blue-100" 
+      color: "text-info", 
+      bg: "bg-info-subtle" 
     },
     { 
       title: "Active Banners", 
       value: (stats.active_banners || 0).toString(), 
       icon: ImageIcon, 
-      color: "text-purple-600", 
-      bg: "bg-purple-100" 
+      color: "text-info", 
+      bg: "bg-info-subtle" 
     },
     { 
       title: "Subscriptions", 
       value: (stats.total_subscriptions || 0).toLocaleString(), 
       icon: CreditCard, 
-      color: "text-emerald-600", 
-      bg: "bg-emerald-100" 
+      color: "text-success", 
+      bg: "bg-success-subtle" 
     },
     { 
       title: "Revenue", 
       value: `${(stats.total_revenue || 0).toLocaleString()} TK`, 
       icon: TrendingUp, 
-      color: "text-orange-600", 
-      bg: "bg-orange-100" 
+      color: "text-warning", 
+      bg: "bg-warning-subtle" 
     },
   ]
 
@@ -131,8 +131,8 @@ export default function DashboardClient({ stats }: DashboardClientProps) {
                   <div className="text-right">
                     <span className={cn(
                       "text-[10px] font-black px-1.5 py-0.5 rounded-full uppercase",
-                      sub.status === "Active" ? "bg-emerald-100 text-emerald-700" : 
-                      sub.status === "Pending" ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700"
+                      sub.status === "Active" ? "bg-success-subtle text-success" : 
+                      sub.status === "Pending" ? "bg-warning-subtle text-warning" : "bg-destructive-subtle text-destructive"
                     )}>
                       {sub.status}
                     </span>

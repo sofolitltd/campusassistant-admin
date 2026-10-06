@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ShoppingBag, Store, Package, Layers } from "lucide-react"
+import { ShoppingBag, Store, Package, Layers, Star } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const tabs = [
@@ -10,6 +10,7 @@ const tabs = [
   { title: "Products", href: "/marketplace/products", icon: Package },
   { title: "Categories", href: "/marketplace/categories", icon: Layers },
   { title: "Orders", href: "/marketplace/orders", icon: ShoppingBag },
+  { title: "Reviews", href: "/marketplace/reviews", icon: Star },
 ]
 
 export default function MarketplaceLayout({ children }: { children: React.ReactNode }) {
@@ -21,7 +22,7 @@ export default function MarketplaceLayout({ children }: { children: React.ReactN
         <div className="rounded-full bg-primary/10 p-3"><ShoppingBag className="h-6 w-6 text-primary" /></div>
         <div>
           <h1 className="text-2xl font-black tracking-tight">Campus Marketplace</h1>
-          <p className="text-sm text-muted-foreground">Manage merchants, products, categories, and orders.</p>
+          <p className="text-sm text-muted-foreground">Manage merchants, products, categories, orders, and reviews.</p>
         </div>
       </div>
 

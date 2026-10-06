@@ -38,7 +38,7 @@ function TeacherPreviewModal({ teacher, onClose }: { teacher: Teacher | null, on
           </div>
 
           {teacher.is_chairman && (
-            <div className="absolute left-4 bottom-2 bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200 text-[10px] uppercase font-black px-1.5 py-0.5 rounded-[4px] border border-teal-200 dark:border-teal-800 shadow-xs leading-none">
+            <div className="absolute left-4 bottom-2 bg-primary-subtle text-primary text-[10px] uppercase font-black px-1.5 py-0.5 rounded-[4px] border border-primary/30 shadow-xs leading-none">
               Chairman
             </div>
           )}
@@ -191,7 +191,7 @@ export function TeachersTab({ teachers, universityId, departmentId, onRefresh }:
 
               {/* Chairman Badge */}
               {t.is_chairman && (
-                <div className="absolute left-[17px] bottom-[3px] bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200 text-[10px] uppercase font-black px-[6px] py-[3px] rounded-[3px] shadow-xs leading-none z-10 pointer-events-none tracking-tight">
+                <div className="absolute left-[17px] bottom-[3px] bg-primary-subtle text-primary text-[10px] uppercase font-black px-[6px] py-[3px] rounded-[3px] shadow-xs leading-none z-10 pointer-events-none tracking-tight">
                   Chairman
                 </div>
               )}
@@ -201,7 +201,7 @@ export function TeachersTab({ teachers, universityId, departmentId, onRefresh }:
                 <button onClick={(e) => { e.stopPropagation(); setEditing(t); setModalOpen(true); }} className="p-1 rounded-sm border bg-background/90 backdrop-blur-md hover:bg-muted text-muted-foreground hover:text-foreground shadow-xs">
                   <Pencil className="h-[10px] w-[10px]" />
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); setDeleting(t); }} className="p-1 rounded-sm border bg-background/90 backdrop-blur-md hover:bg-red-50 text-muted-foreground hover:text-red-500 shadow-xs">
+                <button onClick={(e) => { e.stopPropagation(); setDeleting(t); }} className="p-1 rounded-sm border bg-background/90 backdrop-blur-md hover:bg-destructive-subtle text-muted-foreground hover:text-destructive shadow-xs">
                   <Trash2 className="h-[10px] w-[10px]" />
                 </button>
               </div>
@@ -223,8 +223,8 @@ function StaffPreviewModal({ staff, onClose }: { staff: Staff | null, onClose: (
           {staff.image_url ? (
             <img src={staff.image_url} alt={staff.name} className="h-[95px] w-[85px] rounded-sm object-cover bg-muted shrink-0 shadow-xs border" />
           ) : (
-            <div className="h-[95px] w-[85px] rounded-sm bg-teal-50 flex items-center justify-center shrink-0 shadow-xs border border-teal-100">
-              <Briefcase className="h-10 w-10 text-teal-200" />
+            <div className="h-[95px] w-[85px] rounded-sm bg-primary-subtle flex items-center justify-center shrink-0 shadow-xs border border-primary/30">
+              <Briefcase className="h-10 w-10 text-primary-subtle" />
             </div>
           )}
           
@@ -334,7 +334,7 @@ export function StaffTab({ staff, universityId, departmentId, onRefresh }: Staff
                 {s.image_url ? (
                   <img src={s.image_url} alt={s.name} className="h-full w-full object-cover" />
                 ) : (
-                  <div className="h-full w-full flex items-center justify-center bg-teal-50 text-teal-200">
+                  <div className="h-full w-full flex items-center justify-center bg-primary-subtle text-primary-subtle">
                     <Briefcase className="h-8 w-8" />
                   </div>
                 )}
@@ -366,7 +366,7 @@ export function StaffTab({ staff, universityId, departmentId, onRefresh }: Staff
                 <button onClick={(e) => { e.stopPropagation(); setEditing(s); setModalOpen(true); }} className="p-1 rounded-sm border bg-background/90 backdrop-blur-md hover:bg-muted text-muted-foreground hover:text-foreground shadow-xs">
                   <Pencil className="h-[10px] w-[10px]" />
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); setDeleting(s); }} className="p-1 rounded-sm border bg-background/90 backdrop-blur-md hover:bg-red-50 text-muted-foreground hover:text-red-500 shadow-xs">
+                <button onClick={(e) => { e.stopPropagation(); setDeleting(s); }} className="p-1 rounded-sm border bg-background/90 backdrop-blur-md hover:bg-destructive-subtle text-muted-foreground hover:text-destructive shadow-xs">
                   <Trash2 className="h-[10px] w-[10px]" />
                 </button>
               </div>

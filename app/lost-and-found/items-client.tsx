@@ -29,10 +29,10 @@ const STATUS_TABS: { label: string; value: LostFoundStatus | "all" }[] = [
 ]
 
 const STATUS_BADGE: Record<LostFoundStatus, string> = {
-  open: "bg-blue-500 text-white",
-  claimed: "bg-amber-500 text-white",
-  resolved: "bg-emerald-500 text-white",
-  removed: "bg-red-500 text-white",
+  open: "bg-info text-white",
+  claimed: "bg-warning text-white",
+  resolved: "bg-success text-white",
+  removed: "bg-destructive text-white",
 }
 
 function RemoveModal({ open, onClose, onConfirm, loading }: { open: boolean; onClose: () => void; onConfirm: (reason: string) => void; loading: boolean }) {
@@ -43,7 +43,7 @@ function RemoveModal({ open, onClose, onConfirm, loading }: { open: boolean; onC
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-full max-w-sm rounded-sm border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200">
         <div className="flex flex-col items-center text-center gap-3">
-          <div className="rounded-full bg-red-100 p-3 dark:bg-red-900/30"><AlertTriangle className="h-6 w-6 text-red-600" /></div>
+          <div className="rounded-full bg-destructive-subtle p-3"><AlertTriangle className="h-6 w-6 text-destructive" /></div>
           <h3 className="text-lg font-bold">Remove this item?</h3>
           <p className="text-sm text-muted-foreground">It will be hidden from the app. Tell the poster why (optional).</p>
         </div>
@@ -56,7 +56,7 @@ function RemoveModal({ open, onClose, onConfirm, loading }: { open: boolean; onC
         />
         <div className="flex gap-3 mt-4">
           <button onClick={onClose} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
-          <button onClick={() => onConfirm(reason)} disabled={loading} className="flex-1 rounded-sm bg-red-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+          <button onClick={() => onConfirm(reason)} disabled={loading} className="flex-1 rounded-sm bg-destructive px-4 py-2.5 text-sm font-bold text-white hover:bg-destructive/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}Remove
           </button>
         </div>
@@ -182,7 +182,7 @@ export default function ItemsClient({ initialItems }: ItemsClientProps) {
               <div className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <span className={cn("inline-block rounded-full px-2 py-0.5 text-[9px] font-bold uppercase mb-1", item.type === "lost" ? "bg-orange-500 text-white" : "bg-teal-500 text-white")}>
+                    <span className={cn("inline-block rounded-full px-2 py-0.5 text-[9px] font-bold uppercase mb-1", item.type === "lost" ? "bg-warning text-white" : "bg-primary text-white")}>
                       {item.type}
                     </span>
                     <h3 className="font-bold text-sm line-clamp-1" title={item.title}>{item.title}</h3>
@@ -215,7 +215,7 @@ export default function ItemsClient({ initialItems }: ItemsClientProps) {
                 </div>
 
                 {item.status === "removed" && item.removal_reason && (
-                  <p className="text-[10px] text-red-600 italic">Reason: {item.removal_reason}</p>
+                  <p className="text-[10px] text-destructive italic">Reason: {item.removal_reason}</p>
                 )}
 
                 <div className="flex gap-2 pt-1">
@@ -230,7 +230,7 @@ export default function ItemsClient({ initialItems }: ItemsClientProps) {
                     <button
                       onClick={() => handleRestore(item.id)}
                       disabled={restoringId === item.id}
-                      className="flex-1 flex items-center justify-center gap-1.5 rounded-sm bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition-all disabled:opacity-50"
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-sm bg-success px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition-all disabled:opacity-50"
                     >
                       {restoringId === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
                       Restore
