@@ -1,6 +1,7 @@
 import { Suspense } from "react"
 import { api, User } from "@/lib/api"
 import UsersClient from "./users-client"
+import { USER_FILTER_KEYS } from "./filters"
 import { Loader2 } from "lucide-react"
 
 export const metadata = {
@@ -18,11 +19,19 @@ export default async function UsersPage({ searchParams }: Props) {
   const offset = typeof params.offset === "string" ? parseInt(params.offset) : 0
   const pageSize = 25
 
+  // Forward only the known filter keys to the backend.
+  const query = new URLSearchParams({ limit: String(pageSize), offset: String(offset), preload: "true" })
+  if (searchTerm) query.set("search", searchTerm)
+  for (const key of USER_FILTER_KEYS) {
+    const value = params[key]
+    if (typeof value === "string" && value) query.set(key, value)
+  }
+
   // Fetch all data in parallel on the server
   // The Go backend now handles Student/Teacher linkage automatically!
   const [res, universities, departments, sessions, batches, stats] = await Promise.all([
-    api.fetchWithAuth(`/users?limit=${pageSize}&offset=${offset}&preload=true${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ''}`),
-    api.universities.getAll(),
+    api.fetchWithAuth(`/users?${query.toString()}`),
+    api.universities.getAll("limit=100"),
     api.departments.getAll(),
     api.sessions.getAll(),
     api.batches.getAll(),

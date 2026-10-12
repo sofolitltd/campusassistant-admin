@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import {
   CreditCard, Users, Settings2, Plus, Trash2, Pencil,
   Check, Calendar, ChevronRight as ChevronRightIcon,
-  ChevronDown, X, Building2, Globe, ChevronLeft
+  ChevronDown, X, Building2, Globe, ChevronLeft, Gift, Search
 } from "lucide-react"
-import { api, UserSubscription, SubscriptionPlan, SubscriptionTarget, University } from "@/lib/api"
+import { api, UserSubscription, SubscriptionPlan, SubscriptionTarget, University, User } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 const PAGE_SIZE = 20
@@ -280,6 +280,152 @@ function PlanModal({
   )
 }
 
+// ── Grant Pro Modal ──────────────────────────────────────────────────────────
+// For giving free Pro access (moderators, staff, contributors, etc.) without
+// a coupon or payment — hits POST /subscriptions/admin-grant, which forces
+// price to 0 and tags the grant as "admin_grant" server-side.
+function GrantProModal({
+  open, onClose, plans, onSuccess
+}: {
+  open: boolean; onClose: () => void; plans: SubscriptionPlan[]; onSuccess: () => void
+}) {
+  const [query, setQuery] = useState("")
+  const [results, setResults] = useState<User[]>([])
+  const [searching, setSearching] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [planId, setPlanId] = useState("")
+  const [note, setNote] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (open) {
+      setQuery(""); setResults([]); setSelectedUser(null)
+      setPlanId(plans[0]?.id || ""); setNote(""); setError("")
+    }
+  }, [open, plans])
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (!query.trim() || selectedUser) { setResults([]); return }
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true)
+      try { setResults(await api.users.getAll(query.trim())) }
+      catch (err) { console.error(err) }
+      finally { setSearching(false) }
+    }, 350)
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [query, selectedUser])
+
+  if (!open) return null
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!selectedUser || !planId) return
+    setLoading(true); setError("")
+    try {
+      await api.subscriptions.adminGrant({ user_id: selectedUser.id, plan_id: planId, note: note.trim() || undefined })
+      onSuccess(); onClose()
+    } catch (err) {
+      console.error(err)
+      setError("Failed to grant Pro access. Please try again.")
+    } finally { setLoading(false) }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-md rounded-sm border bg-card p-6 shadow-2xl animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+        <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+          <Gift className="h-5 w-5 text-primary" /> Grant Free Pro Access
+        </h2>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-1">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">User</label>
+            {selectedUser ? (
+              <div className="flex items-center justify-between rounded-sm border bg-muted/20 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold truncate">{selectedUser.first_name} {selectedUser.last_name}</p>
+                  <p className="text-[10px] text-muted-foreground truncate uppercase tracking-tight">{selectedUser.email}</p>
+                </div>
+                <button type="button" onClick={() => { setSelectedUser(null); setQuery("") }} className="rounded-full p-1 hover:bg-muted text-muted-foreground">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="Search by name or email"
+                  autoFocus
+                  className="w-full rounded-sm border bg-background pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+                {(searching || results.length > 0) && (
+                  <div className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto rounded-sm border bg-card shadow-lg">
+                    {searching ? (
+                      <p className="px-3 py-2 text-xs text-muted-foreground italic">Searching...</p>
+                    ) : results.length === 0 ? (
+                      <p className="px-3 py-2 text-xs text-muted-foreground italic">No users found.</p>
+                    ) : results.map(u => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onClick={() => { setSelectedUser(u); setResults([]) }}
+                        className="w-full flex flex-col items-start px-3 py-2 text-left hover:bg-muted/30 transition-colors"
+                      >
+                        <span className="text-sm font-bold">{u.first_name} {u.last_name}</span>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-tight">{u.email}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Plan</label>
+            <select
+              value={planId}
+              onChange={e => setPlanId(e.target.value)}
+              className="w-full rounded-sm border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              required
+            >
+              {plans.length === 0 && <option value="">No plans available</option>}
+              {plans.map(p => (
+                <option key={p.id} value={p.id}>{p.title} — {p.is_lifetime ? "Lifetime" : `${p.duration_days} days`}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Note (optional)</label>
+            <input
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="e.g. Moderator — free access"
+              className="w-full rounded-sm border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+
+          {error && <p className="text-xs text-destructive">{error}</p>}
+
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 rounded-sm border py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
+            <button type="submit" disabled={loading || !selectedUser || !planId} className="flex-1 rounded-sm bg-primary py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50">
+              {loading ? "Granting..." : "Grant Pro"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 // ── Main Page ───────────────────────────────────────────────────────────────
 export default function SubscriptionsClient() {
   const [activeTab, setActiveTab] = useState<"subscribers" | "plans">("subscribers")
@@ -293,6 +439,7 @@ export default function SubscriptionsClient() {
   const [loading, setLoading] = useState(true)
   const [planModal, setPlanModal] = useState(false)
   const [editPlan, setEditPlan] = useState<SubscriptionPlan | null>(null)
+  const [grantModal, setGrantModal] = useState(false)
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE)
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1
@@ -332,12 +479,19 @@ export default function SubscriptionsClient() {
             <p className="text-sm text-muted-foreground">Manage multi-target Pro plans and automated lifecycle.</p>
           </div>
         </div>
-        {activeTab === "plans" && (
+        {activeTab === "plans" ? (
           <button
             onClick={() => { setEditPlan(null); setPlanModal(true) }}
             className="flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all shadow-md"
           >
             <Plus className="h-4 w-4" /> Create Custom Plan
+          </button>
+        ) : (
+          <button
+            onClick={() => setGrantModal(true)}
+            className="flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all shadow-md"
+          >
+            <Gift className="h-4 w-4" /> Grant Free Pro
           </button>
         )}
       </div>
@@ -425,7 +579,11 @@ export default function SubscriptionsClient() {
                           <Badge variant="indigo">{sub.plan}</Badge>
                         </td>
                         <td className="px-4 py-4">
-                          <span className="text-sm font-bold">{(sub.price || 0).toLocaleString()} TK</span>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-sm font-bold">{(sub.price || 0).toLocaleString()} TK</span>
+                            {sub.grant_reason === "admin_grant" && <Badge variant="indigo">Free Grant</Badge>}
+                            {sub.grant_reason === "coupon" && <Badge variant="warning">Coupon</Badge>}
+                          </div>
                         </td>
                         <td className="px-4 py-4">
                           <span className="text-xs font-medium">{new Date(sub.start_date).toLocaleDateString("en-GB")}</span>
@@ -561,6 +719,12 @@ export default function SubscriptionsClient() {
         onClose={() => setPlanModal(false)}
         universities={universities}
         plan={editPlan}
+        onSuccess={() => loadData(0)}
+      />
+      <GrantProModal
+        open={grantModal}
+        onClose={() => setGrantModal(false)}
+        plans={plans}
         onSuccess={() => loadData(0)}
       />
     </div>

@@ -18,6 +18,7 @@ import {
   MessageSquare,
   Wallet,
   ScrollText,
+  BadgeCheck,
   type LucideIcon,
 } from "lucide-react"
 
@@ -41,21 +42,13 @@ export function isNavGroup(entry: NavEntry): entry is NavGroup {
 
 // Desktop sidebar structure: a handful of high-frequency sections stay
 // top-level, everything else is grouped so the sidebar doesn't need its own
-// scrollbar to show every section at once (see CLAUDE.md's note on the
-// sidebar/bottom-nav split — this file only feeds the desktop Sidebar and
-// the command palette; bottom-nav.tsx keeps its own independent list).
+// scrollbar to show every section at once. This is the only nav list: the
+// desktop sidebar, the mobile drawer and the command palette all read it.
 export const navStructure: NavEntry[] = [
   { title: "Dashboard", href: "/", icon: LayoutDashboard },
   { title: "Universities", href: "/universities", icon: School },
   { title: "Users", href: "/users", icon: Users },
-  {
-    title: "System",
-    icon: Shield,
-    items: [
-      { title: "Admins", href: "/admins", icon: Shield },
-      { title: "Logs", href: "/logs", icon: ScrollText },
-    ],
-  },
+  { title: "Verifications", href: "/verifications", icon: BadgeCheck },
   {
     title: "Community",
     icon: Users2,
@@ -92,6 +85,14 @@ export const navStructure: NavEntry[] = [
       { title: "Skills", href: "/skills", icon: Sparkles },
       { title: "Notifications", href: "/notifications", icon: Bell },
       { title: "Feedback", href: "/feedback", icon: MessageSquare },
+    ],
+  },
+  {
+    title: "System",
+    icon: Shield,
+    items: [
+      { title: "Admins", href: "/admins", icon: Shield },
+      { title: "Logs", href: "/logs", icon: ScrollText },
     ],
   },
 ]

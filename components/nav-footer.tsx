@@ -1,11 +1,11 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { Settings, LogOut } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { endSession } from "@/lib/auth"
+import { LogoutConfirm } from "./logout-confirm"
 
 interface NavFooterProps {
   isCollapsed?: boolean
@@ -14,13 +14,7 @@ interface NavFooterProps {
 
 /** Settings + Logout, shared by the desktop Sidebar and the mobile drawer. */
 export function NavFooter({ isCollapsed = false, onNavigate }: NavFooterProps) {
-  const router = useRouter()
-
-  async function handleLogout() {
-    await endSession()
-    router.replace("/login")
-    router.refresh()
-  }
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   return (
     <div className="shrink-0 border-t p-4">
@@ -33,12 +27,13 @@ export function NavFooter({ isCollapsed = false, onNavigate }: NavFooterProps) {
         {!isCollapsed && <span>Settings</span>}
       </Link>
       <button
-        onClick={handleLogout}
+        onClick={() => setConfirmOpen(true)}
         className="group flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
       >
         <LogOut className={cn("h-5 w-5", isCollapsed ? "mr-0" : "mr-3")} />
         {!isCollapsed && <span>Logout</span>}
       </button>
+      <LogoutConfirm open={confirmOpen} onClose={() => setConfirmOpen(false)} />
     </div>
   )
 }

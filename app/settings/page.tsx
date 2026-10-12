@@ -1,11 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import { KeyRound, LogOut, Mail, ShieldCheck } from "lucide-react"
 
 import { api } from "@/lib/api"
-import { endSession, getAdmin, type AdminInfo } from "@/lib/auth"
+import { getAdmin, type AdminInfo } from "@/lib/auth"
+import { LogoutConfirm } from "@/components/logout-confirm"
 import { cn } from "@/lib/utils"
 
 const inputCls =
@@ -19,12 +19,12 @@ function initials(name: string) {
 }
 
 export default function SettingsPage() {
-  const router = useRouter()
   const [admin, setAdmin] = useState<AdminInfo | null>(null)
 
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [saving, setSaving] = useState(false)
+  const [logoutOpen, setLogoutOpen] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
   useEffect(() => {
@@ -56,12 +56,6 @@ export default function SettingsPage() {
     } finally {
       setSaving(false)
     }
-  }
-
-  async function handleLogout() {
-    await endSession()
-    router.replace("/login")
-    router.refresh()
   }
 
   if (!admin) {
@@ -143,12 +137,13 @@ export default function SettingsPage() {
       </form>
 
       <button
-        onClick={handleLogout}
+        onClick={() => setLogoutOpen(true)}
         className="flex w-full items-center justify-center gap-2 rounded-sm border px-4 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
       >
         <LogOut className="h-4 w-4" />
         Logout
       </button>
+      <LogoutConfirm open={logoutOpen} onClose={() => setLogoutOpen(false)} />
     </div>
   )
 }

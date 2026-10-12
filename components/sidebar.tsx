@@ -19,7 +19,7 @@ export function Sidebar() {
         isCollapsed ? "w-20" : "w-64"
       )}
     >
-      <div className="flex h-16 shrink-0 items-center border-b px-6">
+      <div className="flex h-14 shrink-0 items-center border-b px-6">
         <Link href="/" className="flex items-center gap-2 font-semibold">
           {/* White chip keeps the navy logo readable on the dark theme. */}
           <div className="flex items-center rounded-sm bg-white px-1.5 py-0.5">
@@ -38,7 +38,7 @@ export function Sidebar() {
 
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -right-3 top-20 z-50 flex h-6 w-6 items-center justify-center rounded-full border bg-background shadow-sm hover:bg-accent"
+        className="absolute -right-3 top-18 z-50 flex h-6 w-6 items-center justify-center rounded-full border bg-background shadow-sm hover:bg-accent"
       >
         {isCollapsed ? (
           <ChevronRight className="h-4 w-4" />

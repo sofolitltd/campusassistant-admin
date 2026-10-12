@@ -8,6 +8,19 @@ import {
   Pencil, Trash2, Ban, CheckCircle, AlertTriangle, Users as UsersIcon, ShieldCheck
 } from "lucide-react"
 import { api, User, University, Department, Session, Batch, UserStats } from "@/lib/api"
+import { USER_FILTER_KEYS, type UserFilterKey } from "./filters"
+
+const filterSelectCls =
+  "w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50 transition-all"
+
+const ROLE_OPTIONS = [
+  { value: "student", label: "Student" },
+  { value: "teacher", label: "Teacher" },
+  { value: "staff", label: "Staff" },
+  { value: "department_admin", label: "Department Admin" },
+  { value: "university_admin", label: "University Admin" },
+  { value: "super_admin", label: "Super Admin" },
+]
 
 interface UsersClientProps {
   initialUsers: User[]
@@ -48,6 +61,57 @@ export default function UsersClient({
   const [deleting, setDeleting] = useState(false)
   const [actionError, setActionError] = useState("")
   const menuRef = useRef<HTMLDivElement>(null)
+
+  const filterValue = (key: UserFilterKey) => searchParams.get(key) || ""
+  const activeFilterCount = USER_FILTER_KEYS.filter((k) => searchParams.get(k)).length
+  const [showFilters, setShowFilters] = useState(activeFilterCount > 0)
+
+  // Cascading option lists, fetched on demand and cached per parent id so
+  // switching back and forth doesn't refetch.
+  const [deptCache, setDeptCache] = useState<Record<string, Department[]>>({})
+  const [sessionCache, setSessionCache] = useState<Record<string, Session[]>>({})
+  const [batchCache, setBatchCache] = useState<Record<string, Batch[]>>({})
+  const selectedUni = filterValue("university_id")
+  const selectedDept = filterValue("department_id")
+  const deptOptions = selectedUni ? deptCache[selectedUni] : undefined
+  const sessionOptions = selectedDept ? sessionCache[selectedDept] : undefined
+  const batchOptions = selectedDept ? batchCache[selectedDept] : undefined
+
+  useEffect(() => {
+    if (!selectedUni || deptCache[selectedUni]) return
+    api.departments.getAll(`university_id=${selectedUni}&limit=100`)
+      .then((list) => setDeptCache((c) => ({ ...c, [selectedUni]: list })))
+      .catch(() => setDeptCache((c) => ({ ...c, [selectedUni]: [] })))
+  }, [selectedUni, deptCache])
+
+  useEffect(() => {
+    if (!selectedDept || (sessionCache[selectedDept] && batchCache[selectedDept])) return
+    Promise.all([
+      api.sessions.getAll(`department_id=${selectedDept}&limit=100`).catch(() => [] as Session[]),
+      api.batches.getAll(`department_id=${selectedDept}&limit=100`).catch(() => [] as Batch[]),
+    ]).then(([sessionList, batchList]) => {
+      setSessionCache((c) => ({ ...c, [selectedDept]: sessionList }))
+      setBatchCache((c) => ({ ...c, [selectedDept]: batchList }))
+    })
+  }, [selectedDept, sessionCache, batchCache])
+
+  const setFilter = (key: UserFilterKey, value: string) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (value) params.set(key, value)
+    else params.delete(key)
+    // Children of a cascading filter no longer apply once the parent changes.
+    if (key === "university_id") ["department_id", "session_id", "batch_id"].forEach((k) => params.delete(k))
+    if (key === "department_id") ["session_id", "batch_id"].forEach((k) => params.delete(k))
+    params.set("offset", "0")
+    router.push(`${pathname}?${params.toString()}`)
+  }
+
+  const clearFilters = () => {
+    const params = new URLSearchParams(searchParams.toString())
+    USER_FILTER_KEYS.forEach((k) => params.delete(k))
+    params.set("offset", "0")
+    router.push(`${pathname}?${params.toString()}`)
+  }
 
   // Close menu on outside click
   useEffect(() => {
@@ -149,11 +213,110 @@ export default function UsersClient({
             )}
             {isSearching && <Loader2 className="absolute right-3 top-1/2 h-3 w-3 -translate-y-1/2 animate-spin text-muted-foreground" />}
           </div>
-          <button className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent transition-colors">
+          <button
+            onClick={() => setShowFilters((v) => !v)}
+            className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+              showFilters ? "bg-accent text-accent-foreground" : "hover:bg-accent"
+            }`}
+          >
             <Filter className="h-4 w-4" />
             Filter
+            {activeFilterCount > 0 && (
+              <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary-foreground">
+                {activeFilterCount}
+              </span>
+            )}
           </button>
         </div>
+
+        {showFilters && (
+          <div className="border-b bg-muted/5 p-4">
+            <div className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+              <FilterField label="Role">
+                <select value={filterValue("role")} onChange={(e) => setFilter("role", e.target.value)} className={filterSelectCls}>
+                  <option value="">All roles</option>
+                  {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                </select>
+              </FilterField>
+              <FilterField label="Status">
+                <select value={filterValue("is_active")} onChange={(e) => setFilter("is_active", e.target.value)} className={filterSelectCls}>
+                  <option value="">Any status</option>
+                  <option value="true">Active</option>
+                  <option value="false">Banned</option>
+                </select>
+              </FilterField>
+              <FilterField label="Verification">
+                <select value={filterValue("is_verified")} onChange={(e) => setFilter("is_verified", e.target.value)} className={filterSelectCls}>
+                  <option value="">Any</option>
+                  <option value="true">Verified</option>
+                  <option value="false">Not verified</option>
+                </select>
+              </FilterField>
+              <FilterField label="Plan">
+                <select value={filterValue("is_pro")} onChange={(e) => setFilter("is_pro", e.target.value)} className={filterSelectCls}>
+                  <option value="">Any plan</option>
+                  <option value="true">Pro</option>
+                  <option value="false">Basic</option>
+                </select>
+              </FilterField>
+              <FilterField label="Gender">
+                <select value={filterValue("gender")} onChange={(e) => setFilter("gender", e.target.value)} className={filterSelectCls}>
+                  <option value="">Any gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </FilterField>
+              <FilterField label="University">
+                <select value={selectedUni} onChange={(e) => setFilter("university_id", e.target.value)} className={filterSelectCls}>
+                  <option value="">All universities</option>
+                  {universities.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                </select>
+              </FilterField>
+              <FilterField label="Department">
+                <select
+                  value={selectedDept}
+                  onChange={(e) => setFilter("department_id", e.target.value)}
+                  disabled={!selectedUni || !deptOptions}
+                  className={filterSelectCls}
+                >
+                  <option value="">{!selectedUni ? "Select a university first" : !deptOptions ? "Loading..." : "All departments"}</option>
+                  {deptOptions?.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                </select>
+              </FilterField>
+              <FilterField label="Session">
+                <select
+                  value={filterValue("session_id")}
+                  onChange={(e) => setFilter("session_id", e.target.value)}
+                  disabled={!selectedDept || !sessionOptions}
+                  className={filterSelectCls}
+                >
+                  <option value="">{!selectedDept ? "Select a department first" : !sessionOptions ? "Loading..." : "All sessions"}</option>
+                  {sessionOptions?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </FilterField>
+              <FilterField label="Batch">
+                <select
+                  value={filterValue("batch_id")}
+                  onChange={(e) => setFilter("batch_id", e.target.value)}
+                  disabled={!selectedDept || !batchOptions}
+                  className={filterSelectCls}
+                >
+                  <option value="">{!selectedDept ? "Select a department first" : !batchOptions ? "Loading..." : "All batches"}</option>
+                  {batchOptions?.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </FilterField>
+              <div className="flex items-end">
+                <button
+                  onClick={clearFilters}
+                  disabled={activeFilterCount === 0}
+                  className="flex w-full items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-accent disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+                >
+                  <X className="h-4 w-4" /> Clear filters
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm border-collapse">
@@ -173,7 +336,7 @@ export default function UsersClient({
                   <td colSpan={6} className="px-6 py-20 text-center text-muted-foreground">
                     <div className="flex flex-col items-center gap-2">
                       <Search className="h-8 w-8 opacity-20" />
-                      <p>No users matching your search.</p>
+                      <p>No users match your search or filters.</p>
                     </div>
                   </td>
                 </tr>
@@ -422,5 +585,14 @@ export default function UsersClient({
         </div>
       )}
     </div>
+  )
+}
+
+function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</span>
+      {children}
+    </label>
   )
 }

@@ -52,7 +52,7 @@ Credentials never reach the browser — this is a deliberate hardening pass, not
 
 **Shared UI lives in `components/`, not `components/ui/`.** `components/ui/` is a configured-but-empty shadcn (`components.json`, `base-nova` style) mount point — nothing currently imports from `@/components/ui/*`. Reusable pieces (forms, managers, nav) are hand-rolled directly in `components/*.tsx` (e.g. `AssociationForm.tsx`, `ClubEventManager.tsx`, `NotificationAudienceBuilder.tsx`). Form components for a given resource typically bundle create+edit in one component driven by an optional `initialData`/`id` prop.
 
-**Navigation has two independently-maintained lists**: `components/sidebar.tsx` (desktop, all sections) and `components/bottom-nav.tsx` (mobile, subset). If you add a new top-level section, update both, and note the mobile nav will silently omit it unless added there too.
+**Navigation is one list**: `lib/nav-items.ts` (`navStructure`) feeds the desktop sidebar, the mobile drawer (`components/mobile-nav-drawer.tsx`) and the command palette. Add a new section there and it appears everywhere.
 
 **Styling**: Tailwind v4 (`@tailwindcss/postcss`), `cn()` helper in `lib/utils.ts` (clsx + tailwind-merge). Theme tokens are in `app/globals.css`.
 

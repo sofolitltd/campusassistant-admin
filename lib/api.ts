@@ -548,6 +548,48 @@ export interface FeedbackItem {
   updated_at: string;
 }
 
+export type StudentVerificationStatus = 'pending' | 'approved' | 'rejected';
+export type StudentVerificationDocType = 'registration_card' | 'certificate';
+
+// A user's self-service request to be linked to a student profile, backed
+// by two private documents (student ID card + registration card or
+// certificate). Attachment ids resolve via api.attachments.getUrl.
+export interface StudentVerificationRequest {
+  id: string;
+  user_id: string;
+  user?: User;
+  university_id: string;
+  university?: University;
+  department_id: string;
+  department?: Department;
+  batch_id: string;
+  batch?: Batch;
+  session_id: string;
+  session?: Session;
+  student_id: string;
+  name: string;
+  phone: string;
+  id_card_attachment_id: string;
+  second_doc_type: StudentVerificationDocType;
+  second_doc_attachment_id: string;
+  status: StudentVerificationStatus;
+  rejection_reason?: string;
+  reviewed_by_id?: string;
+  reviewed_at?: string;
+  linked_student_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// What approving does to the students table: link an unclaimed profile,
+// refuse because another account owns it, or create a new profile.
+// "linked" is reported for an already-approved request.
+export interface StudentVerificationMatch {
+  type: 'unclaimed' | 'conflict' | 'none' | 'linked';
+  student?: Student;
+  other_pending_count: number;
+}
+
 export interface Merchant {
   rating_avg?: number;
   rating_count?: number;
@@ -890,6 +932,8 @@ export interface UserSubscription {
   start_date: string;
   end_date: string | null; // null = Lifetime plan, never expires
   created_at: string;
+  grant_reason?: 'payment' | 'admin_grant' | 'coupon';
+  granted_by?: string;
 }
 
 export interface PaginatedResponse<T> {
@@ -1669,6 +1713,11 @@ export const api = {
       fetchWithAuth('/subscriptions', { method: 'POST', body: JSON.stringify(data) }),
     delete: (id: string) =>
       fetchWithAuth(`/subscriptions/${id}`, { method: 'DELETE' }),
+    // Grants a plan to a user with no payment — price is forced to 0 and
+    // grant_reason is "admin_grant" server-side. For giving free Pro access
+    // to moderators, staff, contributors, etc.
+    adminGrant: (data: { user_id: string; plan_id: string; note?: string }): Promise<UserSubscription> =>
+      fetchWithAuth('/subscriptions/admin-grant', { method: 'POST', body: JSON.stringify(data) }),
   },
   coupons: {
     getAll: (): Promise<CouponCode[]> =>
@@ -1725,6 +1774,16 @@ export const api = {
       fetchWithAuth(`/feedback/${id}`),
     update: (id: string, data: Record<string, unknown>) =>
       fetchWithAuth(`/feedback/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  },
+  studentVerifications: {
+    getAll: (params?: string): Promise<PaginatedResponse<StudentVerificationRequest>> =>
+      fetchWithAuth(`/student-verifications?${params || ''}`),
+    getById: (id: string): Promise<{ request: StudentVerificationRequest; match: StudentVerificationMatch }> =>
+      fetchWithAuth(`/student-verifications/${id}`),
+    approve: (id: string): Promise<StudentVerificationRequest> =>
+      fetchWithAuth(`/student-verifications/${id}/approve`, { method: 'PUT' }),
+    reject: (id: string, reason: string): Promise<StudentVerificationRequest> =>
+      fetchWithAuth(`/student-verifications/${id}/reject`, { method: 'PUT', body: JSON.stringify({ reason }) }),
   },
   alumni: {
     getAllByDepartment: (universityId: string, deptId: string): Promise<Alumni[]> =>
