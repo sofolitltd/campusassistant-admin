@@ -345,7 +345,7 @@ export default function MerchantDetailClient({ merchant: initialMerchant, initia
               <button
                 onClick={handleSaveCommission}
                 disabled={savingCommission}
-                className="w-full flex items-center justify-center gap-1.5 rounded-sm bg-primary px-3 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-1.5 rounded-sm bg-primary-gradient px-3 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50"
               >
                 {savingCommission ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                 Save

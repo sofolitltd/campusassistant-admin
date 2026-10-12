@@ -304,7 +304,7 @@ export default function AddNotificationPage() {
           <button
             type="submit"
             disabled={previewLoading || loading || uploading}
-            className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-90 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg bg-primary-gradient px-6 py-2.5 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-90 transition-all disabled:opacity-50"
           >
             {previewLoading || loading || uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             {uploading ? "Uploading image..." : loading ? "Sending..." : previewLoading ? "Resolving audience..." : "Send Notification"}
@@ -332,7 +332,7 @@ export default function AddNotificationPage() {
               <button
                 onClick={handleConfirmSend}
                 disabled={loading || uploading}
-                className="flex-1 rounded-sm bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 rounded-sm bg-primary-gradient px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {loading || uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 Send

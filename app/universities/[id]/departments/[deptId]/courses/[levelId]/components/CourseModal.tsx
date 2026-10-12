@@ -335,7 +335,7 @@ export function CourseModal({
         <div className="flex gap-3 pt-1">
           <button type="button" onClick={onClose} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
           <button type="submit" disabled={loading || uploading}
-            className="flex-1 rounded-sm bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm">
+            className="flex-1 rounded-sm bg-primary-gradient px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm">
             {(loading || uploading) && <Loader2 className="h-4 w-4 animate-spin" />}
             {isEdit ? "Update Course" : "Save Course"}
           </button>

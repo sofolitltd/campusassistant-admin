@@ -65,7 +65,7 @@ function ConfigModal({ open, onClose, title, items, onAdd, onDelete, placeholder
             <input value={value} onChange={(e) => setValue(e.target.value)} placeholder={placeholder}
               className="flex-1 rounded-sm border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
             <button type="submit" disabled={saving}
-              className="rounded-sm bg-primary px-3 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50 flex items-center gap-1">
+              className="rounded-sm bg-primary-gradient px-3 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50 flex items-center gap-1">
               {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Add
             </button>
           </form>
@@ -207,7 +207,7 @@ export default function CoursesClient({ universityId, departmentId, levelId, lev
           </button>
           <button
             onClick={() => { setEditTarget(null); setCourseModal(true) }}
-            className="flex items-center gap-2 rounded-sm bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all">
+            className="flex items-center gap-2 rounded-sm bg-primary-gradient px-4 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all">
             <Plus className="h-4 w-4" /> Add Course
           </button>
         </div>
@@ -226,7 +226,7 @@ export default function CoursesClient({ universityId, departmentId, levelId, lev
           <p className="text-lg font-bold">No courses yet</p>
           <p className="text-sm text-muted-foreground mt-1">Add courses to Level {levelName}.</p>
           <button onClick={() => { setEditTarget(null); setCourseModal(true) }}
-            className="mt-6 flex items-center gap-2 rounded-sm bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-all">
+            className="mt-6 flex items-center gap-2 rounded-sm bg-primary-gradient px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-all">
             <Plus className="h-4 w-4" /> Add Course
           </button>
         </div>

@@ -169,7 +169,7 @@ function TransportModal({ open, onClose, transport, universityId, onSuccess }: T
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium rounded-sm border bg-background hover:bg-muted transition-colors">
             Cancel
           </button>
-          <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium rounded-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2 shadow-sm">
+          <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium rounded-sm bg-primary-gradient text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2 shadow-sm">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} {loading ? "Saving..." : "Save Schedule"}
           </button>
         </div>
@@ -217,7 +217,7 @@ export function TransportTab({
         </div>
         <button
           onClick={() => { setSelected(null); setModalOpen(true) }}
-          className="flex items-center gap-2 rounded-sm bg-primary px-4 py-2 text-sm font-bold text-white hover:opacity-90 transition-all shrink-0"
+          className="flex items-center gap-2 rounded-sm bg-primary-gradient px-4 py-2 text-sm font-bold text-white hover:opacity-90 transition-all shrink-0"
         >
           <Plus className="h-4 w-4" /> Add Schedule
         </button>

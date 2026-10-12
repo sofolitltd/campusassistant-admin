@@ -111,7 +111,7 @@ function ReplyModal({
               {["pending", "reviewed", "resolved"].map(s => (
                 <button key={s} type="button" onClick={() => setStatus(s)}
                   className={cn("px-3 py-1.5 text-[10px] font-bold border rounded-sm hover:bg-muted transition-all",
-                    status === s && "bg-primary border-primary text-white")}
+                    status === s && "bg-primary-gradient border-primary text-white")}
                 >
                   {statusLabel(s)}
                 </button>
@@ -130,7 +130,7 @@ function ReplyModal({
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 rounded-sm border py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
-            <button type="submit" disabled={loading} className="flex-1 rounded-sm bg-primary py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50">
+            <button type="submit" disabled={loading} className="flex-1 rounded-sm bg-primary-gradient py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50">
               {loading ? "Saving..." : "Save Reply"}
             </button>
           </div>
@@ -270,7 +270,7 @@ export default function FeedbackClient() {
             ><ChevronLeft className="h-4 w-4" /></button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
               <button key={p} onClick={() => goToPage(p)}
-                className={`min-w-[36px] h-9 rounded-sm text-sm font-bold transition-all ${p === currentPage ? "bg-primary text-primary-foreground shadow-sm" : "border hover:bg-accent"}`}
+                className={`min-w-[36px] h-9 rounded-sm text-sm font-bold transition-all ${p === currentPage ? "bg-primary-gradient text-primary-foreground shadow-sm" : "border hover:bg-accent"}`}
               >{p}</button>
             ))}
             <button onClick={() => goToPage(currentPage + 1)} disabled={currentPage >= totalPages}

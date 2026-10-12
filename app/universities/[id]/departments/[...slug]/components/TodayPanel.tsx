@@ -144,7 +144,7 @@ function NoticeModal({ notice, batches, universityId, departmentId, onClose, onS
         </div>
         <div className="border-t bg-muted/30 p-4 px-6 flex justify-end gap-2 mt-auto">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium rounded-sm border bg-background hover:bg-muted transition-colors">Cancel</button>
-          <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium rounded-sm bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 flex items-center gap-2">
+          <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium rounded-sm bg-primary-gradient text-primary-foreground hover:opacity-90 disabled:opacity-50 flex items-center gap-2">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} {loading ? "Saving..." : "Save"}
           </button>
         </div>
@@ -240,7 +240,7 @@ function SlotModal({ slot, universityId, departmentId, batchId, onClose, onSucce
         </div>
         <div className="border-t bg-muted/30 p-4 px-6 flex justify-end gap-2 mt-auto">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium rounded-sm border bg-background hover:bg-muted transition-colors">Cancel</button>
-          <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium rounded-sm bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 flex items-center gap-2">
+          <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium rounded-sm bg-primary-gradient text-primary-foreground hover:opacity-90 disabled:opacity-50 flex items-center gap-2">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} {loading ? "Saving..." : "Save"}
           </button>
         </div>
@@ -277,7 +277,7 @@ function ScheduleModal({ slots, universityId, departmentId, batchId, onClose, on
     <Modal open onClose={onClose} title="Weekly Class Schedule" className="max-w-2xl">
       <div className="px-6 py-4 space-y-5">
         <div className="flex justify-end">
-          <button onClick={() => setSlotModal({ slot: null })} className="flex items-center gap-1.5 rounded-sm bg-primary px-3 py-2 text-xs font-bold text-primary-foreground hover:opacity-90">
+          <button onClick={() => setSlotModal({ slot: null })} className="flex items-center gap-1.5 rounded-sm bg-primary-gradient px-3 py-2 text-xs font-bold text-primary-foreground hover:opacity-90">
             <Plus className="h-4 w-4" /> Add Class
           </button>
         </div>
@@ -398,7 +398,7 @@ function StatusModal({ slot, date, existing, onClose, onSuccess }: {
         </div>
         <div className="border-t bg-muted/30 p-4 px-6 flex justify-end gap-2 mt-auto">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium rounded-sm border bg-background hover:bg-muted transition-colors">Cancel</button>
-          <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium rounded-sm bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 flex items-center gap-2">
+          <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium rounded-sm bg-primary-gradient text-primary-foreground hover:opacity-90 disabled:opacity-50 flex items-center gap-2">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} {loading ? "Saving..." : "Save"}
           </button>
         </div>
@@ -615,7 +615,7 @@ export function TodayPanel({ universityId, departmentId }: { universityId: strin
             <Megaphone className="h-5 w-5 text-primary" />
             <h3 className="text-lg font-bold">Notice Board</h3>
           </div>
-          <button onClick={() => setModal({ notice: null })} className="flex items-center gap-1.5 rounded-sm bg-primary px-3 py-2 text-xs font-bold text-primary-foreground hover:opacity-90">
+          <button onClick={() => setModal({ notice: null })} className="flex items-center gap-1.5 rounded-sm bg-primary-gradient px-3 py-2 text-xs font-bold text-primary-foreground hover:opacity-90">
             <Plus className="h-4 w-4" /> Post
           </button>
         </div>

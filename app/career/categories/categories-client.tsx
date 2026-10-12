@@ -52,7 +52,7 @@ export function CategoriesClient() {
         </p>
         <Link
           href="/career/categories/add"
-          className="flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 transition-opacity"
+          className="flex items-center gap-2 rounded-md bg-primary-gradient px-4 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 transition-opacity"
         >
           <Plus className="h-4 w-4" /> Add Category
         </Link>
@@ -65,7 +65,7 @@ export function CategoriesClient() {
           <p className="text-sm">Create your first career circular category.</p>
           <Link
             href="/career/categories/add"
-            className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"
+            className="mt-4 rounded-md bg-primary-gradient px-4 py-2 text-sm font-bold text-primary-foreground"
           >
             Create First Category
           </Link>

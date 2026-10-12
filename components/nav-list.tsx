@@ -42,7 +42,7 @@ export function NavList({ isCollapsed = false, onNavigate }: NavListProps) {
               className={cn(
                 "group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
                 pathname === entry.href
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary-gradient text-primary-foreground"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               )}
             >
@@ -71,7 +71,7 @@ export function NavList({ isCollapsed = false, onNavigate }: NavListProps) {
               className={cn(
                 "group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
                 isActiveGroup
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-primary-gradient text-primary-foreground"
                   : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               )}
             >
@@ -113,7 +113,7 @@ export function NavList({ isCollapsed = false, onNavigate }: NavListProps) {
                     className={cn(
                       "group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
                       pathname === item.href
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-primary-gradient text-primary-foreground"
                         : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     )}
                   >

@@ -121,7 +121,7 @@ function CouponModal({
               <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Discount Type</label>
               <div className="flex gap-1">
                 {(["percentage", "fixed"] as const).map(t => (
-                  <button key={t} type="button" onClick={() => setDiscountType(t)} className={cn("flex items-center gap-1 flex-1 px-2 py-2 text-[10px] font-bold border rounded-sm hover:bg-muted transition-all", discountType === t && "bg-primary border-primary text-white")}>
+                  <button key={t} type="button" onClick={() => setDiscountType(t)} className={cn("flex items-center gap-1 flex-1 px-2 py-2 text-[10px] font-bold border rounded-sm hover:bg-muted transition-all", discountType === t && "bg-primary-gradient border-primary text-white")}>
                     {t === "percentage" ? <Percent className="h-3 w-3" /> : <Banknote className="h-3 w-3" />}
                     {t === "percentage" ? "%" : "TK"}
                   </button>
@@ -162,7 +162,7 @@ function CouponModal({
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 rounded-sm border py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
-            <button type="submit" disabled={loading} className="flex-1 rounded-sm bg-primary py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50">
+            <button type="submit" disabled={loading} className="flex-1 rounded-sm bg-primary-gradient py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50">
               {loading ? "Processing..." : coupon ? "Update Coupon" : "Create Coupon"}
             </button>
           </div>
@@ -219,7 +219,7 @@ export default function CouponsClient() {
         </div>
         <button
           onClick={() => { setEditCoupon(null); setModalOpen(true) }}
-          className="flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all shadow-md"
+          className="flex items-center gap-2 rounded-sm bg-primary-gradient px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all shadow-md"
         >
           <Plus className="h-4 w-4" /> Create Coupon
         </button>

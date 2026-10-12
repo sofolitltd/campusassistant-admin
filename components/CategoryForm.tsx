@@ -210,7 +210,7 @@ export function CategoryForm({ initialData, returnUrl, onSaved }: CategoryFormPr
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 rounded-md bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
+            className="flex-1 rounded-md bg-primary-gradient px-4 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50 cursor-pointer"
           >
             {loading ? "Saving..." : initialData ? "Update" : "Create"}
           </button>

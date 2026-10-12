@@ -87,7 +87,7 @@ export default function NotificationsClient({ initialNotifications, initialCount
         </div>
         <Link
           href="/notifications/add"
-          className="flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-90 transition-all active:scale-95 w-max whitespace-nowrap flex-shrink-0"
+          className="flex items-center justify-center gap-2 rounded-lg bg-primary-gradient px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-90 transition-all active:scale-95 w-max whitespace-nowrap flex-shrink-0"
         >
           <Plus className="h-4 w-4" />
           Send Notification
@@ -103,7 +103,7 @@ export default function NotificationsClient({ initialNotifications, initialCount
           <p className="mt-1 max-w-xs text-xs text-muted-foreground font-medium">
             Create your first push notification to send to users.
           </p>
-          <Link href="/notifications/add" className="mt-4 flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-sm">
+          <Link href="/notifications/add" className="mt-4 flex items-center gap-2 rounded-lg bg-primary-gradient px-4 py-2 text-sm font-bold text-primary-foreground shadow-sm">
             <Plus className="h-4 w-4" /> Send Notification
           </Link>
         </div>

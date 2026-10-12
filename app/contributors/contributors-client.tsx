@@ -165,7 +165,7 @@ export default function ContributorsClient({ initialContributors }: Contributors
           </Field>
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={() => setEditing(null)} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
-            <button type="submit" disabled={editLoading} className="flex-1 rounded-sm bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+            <button type="submit" disabled={editLoading} className="flex-1 rounded-sm bg-primary-gradient px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
               <Save className="h-4 w-4" /> {editLoading ? "Saving..." : "Save"}
             </button>
           </div>

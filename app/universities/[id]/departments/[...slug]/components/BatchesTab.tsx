@@ -33,7 +33,8 @@ export function BatchesTab({ batches, universityId, departmentId, onRefresh }: B
     b.name.toLowerCase().includes(search.toLowerCase()) || 
     b.slug.toLowerCase().includes(search.toLowerCase())
   )
-  const sorted = [...filtered].sort((a, b) => b.name.localeCompare(a.name))
+  const batchNumber = (b: Batch) => parseInt(b.name.match(/\d+/)?.[0] ?? b.slug.match(/\d+/)?.[0] ?? "0", 10)
+  const sorted = [...filtered].sort((a, b) => batchNumber(b) - batchNumber(a))
 
   return (
     <>
@@ -72,7 +73,7 @@ export function BatchesTab({ batches, universityId, departmentId, onRefresh }: B
           </div>
           <button 
             onClick={() => { setEditing(null); setModalOpen(true) }}
-            className="flex items-center gap-2 rounded-sm bg-primary px-3 md:px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-all shadow-sm h-10 shrink-0"
+            className="flex items-center gap-2 rounded-sm bg-primary-gradient px-3 md:px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-all shadow-sm h-10 shrink-0"
           >
             <Plus className="h-4 w-4" /><span className="hidden sm:inline">Add Batch</span>
           </button>
@@ -88,7 +89,7 @@ export function BatchesTab({ batches, universityId, departmentId, onRefresh }: B
           )}
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4">
           {sorted.map((b) => (
             <div key={b.id} className={cn("relative rounded-sm border p-3 hover:shadow-md transition-all group bg-card")}>
               <div className="flex items-center justify-between gap-2 mb-1.5">

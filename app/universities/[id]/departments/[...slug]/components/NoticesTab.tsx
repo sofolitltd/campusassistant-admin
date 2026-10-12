@@ -37,7 +37,7 @@ export function NoticesTab({ notices, universityId, departmentId, onRefresh }: {
         </div>
         <button
           onClick={() => { setSelected(null); setModalOpen(true) }}
-          className="flex items-center gap-2 rounded-sm bg-primary px-4 py-2 text-sm font-bold text-white hover:opacity-90 transition-all"
+          className="flex items-center gap-2 rounded-sm bg-primary-gradient px-4 py-2 text-sm font-bold text-white hover:opacity-90 transition-all"
         >
           <Plus className="h-4 w-4" /> Add Notice
         </button>

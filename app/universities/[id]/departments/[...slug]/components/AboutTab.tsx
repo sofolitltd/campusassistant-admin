@@ -78,7 +78,7 @@ export function AboutTab({ department, university }: AboutTabProps) {
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-primary-foreground">
+                <span className="inline-flex items-center gap-1 rounded-full bg-primary-gradient px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-primary-foreground">
                   <Sparkles className="h-3 w-3" /> Department
                 </span>
                 {department.faculty?.name && (

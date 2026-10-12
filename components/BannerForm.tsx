@@ -452,7 +452,7 @@ export function BannerForm({ initialData, defaultScope = "National", fixedUniver
               <button 
                 type="button"
                 onClick={() => setModalOpen(false)}
-                className="flex-1 rounded-lg bg-primary py-3 text-sm font-bold text-white hover:opacity-90 active:scale-[0.98] transition-all"
+                className="flex-1 rounded-lg bg-primary-gradient py-3 text-sm font-bold text-white hover:opacity-90 active:scale-[0.98] transition-all"
               >
                 Done Selection
               </button>
@@ -545,7 +545,7 @@ export function BannerForm({ initialData, defaultScope = "National", fixedUniver
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-all shadow-md"
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary-gradient py-3 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-all shadow-md"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Publish Banner

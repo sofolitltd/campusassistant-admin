@@ -94,7 +94,7 @@ function TargetSelector({
                 type="button"
                 onClick={() => toggleUniAll(uni)}
                 className={cn("text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm border transition-all",
-                  isTargeted(uni.id, "") ? "bg-primary border-primary text-white" : "text-muted-foreground hover:border-primary/50"
+                  isTargeted(uni.id, "") ? "bg-primary-gradient border-primary text-white" : "text-muted-foreground hover:border-primary/50"
                 )}
               >
                 {isTargeted(uni.id, "") ? "University Active" : "Set University"}
@@ -241,7 +241,7 @@ function PlanModal({
                 type="button"
                 onClick={() => setIsLifetime(!isLifetime)}
                 className={cn("flex items-center gap-1.5 px-2 py-1 text-[10px] font-black uppercase tracking-widest border rounded-sm transition-all",
-                  isLifetime ? "bg-primary border-primary text-white" : "text-muted-foreground hover:border-primary/50"
+                  isLifetime ? "bg-primary-gradient border-primary text-white" : "text-muted-foreground hover:border-primary/50"
                 )}
               >
                 {isLifetime && <Check className="h-3 w-3" />} Lifetime
@@ -254,7 +254,7 @@ function PlanModal({
                 <input type="number" value={durationValue} onChange={e => setDurationValue(e.target.value)} className="flex-1 rounded-sm border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" required />
                 <div className="flex gap-1">
                   {(["Days", "Months", "Years"] as const).map(u => (
-                    <button key={u} type="button" onClick={() => setDurationUnit(u)} className={cn("px-2 py-1 text-[10px] font-bold border rounded-sm hover:bg-muted transition-all", durationUnit === u && "bg-primary border-primary text-white")}>
+                    <button key={u} type="button" onClick={() => setDurationUnit(u)} className={cn("px-2 py-1 text-[10px] font-bold border rounded-sm hover:bg-muted transition-all", durationUnit === u && "bg-primary-gradient border-primary text-white")}>
                       {u}
                     </button>
                   ))}
@@ -270,7 +270,7 @@ function PlanModal({
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 rounded-sm border py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
-            <button type="submit" disabled={loading} className="flex-1 rounded-sm bg-primary py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50">
+            <button type="submit" disabled={loading} className="flex-1 rounded-sm bg-primary-gradient py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50">
               {loading ? "Processing..." : "Finish Plan"}
             </button>
           </div>
@@ -416,7 +416,7 @@ function GrantProModal({
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 rounded-sm border py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
-            <button type="submit" disabled={loading || !selectedUser || !planId} className="flex-1 rounded-sm bg-primary py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50">
+            <button type="submit" disabled={loading || !selectedUser || !planId} className="flex-1 rounded-sm bg-primary-gradient py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50">
               {loading ? "Granting..." : "Grant Pro"}
             </button>
           </div>
@@ -482,14 +482,14 @@ export default function SubscriptionsClient() {
         {activeTab === "plans" ? (
           <button
             onClick={() => { setEditPlan(null); setPlanModal(true) }}
-            className="flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all shadow-md"
+            className="flex items-center gap-2 rounded-sm bg-primary-gradient px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all shadow-md"
           >
             <Plus className="h-4 w-4" /> Create Custom Plan
           </button>
         ) : (
           <button
             onClick={() => setGrantModal(true)}
-            className="flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all shadow-md"
+            className="flex items-center gap-2 rounded-sm bg-primary-gradient px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all shadow-md"
           >
             <Gift className="h-4 w-4" /> Grant Free Pro
           </button>
@@ -633,7 +633,7 @@ export default function SubscriptionsClient() {
                     onClick={() => goToPage(p as number)}
                     className={`min-w-[36px] h-9 rounded-sm text-sm font-bold transition-all ${
                       p === currentPage
-                        ? "bg-primary text-primary-foreground shadow-sm"
+                        ? "bg-primary-gradient text-primary-foreground shadow-sm"
                         : "border hover:bg-accent"
                     }`}
                   >

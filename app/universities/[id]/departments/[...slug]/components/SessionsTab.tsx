@@ -76,7 +76,7 @@ export function SessionsTab({ sessions, batches = [], universityId, departmentId
           </div>
           <button 
             onClick={() => { setEditing(null); setModalOpen(true) }}
-            className="flex items-center gap-2 rounded-sm bg-primary px-3 md:px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-all shadow-sm h-10 shrink-0"
+            className="flex items-center gap-2 rounded-sm bg-primary-gradient px-3 md:px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-all shadow-sm h-10 shrink-0"
           >
             <Plus className="h-4 w-4" /><span className="hidden sm:inline">Add Session</span>
           </button>

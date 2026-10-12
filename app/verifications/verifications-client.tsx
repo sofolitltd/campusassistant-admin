@@ -155,7 +155,7 @@ export default function VerificationsClient() {
             ><ChevronLeft className="h-4 w-4" /></button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
               <button key={p} onClick={() => goToPage(p)}
-                className={cn("min-w-[36px] h-9 rounded-sm text-sm font-bold transition-all", p === currentPage ? "bg-primary text-primary-foreground shadow-sm" : "border hover:bg-accent")}
+                className={cn("min-w-[36px] h-9 rounded-sm text-sm font-bold transition-all", p === currentPage ? "bg-primary-gradient text-primary-foreground shadow-sm" : "border hover:bg-accent")}
               >{p}</button>
             ))}
             <button onClick={() => goToPage(currentPage + 1)} disabled={currentPage >= totalPages}

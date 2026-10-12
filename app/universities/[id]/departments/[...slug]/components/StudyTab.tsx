@@ -188,7 +188,7 @@ export function StudyTab({ study, universityId, departmentId, batches, onRefresh
         </div>
         <button
           onClick={openAdd}
-          className="flex items-center gap-2 rounded-sm bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all"
+          className="flex items-center gap-2 rounded-sm bg-primary-gradient px-4 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all"
         >
           <Plus className="h-4 w-4" /> Add Level
         </button>

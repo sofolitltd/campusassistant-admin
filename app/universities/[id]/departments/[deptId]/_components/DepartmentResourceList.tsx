@@ -164,7 +164,7 @@ export default function DepartmentResourceList({ title, type, universityId, depa
                     onClick={() => goToPage(p as number)}
                     className={`min-w-[36px] h-9 rounded-sm text-sm font-bold transition-all ${
                       p === currentPage
-                        ? "bg-primary text-primary-foreground shadow-sm"
+                        ? "bg-primary-gradient text-primary-foreground shadow-sm"
                         : "border hover:bg-accent"
                     }`}
                   >

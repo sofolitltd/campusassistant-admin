@@ -103,7 +103,7 @@ export function MakeCRModal({ student, batches, activeCRs, universityId, departm
         </div>
         <div className="border-t bg-muted/30 p-4 px-6 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium rounded-sm border bg-background hover:bg-muted transition-colors">Cancel</button>
-          <button type="submit" disabled={loading || !student.batch_id} className="px-4 py-2 text-sm font-bold rounded-sm bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-50 flex items-center gap-2">
+          <button type="submit" disabled={loading || !student.batch_id} className="px-4 py-2 text-sm font-bold rounded-sm bg-primary-gradient text-primary-foreground hover:opacity-90 disabled:opacity-50 flex items-center gap-2">
             {loading && <Loader2 className="h-4 w-4 animate-spin" />} Make CR
           </button>
         </div>

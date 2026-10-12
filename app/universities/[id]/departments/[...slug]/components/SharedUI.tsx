@@ -114,7 +114,7 @@ export function EmptyState({ icon: Icon, label, onAdd, addLabel }: { icon: React
       <p className="text-lg font-bold capitalize">No {label} yet</p>
       <p className="text-sm text-muted-foreground mt-1">Records will appear here once added.</p>
       {onAdd && (
-        <button onClick={onAdd} className="mt-6 flex items-center gap-2 rounded-sm bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-all">
+        <button onClick={onAdd} className="mt-6 flex items-center gap-2 rounded-sm bg-primary-gradient px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-all">
           <Plus className="h-4 w-4" />{addLabel || "Add"}
         </button>
       )}

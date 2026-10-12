@@ -75,7 +75,7 @@ function TargetSelector({
                 type="button"
                 onClick={() => toggleUniAll(uni)}
                 className={cn("text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-sm border transition-all",
-                  isTargeted(uni.id, WHOLE_UNIVERSITY) ? "bg-primary border-primary text-white" : "text-muted-foreground hover:border-primary/50"
+                  isTargeted(uni.id, WHOLE_UNIVERSITY) ? "bg-primary-gradient border-primary text-white" : "text-muted-foreground hover:border-primary/50"
                 )}
               >
                 {isTargeted(uni.id, WHOLE_UNIVERSITY) ? "University Active" : "Set University"}
@@ -417,7 +417,7 @@ export function ProductForm({ initialData, returnUrl, onSaved }: ProductFormProp
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-all shadow-md"
+            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary-gradient py-3 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-all shadow-md"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             {initialData ? "Save Changes" : "Create Product"}

@@ -155,7 +155,7 @@ export function SkillVideoManager({ skillId }: SkillVideoManagerProps) {
             type="button"
             onClick={handleAdd}
             disabled={adding}
-            className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-all whitespace-nowrap"
+            className="flex items-center gap-1.5 rounded-md bg-primary-gradient px-4 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-all whitespace-nowrap"
           >
             {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
             Add Video

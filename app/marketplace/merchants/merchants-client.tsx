@@ -243,7 +243,7 @@ export default function MerchantsClient({ initialMerchants }: MerchantsClientPro
                     <button
                       onClick={() => handleSaveCommission(merchant)}
                       disabled={savingCommissionId === merchant.id}
-                      className="ml-auto flex items-center gap-1 rounded-sm bg-primary px-2 py-1 text-[10px] font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50"
+                      className="ml-auto flex items-center gap-1 rounded-sm bg-primary-gradient px-2 py-1 text-[10px] font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50"
                     >
                       {savingCommissionId === merchant.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
                       Save

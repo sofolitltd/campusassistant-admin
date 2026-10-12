@@ -172,7 +172,7 @@ export default function UsersClient({
           <h1 className="text-xl font-bold tracking-tight">Users</h1>
           <p className="text-sm text-muted-foreground">Manage and monitor all platform users with server-side processing.</p>
         </div>
-        <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-all active:scale-95">
+        <button className="flex items-center gap-2 rounded-lg bg-primary-gradient px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-all active:scale-95">
           <UserPlus className="h-4 w-4" />
           Add User
         </button>
@@ -222,7 +222,7 @@ export default function UsersClient({
             <Filter className="h-4 w-4" />
             Filter
             {activeFilterCount > 0 && (
-              <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary-foreground">
+              <span className="rounded-full bg-primary-gradient px-1.5 py-0.5 text-[10px] font-bold leading-none text-primary-foreground">
                 {activeFilterCount}
               </span>
             )}

@@ -174,7 +174,7 @@ function CommandPaletteModal({ onClose }: { onClose: () => void }) {
                 className={cn(
                   "flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm transition-colors",
                   index === activeIndex
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-primary-gradient text-primary-foreground"
                     : "text-foreground hover:bg-accent"
                 )}
               >

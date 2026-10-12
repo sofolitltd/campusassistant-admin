@@ -345,7 +345,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
               </div>
               <div className="flex gap-3 mt-6">
                 <button type="button" onClick={() => setAlumniStudent(null)} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
-                <button type="submit" className="flex-1 rounded-sm bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all">Create Alumni</button>
+                <button type="submit" className="flex-1 rounded-sm bg-primary-gradient px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all">Create Alumni</button>
               </div>
             </form>
           </div>
@@ -376,7 +376,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
               </div>
               <div className="flex gap-3 mt-6">
                 <button type="button" onClick={() => setContributorStudent(null)} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
-                <button type="submit" disabled={contributorLoading} className="flex-1 rounded-sm bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                <button type="submit" disabled={contributorLoading} className="flex-1 rounded-sm bg-primary-gradient px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
                   {contributorLoading && <Loader2 className="h-4 w-4 animate-spin" />} Add Contributor
                 </button>
               </div>
@@ -446,7 +446,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
           </button>
           <button 
             onClick={() => { setEditing(null); setModalOpen(true) }}
-            className="flex items-center gap-2 rounded-sm bg-primary px-6 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all shadow-md h-11 shrink-0 active:scale-95"
+            className="flex items-center gap-2 rounded-sm bg-primary-gradient px-6 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all shadow-md h-11 shrink-0 active:scale-95"
           >
             <Plus className="h-4 w-4" /><span className="hidden sm:inline">Add Student</span>
           </button>
@@ -466,7 +466,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
             onClick={() => { setFilterBatch(null); setCurrentPage(1); }}
             className={cn(
               "flex items-center gap-2 px-5 py-2 rounded-full text-[11px] font-black transition-all border shrink-0 uppercase tracking-tighter",
-              !filterBatch ? "bg-primary text-white border-primary shadow-md" : "bg-card text-muted-foreground hover:bg-muted border-border"
+              !filterBatch ? "bg-primary-gradient text-white border-primary shadow-md" : "bg-card text-muted-foreground hover:bg-muted border-border"
             )}
           >
             All Students
@@ -484,7 +484,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
               onClick={() => { setFilterBatch(b.id); setCurrentPage(1); }}
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-black transition-all border shrink-0 whitespace-nowrap uppercase tracking-tighter",
-                filterBatch === b.id ? "bg-primary text-white border-primary shadow-md" : "bg-card text-muted-foreground hover:bg-muted border-border"
+                filterBatch === b.id ? "bg-primary-gradient text-white border-primary shadow-md" : "bg-card text-muted-foreground hover:bg-muted border-border"
               )}
             >
               {b.name}
@@ -783,7 +783,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
       {/* Toast Notification */}
       {toast && (
         <div className="fixed bottom-8 right-8 z-[200] animate-in slide-in-from-right-10 duration-500">
-          <div className="bg-primary text-primary-foreground px-8 py-4 rounded-sm shadow-2xl font-black text-xs uppercase tracking-widest flex items-center gap-4 border-l-4 border-primary-foreground/30">
+          <div className="bg-primary-gradient text-primary-foreground px-8 py-4 rounded-sm shadow-2xl font-black text-xs uppercase tracking-widest flex items-center gap-4 border-l-4 border-primary-foreground/30">
             <div className="h-2 w-2 rounded-full bg-white animate-ping" />
             {toast}
           </div>
@@ -868,7 +868,7 @@ function StudentPreviewModal({ student, onClose, batches, sessions }: { student:
                     <p className="text-[9px] font-black text-primary uppercase tracking-widest mb-1">Institutional Email</p>
                     <p className="text-sm font-bold truncate tracking-tight">{student.email}</p>
                   </div>
-                  <a href={`mailto:${student.email}`} className="h-10 w-10 rounded-lg bg-primary text-white flex items-center justify-center hover:scale-110 transition-all shadow-lg shrink-0">
+                  <a href={`mailto:${student.email}`} className="h-10 w-10 rounded-lg bg-primary-gradient text-white flex items-center justify-center hover:scale-110 transition-all shadow-lg shrink-0">
                     <Mail className="h-5 w-5" />
                   </a>
                 </div>

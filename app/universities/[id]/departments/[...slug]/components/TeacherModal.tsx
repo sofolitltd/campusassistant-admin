@@ -166,7 +166,7 @@ export function TeacherModal({ open, onClose, teacher, universityId, departmentI
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium rounded-sm border bg-background hover:bg-muted transition-colors">
             Cancel
           </button>
-          <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium rounded-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2 shadow-sm">
+          <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium rounded-sm bg-primary-gradient text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2 shadow-sm">
             <Save className="h-4 w-4" /> {loading ? "Saving..." : "Save Faculty"}
           </button>
         </div>

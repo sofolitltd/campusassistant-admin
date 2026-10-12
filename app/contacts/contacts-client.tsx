@@ -75,7 +75,7 @@ export default function ContactsClient({ initialContacts }: ContactsClientProps)
             setEditingContact(null)
             setModalOpen(true)
           }}
-          className="flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-90 transition-all active:scale-95 w-max whitespace-nowrap flex-shrink-0"
+          className="flex items-center justify-center gap-2 rounded-lg bg-primary-gradient px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-90 transition-all active:scale-95 w-max whitespace-nowrap flex-shrink-0"
         >
           <Plus className="h-4 w-4" />
           Add Contact
@@ -117,7 +117,7 @@ export default function ContactsClient({ initialContacts }: ContactsClientProps)
                 }}
                 className={cn(
                   "px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap border",
-                  isAct ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-muted text-muted-foreground"
+                  isAct ? "bg-primary-gradient text-primary-foreground border-primary" : "bg-card hover:bg-muted text-muted-foreground"
                 )}
               >
                 {scope}

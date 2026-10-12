@@ -29,6 +29,7 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-subtle: var(--primary-subtle);
+  --color-primary-pressed: var(--primary-pressed);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -81,6 +82,10 @@
     --primary: #00796b;
     --primary-foreground: #ffffff;
     --primary-subtle: #e0f2f1;
+    /* Matches the Flutter app's `primaryPressed` (light) exactly — it's also
+       this file's own --accent-foreground. One brand gradient, same two
+       stops everywhere. */
+    --primary-pressed: #004d40;
 
     --secondary: #eff4f3;
     --secondary-foreground: #14211f;
@@ -123,6 +128,9 @@
     --primary: #4db6ac;
     --primary-foreground: #06201d;
     --primary-subtle: #1f3b38;
+    /* Matches the Flutter app's `primaryPressed` (dark): Teal 400, the
+       light theme's primary shade reused as the gradient's other stop. */
+    --primary-pressed: #26a69a;
 
     --secondary: #232929;
     --secondary-foreground: #eaf0ef;
@@ -156,5 +164,20 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  /* The one brand gradient, shared by every elevated/filled button — same
+     gradient the Flutter app's `homeHeaderGradient` already uses for the home
+     header and drawer (features/home/widgets/home_section.dart), and the same
+     one `app_theme.dart` now gives every ElevatedButton/FilledButton there:
+     `--primary-pressed` (deeper) to `--primary` (lighter), top-left to
+     bottom-right. Use in place of `bg-primary` on actual buttons; `bg-primary`
+     on its own stays a flat fill for non-button surfaces (badges, icon chips,
+     subtle washes). */
+  .bg-primary-gradient {
+    background-color: var(--primary);
+    background-image: linear-gradient(135deg, var(--primary-pressed), var(--primary));
   }
 }

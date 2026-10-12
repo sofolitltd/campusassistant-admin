@@ -229,7 +229,7 @@ export default function ChaptersTab({ courseCode, universityId, departmentId, le
         </div>
         <button
           onClick={() => { setEditTarget(null); setModal(true) }}
-          className="flex items-center gap-2 rounded-sm bg-primary px-3 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 transition-all">
+          className="flex items-center gap-2 rounded-sm bg-primary-gradient px-3 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 transition-all">
           <Plus className="h-3.5 w-3.5" /> Add Chapter
         </button>
       </div>
@@ -247,7 +247,7 @@ export default function ChaptersTab({ courseCode, universityId, departmentId, le
           <p className="font-bold">No chapters yet</p>
           <p className="text-sm text-muted-foreground mt-1">Add the first chapter to get started.</p>
           <button onClick={() => { setEditTarget(null); setModal(true) }}
-            className="mt-5 flex items-center gap-2 rounded-sm bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-all">
+            className="mt-5 flex items-center gap-2 rounded-sm bg-primary-gradient px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-all">
             <Plus className="h-4 w-4" /> Add Chapter
           </button>
         </div>

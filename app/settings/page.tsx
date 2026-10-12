@@ -130,7 +130,7 @@ export default function SettingsPage() {
         <button
           type="submit"
           disabled={saving}
-          className="mt-4 rounded-sm bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all hover:opacity-90 disabled:opacity-50"
+          className="mt-4 rounded-sm bg-primary-gradient px-4 py-2 text-sm font-medium text-primary-foreground transition-all hover:opacity-90 disabled:opacity-50"
         >
           {saving ? "Saving..." : "Update password"}
         </button>

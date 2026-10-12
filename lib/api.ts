@@ -1001,6 +1001,18 @@ export interface DailyCount {
   count: number;
 }
 
+export type UserGrowthRange = "today" | "7d" | "30d" | "12m" | "lifetime";
+
+/** Signup series for the dashboard chart. `date` keys are bucketed in
+ * Bangladesh time: "YYYY-MM-DDTHH" (hour), "YYYY-MM-DD" (day), "YYYY-MM"
+ * (month) or "YYYY" (year). */
+export interface UserGrowth {
+  range: UserGrowthRange;
+  granularity: "hour" | "day" | "month" | "year";
+  total: number;
+  points: DailyCount[];
+}
+
 export interface RecentSubscriber {
   user_id: string;
   name: string;
@@ -1276,6 +1288,8 @@ export const api = {
   stats: {
     getDashboard: (): Promise<DashboardStats> =>
       fetchWithAuth('/stats'),
+    getUserGrowth: (range: UserGrowthRange): Promise<UserGrowth> =>
+      fetchWithAuth(`/stats/user-growth?range=${range}`),
   },
   users: {
     getAll: (search?: string): Promise<User[]> => {

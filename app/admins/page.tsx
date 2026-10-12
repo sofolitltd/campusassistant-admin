@@ -231,7 +231,7 @@ export default function AdminsPage() {
                 <button
                   type="submit"
                   disabled={passwordLoading}
-                  className="flex-1 rounded-md bg-primary py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-colors"
+                  className="flex-1 rounded-md bg-primary-gradient py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-colors"
                 >
                   {passwordLoading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "Update Password"}
                 </button>
@@ -278,7 +278,7 @@ export default function AdminsPage() {
                 <button
                   type="submit"
                   disabled={editLoading}
-                  className="flex-1 rounded-md bg-primary py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-colors"
+                  className="flex-1 rounded-md bg-primary-gradient py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-colors"
                 >
                   {editLoading ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : "Save"}
                 </button>

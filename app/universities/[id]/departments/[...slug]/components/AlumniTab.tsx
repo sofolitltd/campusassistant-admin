@@ -573,7 +573,7 @@ export function AlumniModal({
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-2 border-t">
             <button type="button" onClick={onClose} className="rounded-sm border px-5 py-2 text-sm font-bold hover:bg-muted transition-colors">Cancel</button>
-            <button type="submit" disabled={loading} className="flex items-center gap-2 rounded-sm bg-primary px-5 py-2 text-sm font-bold text-white hover:opacity-90 transition-all disabled:opacity-60">
+            <button type="submit" disabled={loading} className="flex items-center gap-2 rounded-sm bg-primary-gradient px-5 py-2 text-sm font-bold text-white hover:opacity-90 transition-all disabled:opacity-60">
               {loading ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : null}
               {isEdit ? "Save Changes" : "Add Alumni"}
             </button>
@@ -674,7 +674,7 @@ export function AlumniTab({
         </div>
         <button
           onClick={() => { setSelected(null); setModalOpen(true) }}
-          className="flex items-center gap-2 rounded-sm bg-primary px-4 py-2 text-sm font-bold text-white hover:opacity-90 transition-all shrink-0"
+          className="flex items-center gap-2 rounded-sm bg-primary-gradient px-4 py-2 text-sm font-bold text-white hover:opacity-90 transition-all shrink-0"
         >
           <Plus className="h-4 w-4" /> Add Alumni
         </button>

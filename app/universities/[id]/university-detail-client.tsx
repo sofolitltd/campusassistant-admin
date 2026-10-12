@@ -375,7 +375,7 @@ export default function UniversityDetailClient({
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold tracking-tight">Academic Departments</h3>
-              <Link href={`/universities/${universityId}/departments/add`} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 shadow-sm transition-all active:scale-95">
+              <Link href={`/universities/${universityId}/departments/add`} className="flex items-center gap-2 rounded-lg bg-primary-gradient px-4 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 shadow-sm transition-all active:scale-95">
                 <Plus className="h-3.5 w-3.5" /> Add Department
               </Link>
             </div>
@@ -485,7 +485,7 @@ export default function UniversityDetailClient({
                   setFacultyName("");
                   setIsFacultyModalOpen(true);
                 }}
-                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 shadow-sm transition-all active:scale-95"
+                className="flex items-center gap-2 rounded-lg bg-primary-gradient px-4 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 shadow-sm transition-all active:scale-95"
               >
                 <Plus className="h-3.5 w-3.5" /> Add Faculty
               </button>
@@ -580,7 +580,7 @@ export default function UniversityDetailClient({
                   <button type="button" onClick={() => setIsFacultyModalOpen(false)} className="rounded-sm border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors">
                     Cancel
                   </button>
-                  <button type="submit" disabled={facultyLoading} className="rounded-sm bg-primary px-6 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-colors flex items-center gap-2 shadow-sm">
+                  <button type="submit" disabled={facultyLoading} className="rounded-sm bg-primary-gradient px-6 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-colors flex items-center gap-2 shadow-sm">
                     {facultyLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     Save
                   </button>
@@ -608,7 +608,7 @@ export default function UniversityDetailClient({
                   setHallName("");
                   setIsHallModalOpen(true);
                 }}
-                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 shadow-sm transition-all active:scale-95"
+                className="flex items-center gap-2 rounded-lg bg-primary-gradient px-4 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 shadow-sm transition-all active:scale-95"
               >
                 <Plus className="h-3.5 w-3.5" /> Add Hall
               </button>
@@ -703,7 +703,7 @@ export default function UniversityDetailClient({
                   <button type="button" onClick={() => setIsHallModalOpen(false)} className="rounded-sm border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors">
                     Cancel
                   </button>
-                  <button type="submit" disabled={hallLoading} className="rounded-sm bg-primary px-6 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-colors flex items-center gap-2 shadow-sm">
+                  <button type="submit" disabled={hallLoading} className="rounded-sm bg-primary-gradient px-6 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-50 transition-colors flex items-center gap-2 shadow-sm">
                     {hallLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     Save
                   </button>
@@ -725,7 +725,7 @@ export default function UniversityDetailClient({
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold tracking-tight">University Banners</h3>
-              <Link href={`/universities/${universityId}/banners/add`} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 shadow-sm transition-all active:scale-95">
+              <Link href={`/universities/${universityId}/banners/add`} className="flex items-center gap-2 rounded-lg bg-primary-gradient px-4 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 shadow-sm transition-all active:scale-95">
                 <Plus className="h-4 w-4" /> Add Banner
               </Link>
             </div>
