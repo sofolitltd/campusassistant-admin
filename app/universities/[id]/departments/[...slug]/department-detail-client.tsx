@@ -203,7 +203,7 @@ export default function DepartmentDetailClient({
         {activeTab === "study" && <StudyTab study={tabData.study} universityId={universityId} departmentId={departmentId} batches={tabData.batches} onRefresh={() => loadTabData("study", true)} />}
         {activeTab === "teachers" && <TeachersTab teachers={tabData.teachers} universityId={universityId} departmentId={departmentId} onRefresh={() => loadTabData("teachers", true)} />}
         {activeTab === "staff" && <StaffTab staff={tabData.staff} universityId={universityId} departmentId={departmentId} onRefresh={() => loadTabData("staff", true)} />}
-        {activeTab === "crs" && <CRsTab crs={tabData.crs} />}
+        {activeTab === "crs" && <CRsTab crs={tabData.crs} onRefresh={() => loadTabData("crs", true)} onGoToStudents={() => handleTabChange("students")} />}
         {activeTab === "banners" && <BannersTab banners={tabData.banners} universityId={universityId} departmentId={departmentId} onRefresh={() => loadTabData("banners", true)} />}
         { activeTab === "contacts" && <ContactsTab contacts={tabData.contacts} universityId={universityId} departmentId={departmentId} onRefresh={() => loadTabData("contacts", true)} />}
         {activeTab === "alumni" && <AlumniTab alumni={tabData.alumni} universityId={universityId} departmentId={departmentId} onRefresh={() => loadTabData("alumni", true)} />}

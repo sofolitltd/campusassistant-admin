@@ -5,6 +5,7 @@ import { api, Routine, getFullImageUrl, getApiUrl } from "@/lib/api"
 import { EmptyState, ConfirmDelete, Modal, Field, inputCls } from "./SharedUI"
 import { Calendar, Plus, Edit2, Trash2, Save, AlertCircle, Clock, Upload, X, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { TodayPanel } from "./TodayPanel"
 
 // ─── Modal ───────────────────────────────────────────────────────────────────
 
@@ -182,7 +183,7 @@ function RoutineModal({ open, onClose, routine, universityId, departmentId, onSu
 
 // ─── RoutineTab ───────────────────────────────────────────────────────────────
 
-export function RoutineTab({
+function RoutineArchive({
   routines,
   universityId,
   departmentId,
@@ -304,4 +305,43 @@ function RoutineTabModal(props: RoutineModalProps) {
   // Little wrapper just to ensure clean unmount if we need to reset state
   if (!props.open) return null
   return <RoutineModal {...props} />
+}
+
+// ─── Tabs: Today (default) | Routines ────────────────────────────────────────
+
+export function RoutineTab(props: {
+  routines: Routine[]
+  universityId: string
+  departmentId: string
+  onRefresh: () => void
+}) {
+  const [view, setView] = useState<"today" | "routines">("today")
+  const views = [
+    { id: "today", label: "Today" },
+    { id: "routines", label: "Routines" },
+  ] as const
+
+  return (
+    <div className="space-y-6">
+      <div role="tablist" className="inline-flex rounded-sm border bg-muted/40 p-1">
+        {views.map(v => (
+          <button
+            key={v.id}
+            role="tab"
+            aria-selected={view === v.id}
+            onClick={() => setView(v.id)}
+            className={cn(
+              "px-4 py-1.5 text-sm font-medium rounded-sm transition-colors",
+              view === v.id ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
+      {view === "today"
+        ? <TodayPanel universityId={props.universityId} departmentId={props.departmentId} />
+        : <RoutineArchive {...props} />}
+    </div>
+  )
 }

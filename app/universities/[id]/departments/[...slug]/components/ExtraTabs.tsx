@@ -11,19 +11,39 @@ import {
 import Link from "next/link"
 import { BannerModal } from "./BannerModal"
 import { ContactModal } from "./ContactModal"
+import { EndCRModal, isActiveCR } from "./CRModals"
 
-export function CRsTab({ crs }: { crs: CR[] }) {
-  if (!crs.length) return <EmptyState icon={GraduationCap} label="class representatives" />
+export function CRsTab({ crs, onRefresh, onGoToStudents }: { crs: CR[]; onRefresh: () => void; onGoToStudents: () => void }) {
+  const [ending, setEnding] = useState<CR | null>(null)
+
+  const howTo = (
+    <p className="text-xs text-muted-foreground">
+      To add a CR, open the{" "}
+      <button onClick={onGoToStudents} className="font-bold text-primary hover:underline">Students</button>{" "}
+      tab, click ⋮ on the student and choose <strong>Make CR</strong>.
+    </p>
+  )
+
+  if (!crs.length) {
+    return (
+      <div className="space-y-4">
+        <EmptyState icon={GraduationCap} label="class representatives" />
+        <div className="text-center">{howTo}</div>
+      </div>
+    )
+  }
   return (
+    <div className="space-y-4">
+    {howTo}
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {[...crs].sort((a, b) => (b.is_current ? 1 : 0) - (a.is_current ? 1 : 0)).map((cr) => (
+      {[...crs].sort((a, b) => (isActiveCR(b) ? 1 : 0) - (isActiveCR(a) ? 1 : 0)).map((cr) => (
         <div key={cr.id} className="rounded-sm border bg-card p-5 shadow-sm hover:shadow-md transition-all">
           <div className="flex items-start gap-3 mb-3">
             <Avatar name={cr.name} imageUrl={cr.image_url} size="lg" />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="font-bold truncate">{cr.name}</p>
-                {cr.is_current && <Badge variant="success">Current</Badge>}
+                {isActiveCR(cr) && <Badge variant="success">Current</Badge>}
               </div>
               <p className="text-xs text-muted-foreground font-mono">ID: {cr.student_id}</p>
               <p className="text-xs text-muted-foreground">Batch: {cr.batch || "—"}</p>
@@ -39,9 +59,14 @@ export function CRsTab({ crs }: { crs: CR[] }) {
                 {cr.term_start ? new Date(cr.term_start).getFullYear() : "?"} – {cr.term_end ? new Date(cr.term_end).getFullYear() : "Present"}
               </p>
             )}
+            {isActiveCR(cr) && (
+              <button onClick={() => setEnding(cr)} className="mt-1 text-xs font-bold text-destructive hover:underline">End term</button>
+            )}
           </div>
         </div>
       ))}
+    </div>
+    {ending && <EndCRModal cr={ending} onClose={() => setEnding(null)} onDone={() => { setEnding(null); onRefresh() }} />}
     </div>
   )
 }

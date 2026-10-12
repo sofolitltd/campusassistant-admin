@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useEffect, useCallback, useDeferredValue, useRef } from "react"
-import { api, Student, Batch, Session, Contributor, getApiUrl } from "@/lib/api"
+import { api, Student, Batch, Session, Contributor, CR, getApiUrl } from "@/lib/api"
 import { Avatar, Badge, ConfirmDelete, selectCls, inputCls, Modal, ActionMenu } from "./SharedUI"
 import { StudentModal } from "./StudentModal"
-import { Users, Plus, Pencil, Trash2, Mail, Phone, ExternalLink, Search, Copy, Share2, RefreshCcw, Loader2, LayoutGrid, List, ChevronLeft, ChevronRight, MoreVertical, GraduationCap, Handshake, UserCheck, Send, UserMinus } from "lucide-react"
+import { MakeCRModal, EndCRModal, isActiveCR } from "./CRModals"
+import { Users, Plus, Pencil, Trash2, Mail, Phone, ExternalLink, Search, Copy, Share2, RefreshCcw, Loader2, LayoutGrid, List, ChevronLeft, ChevronRight, MoreVertical, GraduationCap, Handshake, UserCheck, Send, UserMinus, Crown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const CONTRIBUTOR_TIERS = ["Platinum", "Gold", "Silver", "Bronze"]
@@ -40,6 +41,9 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
   const [contributorsByStudentId, setContributorsByStudentId] = useState<Record<string, Contributor>>({})
   const [removingContributor, setRemovingContributor] = useState<Contributor | null>(null)
   const [removeContributorLoading, setRemoveContributorLoading] = useState(false)
+  const [activeCRs, setActiveCRs] = useState<CR[]>([])
+  const [crStudent, setCrStudent] = useState<Student | null>(null)
+  const [endingCR, setEndingCR] = useState<CR | null>(null)
   const [sessions, setSessions] = useState<Session[]>([])
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
   const [batchCounts, setBatchCounts] = useState<Record<string, number>>({})
@@ -130,6 +134,18 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
   }, [departmentId])
 
   useEffect(() => { loadContributors() }, [loadContributors])
+
+  const loadCRs = useCallback(async () => {
+    try {
+      setActiveCRs((await api.crs.getAllByDepartment(departmentId)).filter(isActiveCR))
+    } catch (err) {
+      console.error("Failed to load CRs:", err)
+    }
+  }, [departmentId])
+
+  useEffect(() => { loadCRs() }, [loadCRs])
+
+  const crOf = (s: Student) => activeCRs.find(c => c.target_student_id === s.id || (!!s.user_id && c.user_id === s.user_id))
 
   // Drag-to-scroll for batch filters
   useEffect(() => {
@@ -377,6 +393,25 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
         loading={deleteLoading}
       />
 
+      {crStudent && (
+        <MakeCRModal
+          student={crStudent}
+          batches={batches}
+          activeCRs={activeCRs}
+          universityId={universityId}
+          departmentId={departmentId}
+          onClose={() => setCrStudent(null)}
+          onDone={(msg) => { setToast(msg); setCrStudent(null); loadCRs() }}
+        />
+      )}
+      {endingCR && (
+        <EndCRModal
+          cr={endingCR}
+          onClose={() => setEndingCR(null)}
+          onDone={(msg) => { setToast(msg); setEndingCR(null); loadCRs() }}
+        />
+      )}
+
       <ConfirmDelete
         open={!!removingContributor}
         label={`"${removingContributor?.name}" from Contributors (permanent)`}
@@ -537,6 +572,15 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
                                 <Handshake className="h-4 w-4 text-primary" /> Add to Contributor
                               </button>
                             )}
+                            {crOf(s) ? (
+                              <button onClick={() => { setActionMenuStudentId(null); setEndingCR(crOf(s)!) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors text-destructive">
+                                <UserMinus className="h-4 w-4" /> Remove as CR
+                              </button>
+                            ) : (
+                              <button onClick={() => { setActionMenuStudentId(null); setCrStudent(s) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
+                                <Crown className="h-4 w-4 text-primary" /> Make CR
+                              </button>
+                            )}
                             <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
                               <UserCheck className="h-4 w-4" /> Att to Pro
                             </button>
@@ -677,6 +721,15 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
                                 ) : (
                                   <button onClick={() => { setActionMenuStudentId(null); handleAddToContributor(s) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
                                     <Handshake className="h-4 w-4 text-primary" /> Add to Contributor
+                                  </button>
+                                )}
+                                {crOf(s) ? (
+                                  <button onClick={() => { setActionMenuStudentId(null); setEndingCR(crOf(s)!) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors text-destructive">
+                                    <UserMinus className="h-4 w-4" /> Remove as CR
+                                  </button>
+                                ) : (
+                                  <button onClick={() => { setActionMenuStudentId(null); setCrStudent(s) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
+                                    <Crown className="h-4 w-4 text-primary" /> Make CR
                                   </button>
                                 )}
                                 <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">

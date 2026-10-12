@@ -202,6 +202,8 @@ export interface Staff {
   is_claimed: boolean;
   department_id: string;
   university_id: string;
+  user_id?: string;
+  user?: { id: string; first_name: string; last_name: string; avatar_url?: string };
   created_at: string;
 }
 
@@ -331,6 +333,8 @@ export interface Resource {
 
 export interface CR {
   id: string;
+  user_id?: string | null;
+  target_student_id?: string | null;
   name: string;
   student_id: string;
   email: string;
@@ -356,6 +360,47 @@ export interface Routine {
   department_id: string;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface ClassNotice {
+  id: string;
+  university_id: string;
+  department_id: string;
+  batch_id?: string | null;
+  title: string;
+  message: string;
+  file_url: string;
+  file_type: 'image' | 'pdf' | '';
+  expires_at?: string | null;
+  posted_by_name: string;
+  created_at: string;
+}
+
+export interface ClassSlot {
+  id: string;
+  university_id: string;
+  department_id: string;
+  batch_id: string;
+  day_of_week: number; // 0=Sunday..6=Saturday
+  course_name: string;
+  teacher: string;
+  room: string;
+  start_time: string; // "HH:MM"
+  end_time: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ClassSlotStatus {
+  id: string;
+  class_slot_id: string;
+  date: string; // "YYYY-MM-DD"
+  status: 'cancelled' | 'rescheduled';
+  new_start_time?: string;
+  new_end_time?: string;
+  new_room?: string;
+  note?: string;
+  created_at?: string;
 }
 
 export interface Transport {
@@ -872,6 +917,7 @@ export interface User {
   department?: Department;
   student?: Student;
   teacher?: Teacher;
+  staff?: Staff;
   created_at: string;
 }
 
@@ -1674,6 +1720,33 @@ export const api = {
       fetchWithAuth(`/routines/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/routines/${id}`, { method: 'DELETE' }),
+  },
+  classNotices: {
+    // include_expired lets the admin moderate notices that have already lapsed.
+    getAllByDepartment: (deptId: string): Promise<ClassNotice[]> =>
+      fetchWithAuth(`/class-notices?department_id=${deptId}&include_expired=true`).then((res: { data?: ClassNotice[] }) => res.data ?? []),
+    create: (data: Partial<ClassNotice>): Promise<ClassNotice> =>
+      fetchWithAuth('/class-notices', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<ClassNotice>): Promise<ClassNotice> =>
+      fetchWithAuth(`/class-notices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/class-notices/${id}`, { method: 'DELETE' }),
+  },
+  classSlots: {
+    getAllByBatch: (departmentId: string, batchId: string): Promise<ClassSlot[]> =>
+      fetchWithAuth(`/class-slots?department_id=${departmentId}&batch_id=${batchId}`).then((res: { data?: ClassSlot[] }) => res.data ?? []),
+    create: (data: Partial<ClassSlot>): Promise<ClassSlot> =>
+      fetchWithAuth('/class-slots', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<ClassSlot>): Promise<ClassSlot> =>
+      fetchWithAuth(`/class-slots/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/class-slots/${id}`, { method: 'DELETE' }),
+    getStatusesForDate: (departmentId: string, batchId: string, date: string): Promise<ClassSlotStatus[]> =>
+      fetchWithAuth(`/class-slots/status?department_id=${departmentId}&batch_id=${batchId}&date=${date}`).then((res: { data?: ClassSlotStatus[] }) => res.data ?? []),
+    setStatus: (data: { class_slot_id: string; date: string; status: 'cancelled' | 'rescheduled'; new_start_time?: string; new_end_time?: string; new_room?: string; note?: string }): Promise<ClassSlotStatus> =>
+      fetchWithAuth('/class-slots/status', { method: 'POST', body: JSON.stringify(data) }),
+    deleteStatus: (id: string): Promise<void> =>
+      fetchWithAuth(`/class-slots/status/${id}`, { method: 'DELETE' }),
   },
   transports: {
     getAllByUniversity: (universityId: string): Promise<Transport[]> =>

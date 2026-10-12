@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Teacher, Staff, api } from "@/lib/api"
 import { Avatar, Badge, EmptyState, inputCls, ConfirmDelete, Modal } from "./SharedUI"
-import { UserSquare2, Briefcase, Search, Plus, Pencil, Trash2, Phone, ChevronDown } from "lucide-react"
+import { UserSquare2, Briefcase, Search, Plus, Pencil, Trash2, Phone, ChevronDown, Copy, RefreshCcw } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { TeacherModal } from "./TeacherModal"
 import { StaffModal } from "./StaffModal"
@@ -15,9 +15,15 @@ interface TeachersTabProps {
   onRefresh: () => void
 }
 
+function handleCopyTeacherCode(teacher: Teacher) {
+  const msg = `🎓 *Campus Assistant Teacher Profile*\n----------------------------------\nName: ${teacher.name}\nDesignation: ${teacher.designation}\nVerification Code: ${teacher.verification_code}\n\n🚀 *How to verify:*\n1. Download App: https://play.google.com/store/apps/details?id=com.sofolit.campusassistant\n2. Create a new account (select Teacher)\n3. Provide the code above & verify your profile.`
+  navigator.clipboard.writeText(msg)
+}
+
 function TeacherPreviewModal({ teacher, onClose }: { teacher: Teacher | null, onClose: () => void }) {
+  const [copied, setCopied] = useState(false)
   if (!teacher) return null
-  
+
   return (
     <Modal open={true} onClose={onClose} title="Teacher Details" className="max-w-md">
       <div className="flex flex-col gap-4 pb-4">
@@ -30,7 +36,7 @@ function TeacherPreviewModal({ teacher, onClose }: { teacher: Teacher | null, on
               <UserSquare2 className="h-10 w-10 text-primary/30" />
             </div>
           )}
-          
+
           <div className="flex-1 min-w-0 flex flex-col">
             <h3 className="text-[15px] font-bold leading-tight">{teacher.name}</h3>
             <p className="text-[13px] text-muted-foreground mt-1">{teacher.designation}</p>
@@ -50,14 +56,14 @@ function TeacherPreviewModal({ teacher, onClose }: { teacher: Teacher | null, on
             <span className="text-sm font-bold">Mobile:</span>
             <a href={`tel:${teacher.phone}`} className="text-sm text-primary hover:underline">{teacher.phone || "—"}</a>
           </div>
-          
+
           <div className="grid grid-cols-[80px_1fr] gap-2 items-start">
             <span className="text-sm font-bold">Email:</span>
             <a href={`mailto:${teacher.email}`} className="text-sm text-primary hover:underline break-all">{teacher.email || "—"}</a>
           </div>
 
           <div className="h-px bg-border my-2"></div>
-          
+
           <div>
             <h4 className="text-sm font-bold mb-1">Publications:</h4>
             {teacher.publications ? (
@@ -81,6 +87,35 @@ function TeacherPreviewModal({ teacher, onClose }: { teacher: Teacher | null, on
               </div>
             </div>
           )}
+        </div>
+
+        {/* App Login / Verification Code */}
+        <div className="rounded-sm border bg-card p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] leading-none mb-1.5">App Login Code</p>
+              <div className="flex items-center gap-2">
+                <code className={cn(
+                  "text-[14px] font-black tracking-[0.2em]",
+                  teacher.is_claimed ? "text-muted-foreground/40 line-through" : "text-primary drop-shadow-sm"
+                )}>
+                  {teacher.verification_code || "------"}
+                </code>
+                <Badge variant={teacher.is_claimed ? "success" : "default"} className="text-[9px] font-black uppercase tracking-tighter">
+                  {teacher.is_claimed ? "Linked" : "Pending"}
+                </Badge>
+              </div>
+            </div>
+            {!teacher.is_claimed && (
+              <button
+                onClick={() => { handleCopyTeacherCode(teacher); setCopied(true); setTimeout(() => setCopied(false), 1500) }}
+                className="p-2.5 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all shadow-sm"
+                title="Copy login details"
+              >
+                {copied ? <RefreshCcw className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </Modal>
@@ -213,9 +248,15 @@ export function TeachersTab({ teachers, universityId, departmentId, onRefresh }:
   )
 }
 
+function handleCopyStaffCode(staff: Staff) {
+  const msg = `🎓 *Campus Assistant Staff Profile*\n----------------------------------\nName: ${staff.name}\nPost: ${staff.post}\nVerification Code: ${staff.verification_code}\n\n🚀 *How to verify:*\n1. Download App: https://play.google.com/store/apps/details?id=com.sofolit.campusassistant\n2. Create a new account (select Staff)\n3. Provide the code above & verify your profile.`
+  navigator.clipboard.writeText(msg)
+}
+
 function StaffPreviewModal({ staff, onClose }: { staff: Staff | null, onClose: () => void }) {
+  const [copied, setCopied] = useState(false)
   if (!staff) return null
-  
+
   return (
     <Modal open={true} onClose={onClose} title="Staff Member Details" className="max-w-md">
       <div className="flex flex-col gap-4 pb-4">
@@ -227,7 +268,7 @@ function StaffPreviewModal({ staff, onClose }: { staff: Staff | null, onClose: (
               <Briefcase className="h-10 w-10 text-primary-subtle" />
             </div>
           )}
-          
+
           <div className="flex-1 min-w-0 flex flex-col pt-1">
             <h3 className="text-[15px] font-bold leading-tight">{staff.name}</h3>
             <p className="text-[13px] text-muted-foreground mt-1">{staff.post}</p>
@@ -247,6 +288,35 @@ function StaffPreviewModal({ staff, onClose }: { staff: Staff | null, onClose: (
 
           <div className="pt-2 border-t mt-4">
              <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">Administrative Contact</p>
+          </div>
+        </div>
+
+        {/* App Login / Verification Code */}
+        <div className="rounded-sm border bg-card p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] leading-none mb-1.5">App Login Code</p>
+              <div className="flex items-center gap-2">
+                <code className={cn(
+                  "text-[14px] font-black tracking-[0.2em]",
+                  staff.is_claimed ? "text-muted-foreground/40 line-through" : "text-primary drop-shadow-sm"
+                )}>
+                  {staff.verification_code || "------"}
+                </code>
+                <Badge variant={staff.is_claimed ? "success" : "default"} className="text-[9px] font-black uppercase tracking-tighter">
+                  {staff.is_claimed ? "Linked" : "Pending"}
+                </Badge>
+              </div>
+            </div>
+            {!staff.is_claimed && (
+              <button
+                onClick={() => { handleCopyStaffCode(staff); setCopied(true); setTimeout(() => setCopied(false), 1500) }}
+                className="p-2.5 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all shadow-sm"
+                title="Copy login details"
+              >
+                {copied ? <RefreshCcw className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+              </button>
+            )}
           </div>
         </div>
       </div>
