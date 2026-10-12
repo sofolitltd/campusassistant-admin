@@ -50,8 +50,8 @@ export default function UniversitiesClient({ initialUniversities }: Universities
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Universities</h1>
-          <p className="text-muted-foreground">Manage and explore partner universities with server-optimized architecture.</p>
+          <h1 className="text-xl font-bold tracking-tight">Universities</h1>
+          <p className="text-sm text-muted-foreground">Manage and explore partner universities with server-optimized architecture.</p>
         </div>
         <Link href="/universities/add" className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all active:scale-95 shadow-sm whitespace-nowrap flex-shrink-0">
           <Plus className="h-4 w-4" />

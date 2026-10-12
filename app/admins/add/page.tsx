@@ -39,7 +39,7 @@ export default function AddAdminPage() {
           <ArrowLeft className="h-4 w-4" />
           Back to Admins
         </button>
-        <h1 className="text-2xl font-bold">Add Admin</h1>
+        <h1 className="text-xl font-bold tracking-tight">Add Admin</h1>
         <p className="text-sm text-muted-foreground">Create a new admin account</p>
       </div>
 

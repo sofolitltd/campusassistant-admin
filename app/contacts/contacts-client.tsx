@@ -67,8 +67,8 @@ export default function ContactsClient({ initialContacts }: ContactsClientProps)
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Emergency Contacts</h1>
-          <p className="text-muted-foreground">Manage platform-wide helplines and administrative contacts.</p>
+          <h1 className="text-xl font-bold tracking-tight">Emergency Contacts</h1>
+          <p className="text-sm text-muted-foreground">Manage platform-wide helplines and administrative contacts.</p>
         </div>
         <button 
           onClick={() => {

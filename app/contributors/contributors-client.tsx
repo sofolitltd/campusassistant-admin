@@ -72,8 +72,8 @@ export default function ContributorsClient({ initialContributors }: Contributors
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Contributors</h1>
-        <p className="text-muted-foreground text-sm">
+        <h1 className="text-xl font-bold tracking-tight">Contributors</h1>
+        <p className="text-sm text-muted-foreground">
           People featured on the app&apos;s Contributors page. Add new ones from a student&apos;s
           profile menu in Universities → Department → Students.
         </p>

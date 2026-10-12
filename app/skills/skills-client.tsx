@@ -43,8 +43,8 @@ export default function SkillsClient({ initialSkills }: SkillsClientProps) {
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Skills</h1>
-          <p className="text-muted-foreground text-sm">Manage the &quot;Skill Up&quot; home-page catalog and its YouTube videos.</p>
+          <h1 className="text-xl font-bold tracking-tight">Skills</h1>
+          <p className="text-sm text-muted-foreground">Manage the &quot;Skill Up&quot; home-page catalog and its YouTube videos.</p>
         </div>
         <Link
           href="/skills/add"

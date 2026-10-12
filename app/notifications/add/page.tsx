@@ -153,8 +153,8 @@ export default function AddNotificationPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Send Notification</h1>
-            <p className="text-muted-foreground">Send a push notification to users.</p>
+            <h1 className="text-xl font-bold tracking-tight">Send Notification</h1>
+            <p className="text-sm text-muted-foreground">Send a push notification to users.</p>
           </div>
         </div>
       </div>

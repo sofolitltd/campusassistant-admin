@@ -127,8 +127,8 @@ export default function AddDepartmentPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Add Department</h1>
-            <p className="text-muted-foreground">Register a new department under this university.</p>
+            <h1 className="text-xl font-bold tracking-tight">Add Department</h1>
+            <p className="text-sm text-muted-foreground">Register a new department under this university.</p>
           </div>
         </div>
       </div>

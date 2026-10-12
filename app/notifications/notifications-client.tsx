@@ -82,8 +82,8 @@ export default function NotificationsClient({ initialNotifications, initialCount
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
-          <p className="text-muted-foreground text-sm">Manage push notifications sent to users.</p>
+          <h1 className="text-xl font-bold tracking-tight">Notifications</h1>
+          <p className="text-sm text-muted-foreground">Manage push notifications sent to users.</p>
         </div>
         <Link
           href="/notifications/add"

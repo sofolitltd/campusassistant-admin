@@ -47,8 +47,8 @@ export default function EditNationalBannerPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Edit Banner</h1>
-            <p className="text-muted-foreground">Modify the details of your banner.</p>
+            <h1 className="text-xl font-bold tracking-tight">Edit Banner</h1>
+            <p className="text-sm text-muted-foreground">Modify the details of your banner.</p>
           </div>
         </div>
       </div>

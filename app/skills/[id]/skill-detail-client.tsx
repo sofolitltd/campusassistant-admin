@@ -53,7 +53,7 @@ export default function SkillDetailClient({ skill }: SkillDetailClientProps) {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{skill.title}</h1>
+            <h1 className="text-xl font-bold tracking-tight">{skill.title}</h1>
             <p className="text-sm text-muted-foreground">
               {skill.is_published ? "Published" : "Draft"}
               {skill.targets.length === 0 ? " · Global" : ` · ${skill.targets.length} target${skill.targets.length === 1 ? "" : "s"}`}

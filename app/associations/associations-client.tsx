@@ -54,8 +54,8 @@ export default function AssociationsClient({ initialAssociations }: Associations
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Associations</h1>
-          <p className="text-muted-foreground text-sm">Manage the regional student association directory shown in the app.</p>
+          <h1 className="text-xl font-bold tracking-tight">Associations</h1>
+          <p className="text-sm text-muted-foreground">Manage the regional student association directory shown in the app.</p>
         </div>
         <Link
           href="/associations/add"

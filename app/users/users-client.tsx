@@ -5,9 +5,9 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import {
   Search, Filter, MoreHorizontal, UserPlus, Loader2, Phone, Mail, Fingerprint,
   GraduationCap, Building2, CalendarDays, X, Briefcase, Award,
-  Pencil, Trash2, Ban, CheckCircle, AlertTriangle
+  Pencil, Trash2, Ban, CheckCircle, AlertTriangle, Users as UsersIcon, ShieldCheck
 } from "lucide-react"
-import { api, User, University, Department, Session, Batch } from "@/lib/api"
+import { api, User, University, Department, Session, Batch, UserStats } from "@/lib/api"
 
 interface UsersClientProps {
   initialUsers: User[]
@@ -17,6 +17,7 @@ interface UsersClientProps {
   sessions: Session[]
   batches: Batch[]
   pageSize: number
+  stats: UserStats
 }
 
 export default function UsersClient({
@@ -26,8 +27,16 @@ export default function UsersClient({
   departments,
   sessions,
   batches,
-  pageSize
+  pageSize,
+  stats
 }: UsersClientProps) {
+  const statCards = [
+    { title: "Total Users", value: stats.total, icon: UsersIcon, color: "text-info", bg: "bg-info-subtle" },
+    { title: "Students", value: stats.students, icon: GraduationCap, color: "text-success", bg: "bg-success-subtle" },
+    { title: "Teachers", value: stats.teachers, icon: Briefcase, color: "text-warning", bg: "bg-warning-subtle" },
+    { title: "Staff", value: stats.staff, icon: Award, color: "text-info", bg: "bg-info-subtle" },
+    { title: "Verified", value: stats.verified, icon: ShieldCheck, color: "text-success", bg: "bg-success-subtle" },
+  ]
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -96,13 +105,27 @@ export default function UsersClient({
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Users</h1>
-          <p className="text-muted-foreground">Manage and monitor all platform users with server-side processing.</p>
+          <h1 className="text-xl font-bold tracking-tight">Users</h1>
+          <p className="text-sm text-muted-foreground">Manage and monitor all platform users with server-side processing.</p>
         </div>
         <button className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-all active:scale-95">
           <UserPlus className="h-4 w-4" />
           Add User
         </button>
+      </div>
+
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
+        {statCards.map((stat, i) => (
+          <div key={i} className="rounded-xl border bg-card p-5 shadow-sm transition-all hover:shadow-md group">
+            <div className={`inline-flex rounded-lg p-2 ${stat.bg} ${stat.color} transition-transform group-hover:scale-110`}>
+              <stat.icon className="h-5 w-5" />
+            </div>
+            <div className="mt-3">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{stat.title}</p>
+              <h2 className="text-2xl font-black mt-1 tracking-tight">{stat.value.toLocaleString()}</h2>
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">

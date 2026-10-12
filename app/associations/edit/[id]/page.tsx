@@ -49,8 +49,8 @@ export default function EditAssociationPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Edit Association</h1>
-            <p className="text-muted-foreground">Update association details.</p>
+            <h1 className="text-xl font-bold tracking-tight">Edit Association</h1>
+            <p className="text-sm text-muted-foreground">Update association details.</p>
           </div>
         </div>
       </div>

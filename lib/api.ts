@@ -930,6 +930,28 @@ export interface Admin {
   created_at: string;
 }
 
+// Written by the Go backend's middleware.SystemLogger for every failed
+// (status_code >= 400) request — see internal/domain/system_log.go.
+export interface SystemLog {
+  id: string;
+  method: string;
+  path: string;
+  status_code: number;
+  message: string;
+  user_id?: string;
+  ip_address: string;
+  latency_ms: number;
+  created_at: string;
+}
+
+export interface SystemLogStats {
+  today_total: number;
+  week_total: number;
+  week_server_errors: number;
+  week_client_errors: number;
+  top_failing_paths: { path: string; count: number }[];
+}
+
 export interface DailyCount {
   date: string;
   count: number;
@@ -970,6 +992,17 @@ export interface DashboardStats {
   revenue_trend: string;
   user_growth: DailyCount[];
   recent_subscriptions: RecentSubscriber[];
+}
+
+export interface UserStats {
+  total: number;
+  active: number;
+  inactive: number;
+  verified: number;
+  unverified: number;
+  students: number;
+  teachers: number;
+  staff: number;
 }
 
 /**
@@ -1207,6 +1240,8 @@ export const api = {
     },
     getOne: (id: string): Promise<User> =>
       fetchWithAuth(`/users/${id}`),
+    getStats: (): Promise<UserStats> =>
+      fetchWithAuth('/users/stats'),
     create: (data: Partial<User>) => fetchWithAuth('/users', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -1853,5 +1888,11 @@ export const api = {
       }),
     delete: (id: string) =>
       fetchWithAuth(`/admin/notifications/${id}`, { method: 'DELETE' }),
+  },
+  systemLogs: {
+    getAll: (params?: string): Promise<{ data: SystemLog[]; count: number }> =>
+      fetchWithAuth(`/system-logs?limit=50&${params || ''}`),
+    getStats: (): Promise<SystemLogStats> =>
+      fetchWithAuth('/system-logs/stats'),
   },
 };

@@ -54,7 +54,7 @@ export default function EditLostFoundCategoryPage({ params }: { params: Promise<
           <Layers className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-xl font-black">Edit Category</h1>
+          <h1 className="text-xl font-bold tracking-tight">Edit Category</h1>
           <p className="text-sm text-muted-foreground">Update &ldquo;{category.name}&rdquo;</p>
         </div>
       </div>

@@ -4,13 +4,14 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
 import type { Admin } from "@/lib/api"
-import { Shield, Plus, Trash2, Key, Pencil, Loader2, X } from "lucide-react"
+import { Shield, Plus, Trash2, Key, Pencil, Loader2, X, Mail } from "lucide-react"
 
 export default function AdminsPage() {
   const router = useRouter()
   const [admins, setAdmins] = useState<Admin[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [sendingCode, setSendingCode] = useState<string | null>(null)
   const [passwordModal, setPasswordModal] = useState<{ id: string; name: string } | null>(null)
   const [newPassword, setNewPassword] = useState("")
   const [passwordLoading, setPasswordLoading] = useState(false)
@@ -61,6 +62,18 @@ export default function AdminsPage() {
     }
   }
 
+  async function handleSendCode(admin: Admin) {
+    setSendingCode(admin.id)
+    try {
+      await api.auth.forgotPassword(admin.email)
+      alert(`A login code has been sent to ${admin.email}`)
+    } catch {
+      alert("Failed to send login code")
+    } finally {
+      setSendingCode(null)
+    }
+  }
+
   async function handleEditSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!editModal) return
@@ -89,7 +102,7 @@ export default function AdminsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Admins</h1>
+          <h1 className="text-xl font-bold tracking-tight">Admins</h1>
           <p className="text-sm text-muted-foreground">Manage admin accounts</p>
         </div>
         <button
@@ -143,6 +156,18 @@ export default function AdminsPage() {
                       title="Change password"
                     >
                       <Key className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleSendCode(admin)}
+                      disabled={sendingCode === admin.id}
+                      className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
+                      title="Send login code to email"
+                    >
+                      {sendingCode === admin.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Mail className="h-4 w-4" />
+                      )}
                     </button>
                     <button
                       onClick={() => handleDelete(admin.id)}

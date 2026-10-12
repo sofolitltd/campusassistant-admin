@@ -59,7 +59,7 @@ export default function ClubDetailClient({ club }: ClubDetailClientProps) {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{club.name}</h1>
+            <h1 className="text-xl font-bold tracking-tight">{club.name}</h1>
             <p className="text-sm text-muted-foreground">
               {club.club_type === "university" ? "University Club" : "Department Club"}
               {club.category ? ` · ${club.category}` : ""}

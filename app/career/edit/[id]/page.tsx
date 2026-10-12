@@ -54,7 +54,7 @@ export default function EditCareerCircularPage({ params }: { params: Promise<{ i
           <Briefcase className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-xl font-black">Edit Circular</h1>
+          <h1 className="text-xl font-bold tracking-tight">Edit Circular</h1>
           <p className="text-sm text-muted-foreground">Update &ldquo;{circular.title}&rdquo;</p>
         </div>
       </div>

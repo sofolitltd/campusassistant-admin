@@ -62,7 +62,7 @@ export default function AssociationDetailClient({ association }: AssociationDeta
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{association.name}</h1>
+            <h1 className="text-xl font-bold tracking-tight">{association.name}</h1>
             <p className="text-sm text-muted-foreground">
               {association.association_type === "sub_district"
                 ? `${association.sub_district_name}, ${association.district_name}`

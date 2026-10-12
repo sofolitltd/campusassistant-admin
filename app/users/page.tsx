@@ -20,19 +20,20 @@ export default async function UsersPage({ searchParams }: Props) {
 
   // Fetch all data in parallel on the server
   // The Go backend now handles Student/Teacher linkage automatically!
-  const [res, universities, departments, sessions, batches] = await Promise.all([
+  const [res, universities, departments, sessions, batches, stats] = await Promise.all([
     api.fetchWithAuth(`/users?limit=${pageSize}&offset=${offset}&preload=true${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ''}`),
     api.universities.getAll(),
     api.departments.getAll(),
     api.sessions.getAll(),
-    api.batches.getAll()
+    api.batches.getAll(),
+    api.users.getStats()
   ])
 
   const users: User[] = res.data || []
 
   return (
     <Suspense fallback={<div className="flex h-96 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
-      <UsersClient 
+      <UsersClient
         initialUsers={users}
         totalCount={res.count || 0}
         universities={universities}
@@ -40,6 +41,7 @@ export default async function UsersPage({ searchParams }: Props) {
         sessions={sessions}
         batches={batches}
         pageSize={pageSize}
+        stats={stats}
       />
     </Suspense>
   )

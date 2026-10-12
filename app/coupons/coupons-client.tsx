@@ -213,7 +213,7 @@ export default function CouponsClient() {
         <div className="flex items-center gap-4">
           <div className="rounded-full bg-primary/10 p-3"><TicketPercent className="h-6 w-6 text-primary" /></div>
           <div>
-            <h1 className="text-2xl font-black tracking-tight">Coupon Codes</h1>
+            <h1 className="text-xl font-bold tracking-tight">Coupon Codes</h1>
             <p className="text-sm text-muted-foreground">Create and manage promo codes for Pro subscriptions.</p>
           </div>
         </div>

@@ -328,7 +328,7 @@ export default function SubscriptionsClient() {
         <div className="flex items-center gap-4">
           <div className="rounded-full bg-primary/10 p-3"><CreditCard className="h-6 w-6 text-primary" /></div>
           <div>
-            <h1 className="text-2xl font-black tracking-tight">Subscriptions</h1>
+            <h1 className="text-xl font-bold tracking-tight">Subscriptions</h1>
             <p className="text-sm text-muted-foreground">Manage multi-target Pro plans and automated lifecycle.</p>
           </div>
         </div>

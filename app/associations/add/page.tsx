@@ -13,8 +13,8 @@ export default function AddAssociationPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Create Association</h1>
-            <p className="text-muted-foreground">Add a new district or sub-district association to the directory.</p>
+            <h1 className="text-xl font-bold tracking-tight">Create Association</h1>
+            <p className="text-sm text-muted-foreground">Add a new district or sub-district association to the directory.</p>
           </div>
         </div>
       </div>

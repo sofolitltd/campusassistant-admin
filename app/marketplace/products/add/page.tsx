@@ -16,8 +16,8 @@ export default function AddProductPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Create Product</h1>
-            <p className="text-muted-foreground">Add a new product to the Campus Marketplace.</p>
+            <h1 className="text-xl font-bold tracking-tight">Create Product</h1>
+            <p className="text-sm text-muted-foreground">Add a new product to the Campus Marketplace.</p>
           </div>
         </div>
       </div>

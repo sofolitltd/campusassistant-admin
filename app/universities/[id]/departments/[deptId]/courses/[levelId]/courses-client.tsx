@@ -188,7 +188,7 @@ export default function CoursesClient({ universityId, departmentId, levelId, lev
           </Link>
           <div>
         
-            <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
+            <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-primary" /> {levelName}
             </h1>
             <p className="text-sm text-muted-foreground">{courses.length} course{courses.length !== 1 ? "s" : ""}</p>

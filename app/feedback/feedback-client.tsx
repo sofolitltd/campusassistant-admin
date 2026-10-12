@@ -181,7 +181,7 @@ export default function FeedbackClient() {
         <div className="flex items-center gap-4">
           <div className="rounded-full bg-primary/10 p-3"><MessageSquare className="h-6 w-6 text-primary" /></div>
           <div>
-            <h1 className="text-2xl font-black tracking-tight">User Feedback</h1>
+            <h1 className="text-xl font-bold tracking-tight">User Feedback</h1>
             <p className="text-sm text-muted-foreground">Review, reply, and manage user feedback submissions.</p>
           </div>
         </div>

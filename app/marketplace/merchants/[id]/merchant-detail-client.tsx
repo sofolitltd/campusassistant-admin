@@ -180,7 +180,7 @@ export default function MerchantDetailClient({ merchant: initialMerchant, initia
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Merchant Profile</h1>
+          <h1 className="text-xl font-bold tracking-tight">Merchant Profile</h1>
           <p className="text-sm text-muted-foreground">Review and manage this merchant's account.</p>
         </div>
       </div>

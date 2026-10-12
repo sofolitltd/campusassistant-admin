@@ -66,8 +66,8 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-lg font-bold tracking-tight">Products</h2>
-          <p className="text-muted-foreground text-sm">In-house and merchant products listed in the Campus Marketplace.</p>
+          <h2 className="text-xl font-bold tracking-tight">Products</h2>
+          <p className="text-sm text-muted-foreground">In-house and merchant products listed in the Campus Marketplace.</p>
         </div>
         <Link
           href="/marketplace/products/add"

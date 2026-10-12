@@ -175,8 +175,8 @@ export default function EditDepartmentPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Edit Department</h1>
-            <p className="text-muted-foreground">Update department details.</p>
+            <h1 className="text-xl font-bold tracking-tight">Edit Department</h1>
+            <p className="text-sm text-muted-foreground">Update department details.</p>
           </div>
         </div>
       </div>

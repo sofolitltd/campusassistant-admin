@@ -112,8 +112,8 @@ export default function AddUniversityPage() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Add University</h1>
-            <p className="text-muted-foreground">Register a new institution in the system.</p>
+            <h1 className="text-xl font-bold tracking-tight">Add University</h1>
+            <p className="text-sm text-muted-foreground">Register a new institution in the system.</p>
           </div>
         </div>
       </div>
