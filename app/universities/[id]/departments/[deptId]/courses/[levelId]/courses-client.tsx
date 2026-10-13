@@ -127,7 +127,7 @@ export default function CoursesClient({ universityId, departmentId, levelId, lev
         api.batches.getAllByDepartment(departmentId),
         api.courses.getAllByDepartment(departmentId),
       ])
-      setCourses(c)
+      setCourses([...c].sort((a, b) => a.course_code.localeCompare(b.course_code, undefined, { numeric: true })))
       setUnassigned(all.filter((cr) => !cr.level_id))
       setFixing(false); setFixDone(0)
       setCategories(cats.sort((a, b) => a.order - b.order))

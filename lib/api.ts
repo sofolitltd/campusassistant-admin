@@ -427,6 +427,14 @@ export interface Banner {
   created_at: string;
 }
 
+export interface AppConfig {
+  id: number;
+  min_supported_version_code: number;
+  update_message: string;
+  play_store_url: string;
+  updated_at: string;
+}
+
 export interface Notice {
   id: string;
   uploader: string;
@@ -1669,6 +1677,12 @@ export const api = {
       fetchWithAuth(`/banners/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/banners/${id}`, { method: 'DELETE' }),
+  },
+  appConfig: {
+    get: (): Promise<AppConfig> =>
+      fetchWithAuth('/app-config'),
+    update: (data: Partial<AppConfig>): Promise<AppConfig> =>
+      fetchWithAuth('/app-config', { method: 'PUT', body: JSON.stringify(data) }),
   },
   notices: {
     getAllByDepartment: (deptId: string): Promise<Notice[]> =>

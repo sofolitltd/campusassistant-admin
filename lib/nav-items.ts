@@ -19,6 +19,7 @@ import {
   Wallet,
   ScrollText,
   BadgeCheck,
+  Smartphone,
   type LucideIcon,
 } from "lucide-react"
 
@@ -93,6 +94,7 @@ export const navStructure: NavEntry[] = [
     items: [
       { title: "Admins", href: "/admins", icon: Shield },
       { title: "Logs", href: "/logs", icon: ScrollText },
+      { title: "App Version", href: "/app-version", icon: Smartphone },
     ],
   },
 ]

@@ -128,9 +128,10 @@
     --primary: #4db6ac;
     --primary-foreground: #06201d;
     --primary-subtle: #1f3b38;
-    /* Matches the Flutter app's `primaryPressed` (dark): Teal 400, the
-       light theme's primary shade reused as the gradient's other stop. */
-    --primary-pressed: #26a69a;
+    /* Matches the Flutter app's `primaryPressed` (dark): a deeper teal than
+       `--primary` (not the light theme's primary shade reused — that read as
+       near-flat) so the gradient keeps real contrast on dark backgrounds. */
+    --primary-pressed: #0f6358;
 
     --secondary: #232929;
     --secondary-foreground: #eaf0ef;
