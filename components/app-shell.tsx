@@ -58,7 +58,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <ProfileAvatar />
         </header>
         <main className="flex-1 overflow-y-auto p-4 md:p-8 text-foreground">
-          {children}
+          <div className="page-wide">{children}</div>
         </main>
       </div>
     </CommandPaletteProvider>

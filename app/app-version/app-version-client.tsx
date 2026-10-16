@@ -53,7 +53,7 @@ export default function AppVersionClient({ initialConfig }: { initialConfig: App
   }
 
   return (
-    <div className="max-w-2xl space-y-6 lg:mx-0">
+    <div className="page-narrow space-y-6">
       <div>
         <h1 className="text-xl font-bold tracking-tight">App Version</h1>
         <p className="text-sm text-muted-foreground">

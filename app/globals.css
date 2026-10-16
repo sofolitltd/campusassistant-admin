@@ -182,3 +182,23 @@
     background-image: linear-gradient(135deg, var(--primary-pressed), var(--primary));
   }
 }
+
+/* Page width system. AppShell wraps every route in `page-wide`; narrower pages
+   nest one of the others inside it (all centred), so a page never has to
+   think about the viewport. wide = lists/dashboards/details, form = add/edit
+   forms (2-col + sidebar), narrow = single-column settings-style pages. */
+@utility page-wide {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 80rem;
+}
+@utility page-form {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 64rem;
+}
+@utility page-narrow {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 42rem;
+}

@@ -30,7 +30,7 @@ export function CommissionClient() {
   }
 
   return (
-    <div className="max-w-2xl space-y-4">
+    <div className="page-narrow space-y-4">
       <ErrorBanner message={error} />
       <Card>
         <form onSubmit={save} className="space-y-5 p-6">

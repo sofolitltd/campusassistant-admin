@@ -11,7 +11,7 @@ export default function AddDepartmentBannerPage() {
   const deptId = params.deptId as string
 
   return (
-    <div className="space-y-8 pb-32 md:pb-8">
+    <div className="page-form space-y-8 pb-32 md:pb-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href={`/universities/${universityId}/departments/${deptId}?tab=banners`} className="rounded-full p-2 hover:bg-accent transition-colors border">

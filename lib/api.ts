@@ -540,6 +540,48 @@ export interface Skill {
 
 export type MerchantStatus = 'pending' | 'approved' | 'rejected';
 
+// Referral program (see campusassistant-api domain/referral.go). Rewards are
+// paid when a referred user gets verified, so "verified" = paid out.
+export interface ReferralTotals {
+  codes_issued: number
+  referred_users: number
+  verified_referrals: number
+  pending_referrals: number
+  points_paid: number
+  referred_in_window: number
+  verified_in_window: number
+}
+
+export interface ReferralLeaderboardEntry {
+  user_id: string
+  first_name: string
+  last_name: string
+  email: string
+  university_name: string
+  referral_code: string
+  invited: number
+  verified: number
+}
+
+export interface RecentReferral {
+  referee_id: string
+  referee_first_name: string
+  referee_last_name: string
+  referee_email: string
+  referrer_first_name: string
+  referrer_last_name: string
+  referrer_code: string
+  joined_at: string
+  rewarded_at: string | null
+}
+
+export interface ReferralAdminStats {
+  days: number
+  totals: ReferralTotals
+  leaderboard: ReferralLeaderboardEntry[]
+  recent: RecentReferral[]
+}
+
 export interface FeedbackItem {
   id: string;
   user_id: string;
@@ -1794,6 +1836,11 @@ export const api = {
       fetchWithAuth(`/subscription-plans/${planId}/entitlements`),
     set: (planId: string, entitlements: PlanEntitlement[]): Promise<{ entitlements: PlanEntitlement[] }> =>
       fetchWithAuth(`/subscription-plans/${planId}/entitlements`, { method: 'PUT', body: JSON.stringify({ entitlements }) }),
+  },
+  referrals: {
+    /** days = 0 means all time. */
+    getStats: (days = 30): Promise<ReferralAdminStats> =>
+      fetchWithAuth(`/referrals/stats?days=${days}`),
   },
   feedback: {
     getAll: (params?: string): Promise<PaginatedResponse<FeedbackItem>> =>
