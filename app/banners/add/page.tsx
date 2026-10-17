@@ -6,7 +6,7 @@ import Link from "next/link"
 
 export default function AddNationalBannerPage() {
   return (
-    <div className="space-y-8 pb-32 md:pb-8">
+    <div className="page-form space-y-8 pb-32 md:pb-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/banners" className="rounded-full p-2 hover:bg-accent transition-colors border">

@@ -6,7 +6,7 @@ import { CareerCircularForm } from "@/components/CareerCircularForm"
 
 export default function AddCareerCircularPage() {
   return (
-    <div className="space-y-6">
+    <div className="page-form space-y-6">
       <Link
         href="/career"
         className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"

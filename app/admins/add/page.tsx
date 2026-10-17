@@ -30,7 +30,7 @@ export default function AddAdminPage() {
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-6">
+    <div className="page-narrow space-y-6">
       <div>
         <button
           onClick={() => router.push("/admins")}

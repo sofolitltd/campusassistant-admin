@@ -19,6 +19,8 @@ import {
   Wallet,
   ScrollText,
   BadgeCheck,
+  Smartphone,
+  Gift,
   type LucideIcon,
 } from "lucide-react"
 
@@ -85,6 +87,7 @@ export const navStructure: NavEntry[] = [
       { title: "Skills", href: "/skills", icon: Sparkles },
       { title: "Notifications", href: "/notifications", icon: Bell },
       { title: "Feedback", href: "/feedback", icon: MessageSquare },
+      { title: "Referrals", href: "/referrals", icon: Gift },
     ],
   },
   {
@@ -93,6 +96,7 @@ export const navStructure: NavEntry[] = [
     items: [
       { title: "Admins", href: "/admins", icon: Shield },
       { title: "Logs", href: "/logs", icon: ScrollText },
+      { title: "App Version", href: "/app-version", icon: Smartphone },
     ],
   },
 ]
