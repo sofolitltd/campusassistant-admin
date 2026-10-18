@@ -15,6 +15,7 @@ import {
   Briefcase,
   Shield,
   TicketPercent,
+  PartyPopper,
   MessageSquare,
   Wallet,
   ScrollText,
@@ -77,6 +78,7 @@ export const navStructure: NavEntry[] = [
       { title: "Subscriptions", href: "/subscriptions", icon: CreditCard },
       { title: "Billing", href: "/billing", icon: Wallet },
       { title: "Coupons", href: "/coupons", icon: TicketPercent },
+      { title: "Access Grants", href: "/access-grants", icon: PartyPopper },
     ],
   },
   {

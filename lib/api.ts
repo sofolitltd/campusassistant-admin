@@ -540,6 +540,38 @@ export interface Skill {
 
 export type MerchantStatus = 'pending' | 'approved' | 'rejected';
 
+// Access grants (see campusassistant-api domain/access_grant.go): time-boxed
+// ad-free / coin-free perks for everyone, a university, department, batch or
+// one user. new_user_days > 0 limits a grant to accounts younger than that.
+export type AccessGrantScope = 'all' | 'university' | 'department' | 'batch' | 'user'
+
+export interface AccessGrant {
+  id: string
+  label: string
+  scope_type: AccessGrantScope
+  scope_id?: string
+  scope_name: string
+  ad_free: boolean
+  coin_free: boolean
+  starts_at: string
+  ends_at?: string | null
+  new_user_days: number
+  users_in_scope: number
+  is_active: boolean
+  created_at: string
+}
+
+export interface AccessGrantInput {
+  label: string
+  scope_type: AccessGrantScope
+  scope_id?: string
+  ad_free: boolean
+  coin_free: boolean
+  starts_at?: string
+  ends_at?: string | null
+  new_user_days: number
+}
+
 // Referral program (see campusassistant-api domain/referral.go). Rewards are
 // paid when a referred user gets verified, so "verified" = paid out.
 export interface ReferralTotals {
@@ -1836,6 +1868,18 @@ export const api = {
       fetchWithAuth(`/subscription-plans/${planId}/entitlements`),
     set: (planId: string, entitlements: PlanEntitlement[]): Promise<{ entitlements: PlanEntitlement[] }> =>
       fetchWithAuth(`/subscription-plans/${planId}/entitlements`, { method: 'PUT', body: JSON.stringify({ entitlements }) }),
+  },
+  accessGrants: {
+    getAll: (): Promise<AccessGrant[]> =>
+      fetchWithAuth('/access-grants'),
+    create: (data: AccessGrantInput): Promise<AccessGrant> =>
+      fetchWithAuth('/access-grants', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: AccessGrantInput): Promise<AccessGrant> =>
+      fetchWithAuth(`/access-grants/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    end: (id: string) =>
+      fetchWithAuth(`/access-grants/${id}/end`, { method: 'POST' }),
+    delete: (id: string) =>
+      fetchWithAuth(`/access-grants/${id}`, { method: 'DELETE' }),
   },
   referrals: {
     /** days = 0 means all time. */
