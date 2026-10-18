@@ -160,18 +160,23 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
   async function handleFilePick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    // The app opens every resource in its PDF viewer, so only PDFs work there.
+    if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      e.target.value = ""
+      setError("Only PDF files are supported")
+      return
+    }
+    setError("")
     setPickedFile(file)
     setThumbnailBlob(null)
-    
-    if (file.type === "application/pdf") {
-      try {
-        const { generatePdfMetadata } = await import("@/lib/pdf-helper")
-        const { thumbnail, pageCount } = await generatePdfMetadata(file)
-        setThumbnailBlob(thumbnail)
-        if (pageCount) setMetaPages(String(pageCount))
-      } catch (err) {
-        console.error("PDF Preview failed:", err)
-      }
+
+    try {
+      const { generatePdfMetadata } = await import("@/lib/pdf-helper")
+      const { thumbnail, pageCount } = await generatePdfMetadata(file)
+      setThumbnailBlob(thumbnail)
+      if (pageCount) setMetaPages(String(pageCount))
+    } catch (err) {
+      console.error("PDF Preview failed:", err)
     }
   }
 
@@ -247,11 +252,11 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
                   </div>
                   <div className="text-center">
                     <p className="text-sm font-bold">Choose Resource File</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black mt-1">PDF, DOCX, ZIP or IMAGE</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black mt-1">PDF only</p>
                   </div>
                 </button>
               )}
-              <input ref={fileInputRef} type="file" onChange={handleFilePick} className="hidden" />
+              <input ref={fileInputRef} type="file" accept="application/pdf,.pdf" onChange={handleFilePick} className="hidden" />
             </div>
 
             {type === "video" && (
