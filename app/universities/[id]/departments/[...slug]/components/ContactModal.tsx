@@ -5,6 +5,16 @@ import { api, EmergencyContact } from "@/lib/api"
 import { Modal, Field, inputCls } from "./SharedUI"
 import { Save, AlertCircle, ToggleLeft, ToggleRight, ShieldCheck } from "lucide-react"
 
+export const CONTACT_CATEGORIES = [
+  { value: "Administrative", label: "Administrative" },
+  { value: "Medical", label: "Medical / Hospital" },
+  { value: "Security", label: "Security / Police" },
+  { value: "Fire Service", label: "Fire Service" },
+  { value: "Transport", label: "Transport" },
+  { value: "Student Service", label: "Student Service" },
+  { value: "Other", label: "Other" },
+]
+
 interface ContactModalProps {
   open: boolean
   onClose: () => void
@@ -143,13 +153,7 @@ export function ContactModal({ open, onClose, contact, universityId, departmentI
             </Field>
             <Field label="Category" required>
               <select value={category} onChange={e => setCategory(e.target.value)} className={inputCls}>
-                <option value="Administrative">Administrative</option>
-                <option value="Medical">Medical / Hospital</option>
-                <option value="Security">Security / Police</option>
-                <option value="Fire Service">Fire Service</option>
-                <option value="Transport">Transport</option>
-                <option value="Student Service">Student Service</option>
-                <option value="Other">Other</option>
+                {CONTACT_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </Field>
           </div>

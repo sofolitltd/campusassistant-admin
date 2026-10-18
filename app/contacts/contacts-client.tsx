@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { 
   Search, Plus, MoreVertical, Loader2, Pencil, Trash2, X, Phone,
-  ShieldAlert, Mail, MapPin, BadgeCheck, Globe, Building2, GraduationCap
+  ShieldAlert, Mail, MapPin, BadgeCheck, Globe, Building2, GraduationCap, Upload
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
@@ -11,6 +11,7 @@ import { api, EmergencyContact } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { ConfirmDelete } from "@/app/universities/[id]/departments/[...slug]/components/SharedUI"
 import { ContactModal } from "@/app/universities/[id]/departments/[...slug]/components/ContactModal"
+import { BulkImportModal } from "./components/BulkImportModal"
 
 interface ContactsClientProps {
   initialContacts: EmergencyContact[]
@@ -30,6 +31,7 @@ export default function ContactsClient({ initialContacts }: ContactsClientProps)
   // Modal State
   const [modalOpen, setModalOpen] = useState(false)
   const [editingContact, setEditingContact] = useState<EmergencyContact | null>(null)
+  const [bulkOpen, setBulkOpen] = useState(false)
 
   const handleSearch = (term: string) => {
     setSearchTerm(term)
@@ -70,16 +72,25 @@ export default function ContactsClient({ initialContacts }: ContactsClientProps)
           <h1 className="text-xl font-bold tracking-tight">Emergency Contacts</h1>
           <p className="text-sm text-muted-foreground">Manage platform-wide helplines and administrative contacts.</p>
         </div>
-        <button 
-          onClick={() => {
-            setEditingContact(null)
-            setModalOpen(true)
-          }}
-          className="flex items-center justify-center gap-2 rounded-lg bg-primary-gradient px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-90 transition-all active:scale-95 w-max whitespace-nowrap flex-shrink-0"
-        >
-          <Plus className="h-4 w-4" />
-          Add Contact
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setBulkOpen(true)}
+            className="flex items-center justify-center gap-2 rounded-lg border bg-card px-5 py-2.5 text-sm font-bold shadow-sm hover:bg-muted transition-all active:scale-95 w-max whitespace-nowrap flex-shrink-0"
+          >
+            <Upload className="h-4 w-4" />
+            Bulk Import
+          </button>
+          <button
+            onClick={() => {
+              setEditingContact(null)
+              setModalOpen(true)
+            }}
+            className="flex items-center justify-center gap-2 rounded-lg bg-primary-gradient px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-sm hover:opacity-90 transition-all active:scale-95 w-max whitespace-nowrap flex-shrink-0"
+          >
+            <Plus className="h-4 w-4" />
+            Add Contact
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 items-center">
@@ -264,6 +275,12 @@ export default function ContactsClient({ initialContacts }: ContactsClientProps)
         onSuccess={() => {
           router.refresh()
         }}
+      />
+
+      <BulkImportModal
+        open={bulkOpen}
+        onClose={() => setBulkOpen(false)}
+        onSuccess={() => router.refresh()}
       />
     </div>
   )
