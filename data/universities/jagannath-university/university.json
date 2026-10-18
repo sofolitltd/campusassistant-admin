@@ -1,0 +1,17 @@
+{
+  "_source": "jnu.ac.bd (About, JnU at a Glance, footer); campus_area and coordinates from en.wikipedia.org/wiki/Jagannath_University. Collected 2026-10-18.",
+  "name": "Jagannath University",
+  "acronym": "JnU",
+  "slug": "jagannath-university",
+  "established_year": "2005",
+  "total_faculties": "7",
+  "total_departments": "38",
+  "total_halls": "1",
+  "campus_area": "10 acres",
+  "about": "Jagannath University is a public university in Old Dhaka, near the Buriganga river. It traces its roots to Dhaka Brahma School (1858), later Jagannath School and then Jagannath College (1884), and became a public university under the Jagannath University Act 2005. It has 7 faculties, 38 departments and 2 institutes; a 200-acre new campus in Keraniganj is under construction.",
+  "address": "9-10, Chittaranjan Avenue, Dhaka 1100",
+  "latitude": 23.71028,
+  "longitude": 90.41111,
+  "website_url": "https://jnu.ac.bd",
+  "logo": "logo.webp"
+}

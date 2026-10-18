@@ -1,0 +1,17 @@
+{
+  "_source": "hstu.ac.bd (home 'At a glance', faculties_and_departments, living, contacts); campus_area, coordinates and history from en.wikipedia.org/wiki/Hajee_Mohammad_Danesh_Science_&_Technology_University. Collected 2026-10-19.",
+  "name": "Hajee Mohammad Danesh Science and Technology University",
+  "acronym": "HSTU",
+  "slug": "hajee-mohammad-danesh-science-and-technology-university",
+  "established_year": "1999",
+  "total_faculties": "9",
+  "total_departments": "45",
+  "total_halls": "9",
+  "campus_area": "85 acres",
+  "about": "Hajee Mohammad Danesh Science and Technology University is a public university in Dinajpur, Rangpur Division. It began in 1979 as an Agricultural Extension Training Institute, became Hajee Mohammad Danesh Agricultural College in 1988, and was upgraded to a university in 1999; its Act was passed in 2001. It has 9 faculties and 45 departments, with around 11,000 students.",
+  "address": "Dinajpur 5200",
+  "latitude": 25.698,
+  "longitude": 88.655,
+  "website_url": "https://hstu.ac.bd",
+  "logo": "logo.webp"
+}

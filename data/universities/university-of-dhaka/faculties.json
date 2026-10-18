@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Faculty of Arts"
+  },
+  {
+    "name": "Faculty of Science"
+  },
+  {
+    "name": "Faculty of Law"
+  },
+  {
+    "name": "Faculty of Business Studies"
+  },
+  {
+    "name": "Faculty of Social Sciences"
+  },
+  {
+    "name": "Faculty of Biological Sciences"
+  },
+  {
+    "name": "Faculty of Pharmacy"
+  },
+  {
+    "name": "Faculty of Earth and Environmental Sciences"
+  },
+  {
+    "name": "Faculty of Engineering and Technology"
+  },
+  {
+    "name": "Faculty of Fine Art"
+  },
+  {
+    "name": "Faculty of Education",
+    "_note": "No departments listed on du.ac.bd"
+  },
+  {
+    "name": "Faculty of Medicine",
+    "_note": "Affiliated medical colleges; no departments listed"
+  },
+  {
+    "name": "Faculty of Postgraduate Medical Sciences and Research",
+    "_note": "No departments listed"
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "_source": "cu.ac.bd home + faculty-dept-inst page; coordinates from en.wikipedia.org/wiki/University_of_Chittagong. Collected 2026-10-19. Official list: 51 departments + 4 teaching institutes (IML, IFA, IFES, IER); Social Science Research Institute and the centres/bureaus are research-only and left out.",
+  "name": "University of Chittagong",
+  "acronym": "CU",
+  "slug": "university-of-chittagong",
+  "established_year": "1966",
+  "total_faculties": "10",
+  "total_departments": "51",
+  "total_halls": "14",
+  "campus_area": "2312.32 acres",
+  "about": "The University of Chittagong is a public research university that opened on 18 November 1966. Its hilly 2312.32-acre campus lies in mauja Fatehpur, Hathazari upazila, about 22 km north of Chattogram city. It has 10 faculties with 51 departments and 4 institutes.",
+  "address": "Fatehpur, Hathazari, Chattogram",
+  "latitude": 22.4699,
+  "longitude": 91.7904,
+  "website_url": "https://cu.ac.bd",
+  "logo": "logo.webp"
+}

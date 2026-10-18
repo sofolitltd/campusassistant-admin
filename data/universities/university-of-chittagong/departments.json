@@ -1,0 +1,66 @@
+[
+  { "name": "Department of Bangla", "faculty": "Faculty of Arts and Humanities", "website_url": "https://cu.ac.bd/bangla/" },
+  { "name": "Department of English", "faculty": "Faculty of Arts and Humanities", "website_url": "https://cu.ac.bd/english" },
+  { "name": "Department of History", "faculty": "Faculty of Arts and Humanities", "website_url": "https://cu.ac.bd/history" },
+  { "name": "Department of Philosophy", "faculty": "Faculty of Arts and Humanities", "established_year": 1973, "about": "Founded in 1973, the department is one of the oldest in the Faculty of Arts and Humanities. It began with Bachelor (Honours) and MA degrees and later added MPhil and PhD programmes, with a focus on Western and modern philosophy.", "website_url": "https://cu.ac.bd/philosophy" },
+  { "name": "Department of Islamic History and Culture", "faculty": "Faculty of Arts and Humanities", "established_year": 1974, "about": "Founded in 1974 to produce graduates with specialised knowledge of Muslim history and culture. It started with a three-year Honours and one-year Master's programme.", "website_url": "https://cu.ac.bd/ihc" },
+  { "name": "Department of Arabic", "faculty": "Faculty of Arts and Humanities", "website_url": "https://cu.ac.bd/arabic" },
+  { "name": "Department of Islamic Studies", "faculty": "Faculty of Arts and Humanities", "website_url": "https://cu.ac.bd/istd" },
+  { "name": "Department of Dramatics", "faculty": "Faculty of Arts and Humanities", "website_url": "https://cu.ac.bd/dramatics" },
+  { "name": "Department of Persian Language and Literature", "faculty": "Faculty of Arts and Humanities", "website_url": "https://cu.ac.bd/pll" },
+  { "name": "Department of Pali", "faculty": "Faculty of Arts and Humanities", "website_url": "https://cu.ac.bd/pali" },
+  { "name": "Department of Sanskrit", "faculty": "Faculty of Arts and Humanities", "established_year": 1974, "about": "One of the university's oldest departments, it began on 31 October 1974 as part of the Department of Oriental Languages. It promotes Sanskrit language, literature, philosophy and Indological studies.", "website_url": "https://cu.ac.bd/sanskrit" },
+  { "name": "Department of Music", "faculty": "Faculty of Arts and Humanities", "website_url": "https://cu.ac.bd/music" },
+  { "name": "Department of Bangladesh Studies", "faculty": "Faculty of Arts and Humanities", "website_url": "https://cu.ac.bd/dbs" },
+  { "name": "Institute of Modern Languages", "acronym": "IML", "faculty": "Faculty of Arts and Humanities", "established_year": 2002, "about": "The institute grew out of language courses the Faculty of Arts introduced in 1982. Its foundation was approved by the Syndicate on 12 August 2002, and it teaches English and other modern languages.", "website_url": "https://cu.ac.bd/iml/" },
+  { "name": "Institute of Fine Arts", "faculty": "Faculty of Arts and Humanities", "website_url": "https://cu.ac.bd/iofa" },
+
+  { "name": "Department of Physics", "faculty": "Faculty of Science", "about": "One of the largest physics departments in Bangladesh, with 35 permanent academic staff and over 500 undergraduate and graduate students, supported by extensive workshop and technical facilities.", "website_url": "https://cu.ac.bd/physics" },
+  { "name": "Department of Chemistry", "faculty": "Faculty of Science", "established_year": 1968, "about": "Founded in 1968 under the Faculty of Science, the department first ran only an MSc programme; its BSc (Honours) course started in 1971.", "website_url": "https://cu.ac.bd/chemistry" },
+  { "name": "Department of Mathematics", "faculty": "Faculty of Science", "established_year": 1968, "about": "Established in 1968, the department has around 25 faculty members covering pure and applied mathematics, including mathematical physics, relativity, cosmology and operations research.", "website_url": "https://cu.ac.bd/mathematics" },
+  { "name": "Department of Statistics", "faculty": "Faculty of Science", "website_url": "https://cu.ac.bd/statistics" },
+  { "name": "Department of Applied Chemistry and Chemical Engineering", "faculty": "Faculty of Science", "established_year": 2011, "about": "Inaugurated in 2011, the department trains professional applied and environmental chemists, with the theme of contributing to eco-friendly industrial development.", "website_url": "https://cu.ac.bd/dacce" },
+  { "name": "Institute of Forestry and Environmental Sciences", "acronym": "IFESCU", "faculty": "Faculty of Science", "established_year": 1976, "about": "Established in 1976 as the Institute of Forestry and renamed the Institute of Forestry and Environmental Sciences in 1996. It is on the university's south campus.", "website_url": "https://cu.ac.bd/ifes" },
+
+  { "name": "Department of Accounting", "faculty": "Faculty of Business Administration", "established_year": 1971, "about": "Its foundation was laid in 1968 and it started functioning in 1971 under the Faculty of Commerce, offering Bachelor and Master of Commerce. It is a major supplier of accounting graduates to the public and private sectors.", "website_url": "https://cu.ac.bd/acc" },
+  { "name": "Department of Management", "acronym": "DOM", "faculty": "Faculty of Business Administration", "established_year": 1970, "about": "Started under the Faculty of Commerce following a 1970 Syndicate decision, the department pioneered the BBA programme in Bangladesh in 1988.", "website_url": "https://cu.ac.bd/mgt" },
+  { "name": "Department of Finance", "faculty": "Faculty of Business Administration", "website_url": "https://cu.ac.bd/fin" },
+  { "name": "Department of Marketing", "faculty": "Faculty of Business Administration", "established_year": 1992, "about": "Launched on 1 November 1992 by ten faculty members, the department has over 700 students in its BBA, MBA, MPhil and PhD programmes.", "website_url": "https://cu.ac.bd/mrkt" },
+  { "name": "Department of Human Resource Management", "acronym": "HRM", "faculty": "Faculty of Business Administration", "established_year": 2013, "about": "Established in 2013 to meet the demand for specialised expertise in people and organisational development.", "website_url": "https://cu.ac.bd/hrm" },
+  { "name": "Department of Banking and Insurance", "faculty": "Faculty of Business Administration", "established_year": 2013, "about": "Started in 2013 to build specialised expertise in banking, insurance and the financial sector. It offers a four-year BBA programme.", "website_url": "https://cu.ac.bd/dbi" },
+
+  { "name": "Department of Economics", "faculty": "Faculty of Social Sciences", "website_url": "https://cu.ac.bd/eco" },
+  { "name": "Department of Political Science", "faculty": "Faculty of Social Sciences", "website_url": "https://cu.ac.bd/dps" },
+  { "name": "Department of Sociology", "faculty": "Faculty of Social Sciences", "website_url": "https://cu.ac.bd/socio" },
+  { "name": "Department of Public Administration", "faculty": "Faculty of Social Sciences", "website_url": "https://cu.ac.bd/dpa" },
+  { "name": "Department of Anthropology", "faculty": "Faculty of Social Sciences", "website_url": "https://cu.ac.bd/anthro" },
+  { "name": "Department of International Relations", "faculty": "Faculty of Social Sciences", "established_year": 2004, "about": "Established on 25 November 2004 with 11 students, the department studies diplomacy, international law, security studies and global governance.", "website_url": "https://cu.ac.bd/dir" },
+  { "name": "Department of Communication and Journalism", "faculty": "Faculty of Social Sciences", "established_year": 1994, "about": "Launched as the Department of Journalism on 8 December 1994 with two teachers and 23 students, and renamed Communication and Journalism in 2003.", "website_url": "https://cu.ac.bd/caj" },
+  { "name": "Department of Criminology and Police Science", "faculty": "Faculty of Social Sciences", "website_url": "https://cu.ac.bd/cps" },
+  { "name": "Department of Development Studies", "faculty": "Faculty of Social Sciences", "website_url": "https://cu.ac.bd/dds" },
+
+  { "name": "Department of Law", "faculty": "Faculty of Law", "established_year": 1992, "about": "Established in 1992, the department admits 130 students a year to its LLB (Honours) programme through a competitive admission test, and also offers an LLM.", "website_url": "https://cu.ac.bd/law" },
+
+  { "name": "Department of Zoology", "faculty": "Faculty of Biological Sciences", "website_url": "https://cu.ac.bd/zoology" },
+  { "name": "Department of Botany", "faculty": "Faculty of Biological Sciences", "website_url": "https://cu.ac.bd/botany" },
+  { "name": "Department of Geography and Environmental Studies", "faculty": "Faculty of Biological Sciences", "established_year": 1996, "about": "Started as the Department of Geography on 4 June 1996 and renamed Geography and Environmental Studies in 2005. It has 18 faculty members and around 300 students.", "website_url": "https://cu.ac.bd/dges" },
+  { "name": "Department of Biochemistry and Molecular Biology", "acronym": "BMB", "faculty": "Faculty of Biological Sciences", "about": "The department teaches and researches biochemistry and molecular biology; its graduates work in pharmaceuticals, diagnostics, health and agro-based industries.", "website_url": "https://cu.ac.bd/dbmb" },
+  { "name": "Department of Microbiology", "faculty": "Faculty of Biological Sciences", "website_url": "https://cu.ac.bd/microbiology" },
+  { "name": "Department of Soil Science", "faculty": "Faculty of Biological Sciences", "about": "One of the prominent departments of the Faculty of Biological Sciences.", "website_url": "https://cu.ac.bd/soil" },
+  { "name": "Department of Genetic Engineering and Biotechnology", "acronym": "GEB", "faculty": "Faculty of Biological Sciences", "about": "A research-oriented, multidisciplinary department studying the molecular and genetic basis of life, with applications in agriculture, health, disease diagnosis and biopharmaceuticals.", "website_url": "https://cu.ac.bd/dgeb" },
+  {"name": "Department of Psychology", "acronym": "PSY", "faculty": "Faculty of Biological Sciences", "established_year": 2005, "about": "The Department of Psychology was established in 2005 under the Faculty of Biological Sciences. It offers BSc (Honours), MS, MPhil and PhD programmes, with teaching and research in areas such as stress and health, ageing, community mental health and neuropsychological assessment.", "website_url": "https://psycu.net"},
+  { "name": "Department of Pharmacy", "faculty": "Faculty of Biological Sciences", "website_url": "https://cu.ac.bd/pharmacy" },
+
+  { "name": "Department of Computer Science and Engineering", "acronym": "CSE", "faculty": "Faculty of Engineering", "established_year": 2001, "about": "The department launched its undergraduate programme in 2001 and its postgraduate programme in 2010. It has 22 faculty members and around 400 students.", "website_url": "https://cu.ac.bd/cse" },
+  { "name": "Department of Electrical and Electronic Engineering", "acronym": "EEE", "faculty": "Faculty of Engineering", "established_year": 2001, "about": "The department launched its undergraduate programme in 2001 and its postgraduate programme in 2010. It has 23 faculty members and around 400 students.", "website_url": "https://cu.ac.bd/eee" },
+
+  { "name": "Department of Physical Education and Sports Science", "faculty": "Faculty of Education", "website_url": "https://cu.ac.bd/pess" },
+  { "name": "Institute of Education and Research", "acronym": "IER", "faculty": "Faculty of Education", "website_url": "https://cu.ac.bd/ier" },
+
+  { "name": "Department of Marine Sciences", "faculty": "Faculty of Marine Sciences and Fisheries", "website_url": "https://cu.ac.bd/ims" },
+  { "name": "Department of Oceanography", "faculty": "Faculty of Marine Sciences and Fisheries", "about": "The first academic centre in Bangladesh dedicated to the advanced study of ocean and coastal systems, located near the Bay of Bengal.", "website_url": "https://cu.ac.bd/oceanography" },
+  { "name": "Department of Fisheries", "faculty": "Faculty of Marine Sciences and Fisheries", "established_year": 2018, "about": "Operating since 2018, the department offers fisheries education built on an internationally standard curriculum.", "website_url": "https://cu.ac.bd/fisheries" },
+
+  { "name": "Department of Paediatrics", "faculty": "Faculty of Medicine", "_note": "Listed on the official faculty page, but its link goes to the homepage — no details published." },
+  { "name": "Department of Community Ophthalmology", "faculty": "Faculty of Medicine", "website_url": "https://cu.ac.bd/opthalmology" }
+]
