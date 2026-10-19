@@ -1,0 +1,17 @@
+[
+  { "_source": "Official list at cu.ac.bd/residence-halls (14 halls + 1 hostel). Renames per Syndicate decision, Feb 2025 (Jugantor, Dainik Azadi, Somoy News).", "name": "Alaol Hall" },
+  { "name": "A. F. Rahman Hall" },
+  { "name": "Shahjalal Hall" },
+  { "name": "Suhrawardy Hall", "formerly": "Shohwardi Hall" },
+  { "name": "Shah Amanat Hall" },
+  { "name": "Shamsun Nahar Hall" },
+  { "name": "Shaheed Abdur Rab Hall" },
+  { "name": "Pritilata Hall" },
+  { "name": "Deshnetri Begum Khaleda Zia Hall" },
+  { "name": "Masterda Surja Sen Hall" },
+  { "name": "Shaheed Farhad Hossain Hall", "_note": "Formerly Bangabandhu Sheikh Mujibur Rahman Hall; that old name is not in our DB." },
+  { "name": "Bijoy 24 Hall", "formerly": "Jananetri Sheikh Hasina Hall" },
+  { "name": "Nawab Faizunnesa Hall", "formerly": "Bongomata Sheikh Fazilatunnesa Mujib Hall" },
+  { "name": "Atish Dipangkar Hall" },
+  { "name": "Shilpi Rashid Chowdhury Hostel" }
+]

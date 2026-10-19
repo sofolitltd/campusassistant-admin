@@ -1,0 +1,4 @@
+[
+  { "_source": "juniv.edu/page/contact-us + /office/registrar-office. The Medical Centre and Proctor pages publish no numbers yet ('coming soon'), so they are left out.", "title": "JU Registrar Office (Main Line)", "designation": "Registrar · PABX 02224491045-51, Ext. 1204", "phone": "02224491040", "email": "registrar@juniv.edu", "category": "Administrative", "description": "রেজিস্ট্রার অফিস, নতুন রেজিস্ট্রার ভবন (১ম তলা)। PABX: 02224491045-51 — মেডিকেল সেন্টার বা অন্য দপ্তরের জন্য PABX-এ কল করে এক্সটেনশন চাইবেন। জাহাঙ্গীরনগর বিশ্ববিদ্যালয়, সাভার, ঢাকা ১৩৪২।", "is_verified": true },
+  { "_source": "juniv.edu/office/transport-office", "title": "JU Transport Office", "designation": "Transport inquiry · until 2 PM", "phone": "01719-832501", "category": "Transport", "description": "পরিবহন অনুসন্ধান। বেলা ২টা পর্যন্ত 01719-832501, বেলা ২টা থেকে 01674-286775। PABX Ext. 1248।", "is_verified": true }
+]

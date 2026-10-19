@@ -1,7 +1,9 @@
 "use client"
 
-import { Department, University } from "@/lib/api"
-import { Building2, CalendarDays, ExternalLink, MapPin, Share2, Globe, Pencil, Layers, GraduationCap, Home, Maximize, School, Sparkles } from "lucide-react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { api, Department, Faculty, University } from "@/lib/api"
+import { Building2, CalendarDays, ExternalLink, MapPin, Share2, Globe, Pencil, Layers, GraduationCap, Home, Maximize, School, Sparkles, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 
@@ -47,11 +49,66 @@ function CampusFact({ label, value, icon: Icon, tone }: { label: string; value: 
   )
 }
 
+// Inline faculty assignment, so an unassigned department can be fixed without
+// opening the full edit form.
+function FacultyPicker({ department, onChange }: { department: Department; onChange: (faculty: Faculty | null) => void }) {
+  const router = useRouter()
+  const [faculties, setFaculties] = useState<Faculty[]>([])
+  const [facultyId, setFacultyId] = useState(department.faculty_id || "")
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    api.faculties.getAllByUniversity(department.university_id).then(setFaculties).catch(console.error)
+  }, [department.university_id])
+
+  async function handleChange(next: string) {
+    const previous = facultyId
+    setFacultyId(next)
+    setSaving(true)
+    try {
+      // Explicit null (not omitted) so choosing "Unassigned" clears it on the backend.
+      await api.departments.update(department.id, { faculty_id: next || null })
+      onChange(faculties.find(f => f.id === next) ?? null)
+      router.refresh()
+    } catch (err: any) {
+      setFacultyId(previous)
+      alert(err.message || "Failed to update faculty")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <span className="flex items-center gap-2">
+      <select
+        value={facultyId}
+        onChange={e => handleChange(e.target.value)}
+        disabled={saving}
+        className={cn(
+          "w-full min-w-0 truncate rounded-md border bg-background px-2 py-1 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-60",
+          !facultyId && "border-warning text-warning",
+        )}
+      >
+        <option value="">Unassigned</option>
+        {faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+      </select>
+      {saving && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />}
+    </span>
+  )
+}
+
 export function AboutTab({ department, university }: AboutTabProps) {
+  const [faculty, setFaculty] = useState<Faculty | null>(department.faculty ?? null)
+
   const stats: { label: string; value: React.ReactNode; icon: React.ElementType; tone: Tone }[] = [
     { label: "Established", value: department.established_year || "N/A", icon: CalendarDays, tone: "primary" },
     { label: "Acronym", value: department.acronym || "N/A", icon: Building2, tone: "info" },
-    { label: "Faculty", value: department.faculty?.name || "Unassigned", icon: Layers, tone: "warning" },
+    {
+      label: "Faculty",
+      value: university ? <FacultyPicker department={department} onChange={setFaculty} /> : faculty?.name || "Unassigned",
+      icon: Layers,
+      tone: "warning",
+    },
     { label: "Website", value: department.website_url ? "Available" : "Not Set", icon: Globe, tone: department.website_url ? "success" : "warning" },
   ]
 
@@ -81,9 +138,9 @@ export function AboutTab({ department, university }: AboutTabProps) {
                 <span className="inline-flex items-center gap-1 rounded-full bg-primary-gradient px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-primary-foreground">
                   <Sparkles className="h-3 w-3" /> Department
                 </span>
-                {department.faculty?.name && (
+                {faculty?.name && (
                   <span className="rounded-full border bg-card px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                    {department.faculty.name}
+                    {faculty.name}
                   </span>
                 )}
               </div>

@@ -1,0 +1,17 @@
+{
+  "_source": "ru.ac.bd (home, faculties, academic/department, academic/institutes, facilities/residence-hall, contact); coordinates and history from en.wikipedia.org/wiki/University_of_Rajshahi. Collected 2026-10-19.",
+  "name": "University of Rajshahi",
+  "acronym": "RU",
+  "slug": "university-of-rajshahi",
+  "established_year": "1953",
+  "total_faculties": "12",
+  "total_departments": "59",
+  "total_halls": "20",
+  "campus_area": "753 acres",
+  "about": "The University of Rajshahi is a public research university founded on 6 July 1953, the second university in what was then East Bengal. It began with 161 students and six departments in temporary premises before moving to its 753-acre campus at Motihar on the bank of the Padma. It has 12 faculties, 59 departments and 6 institutes, with over 25,000 students and 1,200 teachers.",
+  "address": "Motihar, Rajshahi 6205",
+  "latitude": 24.37,
+  "longitude": 88.637,
+  "website_url": "https://www.ru.ac.bd",
+  "logo": "logo.webp"
+}

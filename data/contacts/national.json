@@ -1,0 +1,14 @@
+[
+  { "title": "National Emergency Service", "designation": "Police · Fire · Ambulance", "phone": "999", "category": "Security", "description": "জাতীয় জরুরি সেবা — পুলিশ, ফায়ার সার্ভিস, অ্যাম্বুলেন্স। ২৪/৭, টোল-ফ্রি।", "is_verified": true },
+  { "title": "Fire Service & Civil Defence", "designation": "Fire & Rescue", "phone": "16163", "category": "Fire Service", "description": "আগুন, উদ্ধার ও দুর্ঘটনা।", "is_verified": false },
+  { "title": "Disaster Early Warning", "designation": "Department of Disaster Management", "phone": "1090", "category": "Other", "description": "ঘূর্ণিঝড়, বন্যা ও আবহাওয়ার সতর্কবার্তা (IVR)।", "is_verified": false },
+  { "title": "Shasthyo Batayon (DGHS)", "designation": "Health Helpline", "phone": "16263", "category": "Medical", "description": "২৪/৭ ডাক্তারের পরামর্শ।", "is_verified": true },
+  { "title": "Kaan Pete Roi", "designation": "Emotional Support", "phone": "09612-119911", "category": "Medical", "description": "মানসিক সহায়তা ও আত্মহত্যা প্রতিরোধ হেল্পলাইন।", "is_verified": false },
+  { "title": "Violence Against Women & Children Helpline", "designation": "Ministry of Women and Children Affairs", "phone": "109", "category": "Security", "description": "নারী ও শিশু নির্যাতন, হয়রানি ও বাল্যবিবাহ প্রতিরোধ।", "is_verified": true },
+  { "title": "Child Helpline", "designation": "Department of Social Services", "phone": "1098", "category": "Security", "description": "বিপদগ্রস্ত শিশুদের সহায়তা।", "is_verified": true },
+  { "title": "Police Cyber Support for Women", "designation": "Bangladesh Police", "phone": "01320-000888", "category": "Security", "description": "অনলাইন হয়রানি ও সাইবার বুলিং।", "is_verified": false },
+  { "title": "National Call Center", "designation": "Jatiyo Tottho Batayon", "phone": "333", "category": "Administrative", "description": "সরকারি তথ্য ও সেবা, সামাজিক সমস্যার অভিযোগ।", "is_verified": true },
+  { "title": "National Legal Aid (NLASO)", "designation": "Legal Aid Helpline", "phone": "16430", "category": "Administrative", "description": "বিনামূল্যে আইনি পরামর্শ।", "is_verified": true },
+  { "title": "Anti-Corruption Commission", "designation": "ACC Hotline", "phone": "106", "category": "Administrative", "description": "দুর্নীতির অভিযোগ।", "is_verified": true },
+  { "title": "Consumer Rights Protection", "designation": "DNCRP", "phone": "16121", "category": "Administrative", "description": "ভোক্তা প্রতারণার অভিযোগ।", "is_verified": false }
+]

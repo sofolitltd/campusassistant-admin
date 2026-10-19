@@ -1441,7 +1441,8 @@ export const api = {
     getAll: (params?: string): Promise<Department[]> =>
       fetchWithAuth(`/departments?${params || ''}`).then((res: PaginatedResponse<Department>) => res.data ?? []),
     getAllByUniversity: (universityId: string): Promise<Department[]> =>
-      fetchWithAuth(`/departments?university_id=${universityId}`).then((res: PaginatedResponse<Department>) => res.data ?? []),
+      // limit=100 is the backend's cap; without it the API defaults to 20 and larger universities get cut off.
+      fetchWithAuth(`/departments?university_id=${universityId}&limit=100`).then((res: PaginatedResponse<Department>) => res.data ?? []),
     getOne: (id: string): Promise<Department> =>
       fetchWithAuth(`/departments/${id}`),
     getBySlug: (slug: string): Promise<Department | null> =>
@@ -1460,7 +1461,7 @@ export const api = {
   },
   halls: {
     getAllByUniversity: (universityId: string): Promise<Hall[]> =>
-      fetchWithAuth(`/halls?university_id=${universityId}`).then((res: PaginatedResponse<Hall>) => res.data ?? []),
+      fetchWithAuth(`/halls?university_id=${universityId}&limit=100`).then((res: PaginatedResponse<Hall>) => res.data ?? []),
     create: (data: Partial<Hall>): Promise<Hall> =>
       fetchWithAuth('/halls', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: Partial<Hall>): Promise<Hall> =>
@@ -1470,7 +1471,7 @@ export const api = {
   },
   faculties: {
     getAllByUniversity: (universityId: string): Promise<Faculty[]> =>
-      fetchWithAuth(`/faculties?university_id=${universityId}`).then((res: PaginatedResponse<Faculty>) => res.data ?? []),
+      fetchWithAuth(`/faculties?university_id=${universityId}&limit=100`).then((res: PaginatedResponse<Faculty>) => res.data ?? []),
     create: (data: Partial<Faculty>): Promise<Faculty> =>
       fetchWithAuth('/faculties', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: Partial<Faculty>): Promise<Faculty> =>

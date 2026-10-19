@@ -1,0 +1,5 @@
+[
+  { "_source": "brur.ac.bd/students/campusLife/Medical-Center — the only medical number published.", "title": "BRUR Medical Center Ambulance", "designation": "Medical Center · 24/7 ambulance", "phone": "01313-013366", "category": "Medical", "description": "বেরোবি মেডিকেল সেন্টারের ২৪ ঘণ্টা অ্যাম্বুলেন্স। বহির্বিভাগ ও ডেন্টাল সেবা প্রতিদিন সকাল ৯টা–বিকাল ৫টা (শুক্র, শনি ও সরকারি ছুটি বাদে)। গুরুতর জরুরি অবস্থায় 999।", "is_verified": true },
+  { "_source": "brur.ac.bd footer (also +880 521-59326) + Office of the Registrar page.", "title": "Begum Rokeya University (Main Line)", "designation": "Main office / Registrar", "phone": "+880-521-59305", "email": "info@brur.ac.bd", "category": "Administrative", "description": "বিশ্ববিদ্যালয়ের মূল লাইন। বিকল্প: +880-521-59326। রেজিস্ট্রার অফিস: office.registrar@brur.ac.bd। পার্ক মোড়, মডার্ন, রংপুর ৫৪০৪।", "is_verified": true },
+  { "_source": "brur.ac.bd/offices/proctor-office", "title": "BRUR Proctor Office", "designation": "Proctor", "phone": "01710-488872", "category": "Security", "description": "প্রক্টর অফিস — ক্যাম্পাসে নিরাপত্তা, হয়রানি বা শৃঙ্খলাজনিত সমস্যায় যোগাযোগ করুন।", "is_verified": true }
+]

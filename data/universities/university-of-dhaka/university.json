@@ -1,0 +1,17 @@
+{
+  "_source": "du.ac.bd (home stats, officesOfDeans, allDepartments/<faculty>, institutes, HallsResidence, contactsService, offices/MDC); campus_area, coordinates and history from en.wikipedia.org/wiki/University_of_Dhaka. Collected 2026-10-19.",
+  "name": "University of Dhaka",
+  "acronym": "DU",
+  "slug": "university-of-dhaka",
+  "established_year": "1921",
+  "total_faculties": "13",
+  "total_departments": "84",
+  "total_halls": "23",
+  "campus_area": "275 acres",
+  "about": "The University of Dhaka is the oldest university in Bangladesh, founded under the Dacca University Act 1920 and opened on 1 July 1921 with three faculties and 12 departments. It played a central role in the 1952 Language Movement and the 1971 Liberation War. Today it has 13 faculties, 84 departments, 13 institutes and 20 residential halls, with around 37,000 students and 2,000 teachers.",
+  "address": "Shahbag, Dhaka 1000",
+  "latitude": 23.73306,
+  "longitude": 90.39111,
+  "website_url": "https://du.ac.bd",
+  "logo": "logo.webp"
+}

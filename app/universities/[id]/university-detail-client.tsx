@@ -6,7 +6,7 @@ import {
   ArrowLeft, MapPin, Globe, GraduationCap, Building2, ImageIcon, Info,
   ExternalLink, Plus, Loader2, CalendarDays, MoreVertical, Pencil,
   Trash2, Save, Maximize, Share2, Layers, Calendar, Eye, Layout,
-  School, Phone, Bus
+  School, Phone, Bus, ChevronDown, ChevronRight, Search, X
 } from "lucide-react"
 import Link from "next/link"
 import { api, University, Department, Hall, Faculty, Banner, EmergencyContact, getFullImageUrl, Transport } from "@/lib/api"
@@ -16,6 +16,33 @@ import { cn } from "@/lib/utils"
 import { ConfirmDelete, Modal, Field, inputCls } from "./departments/[...slug]/components/SharedUI"
 
 type TabType = "overview" | "departments" | "faculties" | "halls" | "banners" | "contacts" | "transports"
+
+// Pseudo faculty id for the "Not assigned to a faculty" group.
+const UNASSIGNED = "__unassigned__"
+
+function FacultyDepartmentList({ departments, universityId }: { departments: Department[]; universityId: string }) {
+  if (departments.length === 0) {
+    return <p className="border-t px-4 py-3 text-xs text-muted-foreground">No departments under this faculty yet.</p>
+  }
+  return (
+    <ul className="border-t divide-y">
+      {[...departments].sort((a, b) => a.name.localeCompare(b.name)).map(dept => (
+        <li key={dept.id}>
+          <Link
+            href={`/universities/${universityId}/departments/${dept.id}`}
+            className="group flex items-center gap-2 px-4 py-2.5 pl-16 text-sm hover:bg-muted/50 transition-colors"
+          >
+            <span className="font-medium group-hover:text-primary transition-colors">{dept.name}</span>
+            {dept.acronym && (
+              <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-black text-primary">{dept.acronym}</span>
+            )}
+            <ChevronRight className="ml-auto h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+          </Link>
+        </li>
+      ))}
+    </ul>
+  )
+}
 
 interface UniversityDetailClientProps {
   university: University
@@ -50,6 +77,7 @@ export default function UniversityDetailClient({
   const [contacts, setContacts] = useState<EmergencyContact[]>(initialContacts)
   const [transports, setTransports] = useState<Transport[]>(initialTransports)
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
+  const [deptSearch, setDeptSearch] = useState("")
 
   const [deletingDept, setDeletingDept] = useState<Department | null>(null)
   const [deletingHall, setDeletingHall] = useState<Hall | null>(null)
@@ -68,6 +96,27 @@ export default function UniversityDetailClient({
   const [editingFaculty, setEditingFaculty] = useState<Faculty | null>(null)
   const [facultyName, setFacultyName] = useState("")
   const [facultyLoading, setFacultyLoading] = useState(false)
+  const [expandedFaculty, setExpandedFaculty] = useState<string | null>(null)
+
+  const departmentsByFaculty = new Map<string, Department[]>()
+  const unassignedDepartments: Department[] = []
+  for (const dept of departments) {
+    // A faculty_id pointing at a deleted faculty counts as unassigned too.
+    if (dept.faculty_id && faculties.some(f => f.id === dept.faculty_id)) {
+      departmentsByFaculty.set(dept.faculty_id, [...(departmentsByFaculty.get(dept.faculty_id) ?? []), dept])
+    } else {
+      unassignedDepartments.push(dept)
+    }
+  }
+
+  // Matches name, acronym or faculty name, case-insensitively.
+  const deptQuery = deptSearch.trim().toLowerCase()
+  const facultyNames = new Map(faculties.map(f => [f.id, f.name]))
+  const filteredDepartments = deptQuery
+    ? departments.filter(d =>
+        [d.name, d.acronym, d.faculty_id && facultyNames.get(d.faculty_id)]
+          .some(v => v && v.toLowerCase().includes(deptQuery)))
+    : departments
 
   // Sync URL when tab changes internally
   const handleTabChange = useCallback((tab: TabType) => {
@@ -379,13 +428,42 @@ export default function UniversityDetailClient({
                 <Plus className="h-3.5 w-3.5" /> Add Department
               </Link>
             </div>
+            {departments.length > 0 && (
+              <div className="flex items-center gap-4">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, acronym or faculty..."
+                    value={deptSearch}
+                    onChange={(e) => setDeptSearch(e.target.value)}
+                    className="w-full rounded-md border bg-background py-2.5 pl-10 pr-10 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-xs"
+                  />
+                  {deptSearch && (
+                    <button
+                      onClick={() => setDeptSearch("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {deptQuery ? `${filteredDepartments.length} of ${departments.length}` : departments.length} departments
+                </span>
+              </div>
+            )}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {departments.length === 0 ? (
                 <div className="col-span-full rounded-xl border border-dashed p-12 text-center text-muted-foreground text-sm bg-muted/20">
                   No departments found for this university.
                 </div>
+              ) : filteredDepartments.length === 0 ? (
+                <div className="col-span-full rounded-xl border border-dashed p-12 text-center text-muted-foreground text-sm bg-muted/20">
+                  No departments match &ldquo;{deptSearch.trim()}&rdquo;.
+                </div>
               ) : (
-                departments.map((dept) => (
+                filteredDepartments.map((dept) => (
                   <Link 
                     key={dept.id} 
                     href={`/universities/${universityId}/departments/${dept.id}`}
@@ -490,20 +568,32 @@ export default function UniversityDetailClient({
                 <Plus className="h-3.5 w-3.5" /> Add Faculty
               </button>
             </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-3">
               {faculties.length === 0 ? (
-                <div className="col-span-full rounded-xl border border-dashed p-12 text-center text-muted-foreground text-sm bg-muted/20">
+                <div className="rounded-xl border border-dashed p-12 text-center text-muted-foreground text-sm bg-muted/20">
                   No faculties listed for this university.
                 </div>
               ) : (
-                faculties.map((faculty) => (
-                  <div key={faculty.id} className="relative flex items-center justify-between rounded-xl border bg-card p-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md">
-                    <div className="flex items-center gap-3">
+                faculties.map((faculty) => {
+                  const facultyDepts = departmentsByFaculty.get(faculty.id) ?? []
+                  const isOpen = expandedFaculty === faculty.id
+                  return (
+                  <div key={faculty.id} className="rounded-xl border bg-card shadow-sm transition-all hover:border-primary/30 hover:shadow-md">
+                  <div className="relative flex items-center justify-between p-4">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedFaculty(isOpen ? null : faculty.id)}
+                      className="flex flex-1 items-center gap-3 text-left"
+                    >
                       <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/5 text-primary font-black text-sm uppercase border border-primary/10">
                         {faculty.name.charAt(0)}
                       </div>
                       <span className="text-sm font-bold tracking-tight">{faculty.name}</span>
-                    </div>
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-bold text-muted-foreground whitespace-nowrap">
+                        {facultyDepts.length} {facultyDepts.length === 1 ? "department" : "departments"}
+                      </span>
+                      <ChevronDown className={cn("ml-auto mr-2 h-4 w-4 text-muted-foreground transition-transform", isOpen && "rotate-180")} />
+                    </button>
 
                     <div className="relative">
                       <button
@@ -556,7 +646,27 @@ export default function UniversityDetailClient({
                       )}
                     </div>
                   </div>
-                ))
+                  {isOpen && <FacultyDepartmentList departments={facultyDepts} universityId={universityId} />}
+                  </div>
+                  )
+                })
+              )}
+              {unassignedDepartments.length > 0 && (
+                <div className="rounded-xl border border-dashed bg-card">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedFaculty(expandedFaculty === UNASSIGNED ? null : UNASSIGNED)}
+                    className="flex w-full items-center gap-3 p-4 text-left"
+                  >
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-warning-subtle text-warning font-black text-sm border border-warning/20">?</div>
+                    <span className="text-sm font-bold tracking-tight text-muted-foreground">Not assigned to a faculty</span>
+                    <span className="rounded bg-warning-subtle px-1.5 py-0.5 text-[10px] font-bold text-warning whitespace-nowrap">
+                      {unassignedDepartments.length}
+                    </span>
+                    <ChevronDown className={cn("ml-auto mr-2 h-4 w-4 text-muted-foreground transition-transform", expandedFaculty === UNASSIGNED && "rotate-180")} />
+                  </button>
+                  {expandedFaculty === UNASSIGNED && <FacultyDepartmentList departments={unassignedDepartments} universityId={universityId} />}
+                </div>
               )}
             </div>
 

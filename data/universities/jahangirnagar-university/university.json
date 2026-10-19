@@ -1,0 +1,17 @@
+{
+  "_source": "juniv.edu (home menus, contact-us, registrar/transport office pages); established date, campus_area, coordinates and history from en.wikipedia.org/wiki/Jahangirnagar_University. Collected 2026-10-19. Wikipedia says 36 departments; juniv.edu lists 34 + 4 institutes.",
+  "name": "Jahangirnagar University",
+  "acronym": "JU",
+  "slug": "jahangirnagar-university",
+  "established_year": "1970",
+  "total_faculties": "6",
+  "total_departments": "34",
+  "total_halls": "21",
+  "campus_area": "697.56 acres",
+  "about": "Jahangirnagar University is a public research university in Savar, near Dhaka, and the only fully residential public university in Bangladesh. Established in 1970 as Jahangirnagar Muslim University, it formally opened on 12 January 1971 with 150 students in four departments, and took its present name under the Jahangirnagar University Act 1973. It has 6 faculties, 34 departments and 4 institutes on a 697-acre campus known for its lakes and migratory birds.",
+  "address": "Savar, Dhaka 1342",
+  "latitude": 23.8824,
+  "longitude": 90.2671,
+  "website_url": "https://juniv.edu",
+  "logo": "logo.webp"
+}
