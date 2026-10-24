@@ -64,6 +64,12 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
   return response.json()
 }
 
+// The app-wide batch order: newest first (Batch 21 … Batch 01), numeric-aware
+// so Batch 10 sorts above Batch 9.
+export function sortBatches(batches: Batch[]): Batch[] {
+  return [...batches].sort((a, b) => b.name.localeCompare(a.name, undefined, { numeric: true }))
+}
+
 export function getFullImageUrl(url?: string) {
   if (!url) return "";
   if (url.startsWith('http')) return url;
@@ -1610,10 +1616,12 @@ export const api = {
       fetchWithAuth(`/sessions/${id}`, { method: 'DELETE' }),
   },
   batches: {
+    // Both lists come back newest-first (see sortBatches) so every picker agrees.
     getAll: (params?: string): Promise<Batch[]> =>
-      fetchWithAuth(`/batches?${params || ''}`).then((res: PaginatedResponse<Batch>) => res.data ?? []),
+      fetchWithAuth(`/batches?${params || ''}`).then((res: PaginatedResponse<Batch>) => sortBatches(res.data ?? [])),
+    // limit=100 is the backend's cap; the default of 20 dropped older batches.
     getAllByDepartment: (deptId: string): Promise<Batch[]> =>
-      fetchWithAuth(`/batches?department_id=${deptId}`).then((res: PaginatedResponse<Batch>) => res.data ?? []),
+      fetchWithAuth(`/batches?department_id=${deptId}&limit=100`).then((res: PaginatedResponse<Batch>) => sortBatches(res.data ?? [])),
     create: (data: Partial<Batch> & { session_ids?: string[] }): Promise<Batch> =>
       fetchWithAuth('/batches', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: Partial<Batch> & { session_ids?: string[] }): Promise<Batch> =>
@@ -1670,6 +1678,8 @@ export const api = {
   levels: {
     getAllByDepartment: (deptId: string): Promise<Level[]> =>
       fetchWithAuth(`/levels?department_id=${deptId}`).then((res: PaginatedResponse<Level>) => res.data ?? []),
+    getOne: (id: string): Promise<Level> =>
+      fetchWithAuth(`/levels/${id}`),
     create: (data: Partial<Level>): Promise<Level> =>
       fetchWithAuth('/levels', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: Partial<Level>): Promise<Level> =>

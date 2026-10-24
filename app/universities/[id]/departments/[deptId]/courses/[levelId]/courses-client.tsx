@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 import { api, Course, CourseCategory, CoursePrefix, Level, Batch } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import { getCached, setCached } from "@/lib/page-cache"
 import { CourseModal } from "./components/CourseModal"
 
 // ── Inline primitives ────────────────────────────────────────────────────────
@@ -97,13 +98,21 @@ interface Props {
   departmentSlug: string
 }
 
+interface CoursesSnapshot {
+  courses: Course[]; unassigned: Course[]; categories: CourseCategory[]
+  prefixes: CoursePrefix[]; levels: Level[]; batches: Batch[]
+}
+
 export default function CoursesClient({ universityId, departmentId, levelId, levelName, departmentSlug }: Props) {
-  const [courses, setCourses] = useState<Course[]>([])
-  const [categories, setCategories] = useState<CourseCategory[]>([])
-  const [prefixes, setPrefixes] = useState<CoursePrefix[]>([])
-  const [levels, setLevels] = useState<Level[]>([])
-  const [batches, setBatches] = useState<Batch[]>([])
-  const [loading, setLoading] = useState(true)
+  // Coming back to this level shows the last list at once; load() refreshes it.
+  const cacheKey = `courses:${departmentId}:${levelId}`
+  const [cached] = useState(() => getCached<CoursesSnapshot>(cacheKey))
+  const [courses, setCourses] = useState<Course[]>(cached?.courses ?? [])
+  const [categories, setCategories] = useState<CourseCategory[]>(cached?.categories ?? [])
+  const [prefixes, setPrefixes] = useState<CoursePrefix[]>(cached?.prefixes ?? [])
+  const [levels, setLevels] = useState<Level[]>(cached?.levels ?? [])
+  const [batches, setBatches] = useState<Batch[]>(cached?.batches ?? [])
+  const [loading, setLoading] = useState(!cached)
   const [error, setError] = useState("")
 
   const [courseModal, setCourseModal] = useState(false)
@@ -113,7 +122,7 @@ export default function CoursesClient({ universityId, departmentId, levelId, lev
   const [catModal, setCatModal] = useState(false)
   const [prefixModal, setPrefixModal] = useState(false)
 
-  const [unassigned, setUnassigned] = useState<Course[]>([])
+  const [unassigned, setUnassigned] = useState<Course[]>(cached?.unassigned ?? [])
   const [fixing, setFixing] = useState(false)
   const [fixDone, setFixDone] = useState(0)
 
@@ -127,21 +136,28 @@ export default function CoursesClient({ universityId, departmentId, levelId, lev
         api.batches.getAllByDepartment(departmentId),
         api.courses.getAllByDepartment(departmentId),
       ])
-      setCourses([...c].sort((a, b) => a.course_code.localeCompare(b.course_code, undefined, { numeric: true })))
-      setUnassigned(all.filter((cr) => !cr.level_id))
+      const snapshot: CoursesSnapshot = {
+        courses: [...c].sort((a, b) => a.course_code.localeCompare(b.course_code, undefined, { numeric: true })),
+        unassigned: all.filter((cr) => !cr.level_id),
+        categories: cats.sort((a, b) => a.order - b.order),
+        prefixes: prefs, levels: levs, batches: bats,
+      }
+      setCached(cacheKey, snapshot)
+      setCourses(snapshot.courses)
+      setUnassigned(snapshot.unassigned)
       setFixing(false); setFixDone(0)
-      setCategories(cats.sort((a, b) => a.order - b.order))
-      setPrefixes(prefs)
-      setLevels(levs)
-      setBatches(bats)
+      setCategories(snapshot.categories)
+      setPrefixes(snapshot.prefixes)
+      setLevels(snapshot.levels)
+      setBatches(snapshot.batches)
     } catch (e: any) { setError(e.message) }
     finally { setLoading(false) }
   }
 
   useEffect(() => {
-    startTransition(() => { setLoading(true); setError("") })
+    startTransition(() => { setLoading(!getCached(cacheKey)); setError("") })
     load()
-  }, [levelId, departmentId])
+  }, [cacheKey])
 
   // Group by category
   const grouped: Record<string, Course[]> = {}

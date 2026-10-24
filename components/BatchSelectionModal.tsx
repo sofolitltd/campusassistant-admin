@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { X, Search, Check, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Batch } from "@/lib/api"
+import { Batch, sortBatches } from "@/lib/api"
 
 interface BatchSelectionModalProps {
   open: boolean
@@ -22,9 +22,7 @@ export function BatchSelectionModal({
 }: BatchSelectionModalProps) {
   const [search, setSearch] = useState("")
   
-  const filtered = batches
-    .filter(b => b.name.toLowerCase().includes(search.toLowerCase()))
-    .sort((a, b) => b.name.localeCompare(a.name))
+  const filtered = sortBatches(batches.filter(b => b.name.toLowerCase().includes(search.toLowerCase())))
 
   if (!open) return null
 

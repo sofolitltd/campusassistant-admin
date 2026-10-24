@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { api, Chapter, Batch } from "@/lib/api"
+import { api, Chapter, Batch, sortBatches } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import {
   Plus, Trash2, Pencil, Loader2, AlertTriangle,
@@ -118,19 +118,12 @@ function ChapterModal({ open, onClose, chapter, courseCode, universityId, depart
                 {/* Selected batches preview */}
                 {selectedBatchIds.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mt-1">
-                    {selectedBatchIds.slice(0, 5).map(id => {
-                      const b = batches.find(x => x.id === id)
-                      if (!b) return null
-                      return (
-                        <span key={id} className="inline-flex items-center gap-1 rounded-sm bg-primary/5 px-2 py-0.5 text-[10px] font-bold text-primary border border-primary/10">
-                          {b.name}
-                          <button type="button" onClick={() => toggleBatch(id)} className="hover:text-destructive transition-all"><X className="h-2.5 w-2.5" /></button>
-                        </span>
-                      )
-                    })}
-                    {selectedBatchIds.length > 5 && (
-                      <span className="text-[10px] font-bold text-muted-foreground px-2 py-0.5">+ {selectedBatchIds.length - 5} more</span>
-                    )}
+                    {sortBatches(batches.filter(b => selectedBatchIds.includes(b.id))).map(b => (
+                      <span key={b.id} className="inline-flex items-center gap-1 rounded-sm bg-primary/5 px-2 py-0.5 text-[10px] font-bold text-primary border border-primary/10">
+                        {b.name}
+                        <button type="button" onClick={() => toggleBatch(b.id)} className="hover:text-destructive transition-all"><X className="h-2.5 w-2.5" /></button>
+                      </span>
+                    ))}
                   </div>
                 )}
               </div>

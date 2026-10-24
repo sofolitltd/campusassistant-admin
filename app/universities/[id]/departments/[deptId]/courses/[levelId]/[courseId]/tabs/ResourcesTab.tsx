@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { getCached, setCached } from "@/lib/page-cache"
 import { api, Resource, ResourceType, Batch } from "@/lib/api"
 import { Plus, Loader2, Layers, HelpCircle, FileText, BookMarked, Play, Users, Search } from "lucide-react"
 
@@ -39,8 +40,10 @@ interface ResourcesTabProps {
 }
 
 export default function ResourcesTab({ type, courseCode, universityId, departmentId, batches, lessonNo }: ResourcesTabProps) {
-  const [resources, setResources] = useState<Resource[]>([])
-  const [loading, setLoading] = useState(true)
+  // Shown from cache when returning to this course; load() refreshes it.
+  const cacheKey = `resources:${courseCode}:${type}:${lessonNo ?? ""}`
+  const [resources, setResources] = useState<Resource[]>(() => getCached<Resource[]>(cacheKey) ?? [])
+  const [loading, setLoading] = useState(() => !getCached(cacheKey))
   const [error, setError] = useState("")
   const [modal, setModal] = useState(false)
   const [editTarget, setEditTarget] = useState<Resource | null>(null)
@@ -56,13 +59,16 @@ export default function ResourcesTab({ type, courseCode, universityId, departmen
   const label = TYPE_LABELS[type]
 
   const load = useCallback(async () => {
-    setLoading(true); setError("")
+    const cached = getCached<Resource[]>(cacheKey)
+    if (cached) setResources(cached)
+    setLoading(!cached); setError("")
     try {
       const data = await api.resources.getAllByCourse(courseCode, type, lessonNo)
+      setCached(cacheKey, data)
       setResources(data)
     } catch (e: any) { setError(e.message) }
     finally { setLoading(false) }
-  }, [courseCode, type, lessonNo])
+  }, [cacheKey, courseCode, type, lessonNo])
 
   useEffect(() => { load() }, [load])
 

@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
-import { api, Resource, ResourceType, Batch } from "@/lib/api"
+import { api, Resource, ResourceType, Batch, sortBatches } from "@/lib/api"
 import {
   X, Plus, Users, HardDrive, FilePlus2, BookOpen, Loader2, AlertTriangle, Bell, Download, Eye, Star
 } from "lucide-react"
@@ -353,16 +353,12 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
 
             {selectedBatchIds.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-2">
-                {selectedBatchIds.slice(0, 5).map(id => {
-                  const b = batches.find(x => x.id === id)
-                  if (!b) return null
-                  return (
-                    <span key={id} className="inline-flex items-center gap-1 rounded-sm bg-primary/5 px-2 py-0.5 text-[10px] font-bold text-primary border border-primary/10">
-                      {b.name}
-                      <button type="button" onClick={() => toggleBatch(id)} className="hover:text-destructive transition-all"><X className="h-2.5 w-2.5" /></button>
-                    </span>
-                  )
-                })}
+                {sortBatches(batches.filter(b => selectedBatchIds.includes(b.id))).map(b => (
+                  <span key={b.id} className="inline-flex items-center gap-1 rounded-sm bg-primary/5 px-2 py-0.5 text-[10px] font-bold text-primary border border-primary/10">
+                    {b.name}
+                    <button type="button" onClick={() => toggleBatch(b.id)} className="hover:text-destructive transition-all"><X className="h-2.5 w-2.5" /></button>
+                  </span>
+                ))}
               </div>
             )}
 
