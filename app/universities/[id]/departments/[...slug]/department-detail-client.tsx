@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import {
@@ -15,6 +15,8 @@ import {
   Level, CR, Banner, EmergencyContact, University, Alumni, Routine, Notice
 } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import { addRecentDepartment } from "@/lib/department-jump"
+import { getCached, setCached } from "@/lib/page-cache"
 
 // Modular Components
 import { AboutTab } from "./components/AboutTab"
@@ -58,12 +60,45 @@ export default function DepartmentDetailClient({
 
   // Initialize from URL
   const [activeTab, setActiveTab] = useState<TabType>((searchParams.get("tab") as TabType) || "overview")
-  const [tabData, setTabData] = useState<TabData>({
+  // Tabs seen before (e.g. coming back from a course) render from cache at
+  // once; loadTabData still refetches each one the first time it's shown.
+  const cacheKey = `department:${departmentId}`
+  const [tabData, setTabData] = useState<TabData>(() => ({
     sessions: [], batches: [], students: [], study: [],
-    teachers: [], staff: [], crs: [], banners: initialBanners, contacts: [], alumni: [], routines: [],
-    notices: []
-  })
-  const [loadedTabs, setLoadedTabs] = useState<Set<TabType>>(new Set(initialBanners.length > 0 ? ["banners"] : []))
+    teachers: [], staff: [], crs: [], contacts: [], alumni: [], routines: [],
+    notices: [],
+    ...getCached<{ tabData: TabData }>(cacheKey)?.tabData,
+    banners: initialBanners,
+  }))
+  const [loadedTabs, setLoadedTabs] = useState<Set<TabType>>(() => new Set([
+    ...(getCached<{ loadedTabs: TabType[] }>(cacheKey)?.loadedTabs ?? []),
+    ...(initialBanners.length > 0 ? ["banners" as const] : []),
+  ]))
+  // Tabs fetched since this page mounted — cached data alone doesn't count.
+  const fetchedTabs = useRef(new Set<TabType>(initialBanners.length > 0 ? ["banners"] : []))
+
+  useEffect(() => {
+    setCached(cacheKey, { tabData, loadedTabs: [...loadedTabs] })
+  }, [cacheKey, tabData, loadedTabs])
+
+  // The command palette can push ?tab= for the department already open,
+  // which doesn't remount this component — follow the URL.
+  const urlTab = searchParams.get("tab") as TabType | null
+  const [prevUrlTab, setPrevUrlTab] = useState(urlTab)
+  if (urlTab !== prevUrlTab) {
+    setPrevUrlTab(urlTab)
+    setActiveTab(urlTab || "overview")
+  }
+
+  useEffect(() => {
+    addRecentDepartment({
+      id: departmentId,
+      universityId,
+      name: department.name,
+      acronym: department.acronym,
+      universityName: university?.acronym || university?.name || "",
+    })
+  }, [departmentId, universityId, department.name, department.acronym, university?.acronym, university?.name])
 
   // Sync URL when tab changes internally
   const handleTabChange = useCallback((tab: TabType) => {
@@ -75,7 +110,8 @@ export default function DepartmentDetailClient({
 
   const loadTabData = useCallback(async (tab: TabType, force = false) => {
     if (tab === "overview" || !departmentId) return
-    if (!force && loadedTabs.has(tab)) return
+    if (!force && fetchedTabs.current.has(tab)) return
+    fetchedTabs.current.add(tab)
 
     try {
       let patch: Partial<TabData> = {}
@@ -107,6 +143,7 @@ export default function DepartmentDetailClient({
       setTabData((prev) => ({ ...prev, ...patch }))
       setLoadedTabs((prev) => new Set([...prev, tab]))
     } catch (e) {
+      fetchedTabs.current.delete(tab)
       console.error(`Failed to load tab ${tab}:`, e)
     }
   }, [departmentId, loadedTabs])

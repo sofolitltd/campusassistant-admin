@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { api, Level, Batch } from "@/lib/api"
+import { api, Level, Batch, sortBatches } from "@/lib/api"
 import { Modal, Field, inputCls, selectCls } from "./SharedUI"
-import { Loader2 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Loader2, Plus, Users, X } from "lucide-react"
+import { BatchSelectionModal } from "@/components/BatchSelectionModal"
 
 const STATUSES = ["active", "draft", "archived"] as const
 
@@ -32,6 +32,7 @@ export function LevelModal({
   const [selectedBatchIds, setSelectedBatchIds] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [batchModalOpen, setBatchModalOpen] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -84,6 +85,7 @@ export function LevelModal({
   }
 
   return (
+    <>
     <Modal open={open} onClose={onClose} title={isEdit ? "Edit Level" : "Add Level"}>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-6">
 
@@ -148,32 +150,35 @@ export function LevelModal({
 
         {/* Batch assignment */}
         {batches.length > 0 && (
-          <Field label="Assign to Batches">
-            <div className="grid grid-cols-2 gap-2 max-h-44 overflow-y-auto rounded-sm border bg-muted/20 p-2">
-              {batches.map((batch) => {
-                const selected = selectedBatchIds.includes(batch.id)
-                return (
-                  <button
-                    key={batch.id}
-                    type="button"
-                    onClick={() => toggleBatch(batch.id)}
-                    className={cn(
-                      "flex items-center gap-2 rounded-sm border px-3 py-2 text-sm font-medium transition-all text-left",
-                      selected
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border bg-background hover:bg-muted"
-                    )}
-                  >
-                    <span className={cn(
-                      "h-3.5 w-3.5 shrink-0 rounded-sm border-2 transition-all",
-                      selected ? "bg-primary border-primary" : "border-muted-foreground/40"
-                    )} />
-                    {batch.name}
-                  </button>
-                )
-              })}
-            </div>
-          </Field>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium flex items-center justify-between">
+              <span>Assign to Batches</span>
+              <span className="text-[10px] font-black text-primary/60">{selectedBatchIds.length} Selected</span>
+            </label>
+
+            <button
+              type="button"
+              onClick={() => setBatchModalOpen(true)}
+              className="w-full flex items-center justify-between rounded-sm border border-dashed border-muted-foreground/20 bg-muted/5 px-4 py-3 text-sm font-bold text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-primary transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <Users className="h-4 w-4" />
+                <span>Select Batches</span>
+              </div>
+              <Plus className="h-4 w-4 opacity-40" />
+            </button>
+
+            {selectedBatchIds.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {sortBatches(batches.filter(b => selectedBatchIds.includes(b.id))).map(b => (
+                  <span key={b.id} className="inline-flex items-center gap-1 rounded-sm bg-primary/5 px-2 py-0.5 text-[10px] font-bold text-primary border border-primary/10">
+                    {b.name}
+                    <button type="button" onClick={() => toggleBatch(b.id)} className="hover:text-destructive transition-all"><X className="h-2.5 w-2.5" /></button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {error && <p className="rounded-sm bg-destructive-subtle p-2 text-sm text-destructive">{error}</p>}
@@ -195,5 +200,15 @@ export function LevelModal({
         </div>
       </form>
     </Modal>
+
+    {/* Outside <Modal>: its zoom transform would trap a fixed overlay. */}
+    <BatchSelectionModal
+      open={open && batchModalOpen}
+      onClose={() => setBatchModalOpen(false)}
+      batches={batches}
+      selectedIds={selectedBatchIds}
+      onToggle={toggleBatch}
+    />
+    </>
   )
 }

@@ -1,5 +1,6 @@
 import { Suspense } from "react"
 import { Loader2 } from "lucide-react"
+import { api } from "@/lib/api"
 import CourseDetailClient from "./course-detail-client"
 
 type Props = {
@@ -20,10 +21,13 @@ type Props = {
 export default async function CourseDetailPage({ params, searchParams }: Props) {
   const { id: universityId, deptId: departmentId, levelId, courseId } = await params
   const {
-    levelName = levelId,
+    levelName: levelNameParam,
     courseCode = "",
     courseTitle = "Course Details",
   } = await searchParams
+  // Fall back to the level's real name — the back link to the course list
+  // carries this value, so a missing one would leak the raw ID there.
+  const levelName = levelNameParam || (await api.levels.getOne(levelId).then((l) => l.name).catch(() => levelId))
 
   return (
     <Suspense fallback={

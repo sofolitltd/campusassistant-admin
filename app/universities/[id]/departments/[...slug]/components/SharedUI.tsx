@@ -150,7 +150,9 @@ export function Modal({ open, onClose, title, children, className }: { open: boo
   )
 }
 
-export function ConfirmDelete({ open, label, onClose, onConfirm, loading }: { open: boolean; label: string; onClose: () => void; onConfirm: () => void; loading: boolean }) {
+// `message` replaces the default warning; `blocked` disables Delete (e.g. the
+// item still has dependents) and shows the message as the reason.
+export function ConfirmDelete({ open, label, onClose, onConfirm, loading, message, blocked = false }: { open: boolean; label: string; onClose: () => void; onConfirm: () => void; loading: boolean; message?: string; blocked?: boolean }) {
   if (!open) return null
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
@@ -159,11 +161,11 @@ export function ConfirmDelete({ open, label, onClose, onConfirm, loading }: { op
         <div className="flex flex-col items-center text-center gap-3">
           <div className="rounded-full bg-destructive-subtle p-3"><AlertTriangle className="h-6 w-6 text-destructive" /></div>
           <h3 className="text-lg font-bold">Delete {label}?</h3>
-          <p className="text-sm text-muted-foreground">This action cannot be undone and will delete all associated data.</p>
+          <p className={cn("text-sm", blocked ? "text-destructive" : "text-muted-foreground")}>{message ?? "This action cannot be undone and will delete all associated data."}</p>
         </div>
         <div className="flex gap-3 mt-6">
           <button onClick={onClose} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
-          <button onClick={onConfirm} disabled={loading} className="flex-1 rounded-sm bg-destructive px-4 py-2.5 text-sm font-bold text-white hover:bg-destructive/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+          <button onClick={onConfirm} disabled={loading || blocked} className="flex-1 rounded-sm bg-destructive px-4 py-2.5 text-sm font-bold text-white hover:bg-destructive/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}Delete
           </button>
         </div>

@@ -10,7 +10,10 @@ type Props = {
 
 export default async function CoursesPage({ params, searchParams }: Props) {
   const { id: universityId, deptId: departmentId, levelId } = await params
-  const { levelName = levelId, deptSlug } = await searchParams
+  const { levelName: levelNameParam, deptSlug } = await searchParams
+  // Not every link carries ?levelName= (e.g. back from a chapter), so look it
+  // up rather than showing the raw ID as the title.
+  const levelName = levelNameParam || (await api.levels.getOne(levelId).then((l) => l.name).catch(() => levelId))
 
   const departmentSlug = deptSlug ?? departmentId
 

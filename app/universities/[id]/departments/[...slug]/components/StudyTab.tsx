@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Level, Batch, api } from "@/lib/api"
+import { Level, Batch, api, sortBatches } from "@/lib/api"
 import { EmptyState, Badge, ConfirmDelete } from "./SharedUI"
 import { LevelModal } from "./LevelModal"
 import {
@@ -30,12 +30,11 @@ function statusLabel(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
-function StatChip({ label, value }: { label: string; value: number }) {
+function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="flex flex-col items-center rounded-sm border bg-muted/30 px-3 py-1.5 min-w-[60px]">
-      <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide">{label}</span>
-      <span className="text-base font-black tabular-nums">{value}</span>
-    </div>
+    <span>
+      <span className="font-black tabular-nums text-foreground">{value}</span> {label}
+    </span>
   )
 }
 
@@ -109,21 +108,23 @@ function LevelCard({ level, universityId, departmentId, onEdit, onDelete }: Leve
       </div>
 
       {/* Stats row */}
-      <div className="flex gap-2 px-4 pb-3 overflow-x-auto scrollbar-hide">
-        <StatChip label="Courses" value={level.total_courses} />
-        <StatChip label="Credits" value={level.total_credits} />
-        <StatChip label="Marks" value={level.total_marks} />
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-4 pb-3 text-xs font-medium text-muted-foreground">
+        <Stat label="Courses" value={level.total_courses} />
+        <span className="text-muted-foreground/40">·</span>
+        <Stat label="Credits" value={level.total_credits} />
+        <span className="text-muted-foreground/40">·</span>
+        <Stat label="Marks" value={level.total_marks} />
       </div>
 
       {/* Batch pills */}
       {level.batches && level.batches.length > 0 && (
         <div className="border-t px-4 py-2.5 flex flex-wrap gap-1.5">
-          {(level.batches as any[]).map((b: any) => (
+          {sortBatches(level.batches).map((b) => (
             <span
-              key={b.id ?? b}
+              key={b.id}
               className="rounded-full bg-primary/10 text-primary text-[10px] font-bold px-2.5 py-0.5 uppercase tracking-wide"
             >
-              {b.name ?? b}
+              {b.name}
             </span>
           ))}
         </div>
@@ -137,23 +138,48 @@ export function StudyTab({ study, universityId, departmentId, batches, onRefresh
   const [editTarget, setEditTarget] = useState<Level | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Level | null>(null)
   const [deleting, setDeleting] = useState(false)
+  // Courses still in the level being deleted (null while counting). The
+  // backend refuses the delete too; this just says so before the click.
+  const [deleteCourseCount, setDeleteCourseCount] = useState<number | null>(null)
+  const [deleteError, setDeleteError] = useState("")
 
   const sorted = [...study].sort((a, b) => a.order - b.order)
 
   function openAdd() { setEditTarget(null); setModalOpen(true) }
   function openEdit(s: Level) { setEditTarget(s); setModalOpen(true) }
 
+  async function openDelete(level: Level) {
+    setDeleteTarget(level)
+    setDeleteError("")
+    setDeleteCourseCount(null)
+    try {
+      setDeleteCourseCount((await api.courses.getAllByLevel(level.id)).length)
+    } catch {
+      setDeleteCourseCount(0) // let the backend decide
+    }
+  }
+
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
       await api.levels.delete(deleteTarget.id)
+      setDeleteTarget(null)
       onRefresh()
+    } catch (e: any) {
+      setDeleteError(e.message)
     } finally {
       setDeleting(false)
-      setDeleteTarget(null)
     }
   }
+
+  const deleteMessage =
+    deleteError ||
+    (deleteCourseCount === null
+      ? "Checking courses in this level…"
+      : deleteCourseCount > 0
+        ? `This level still has ${deleteCourseCount} course${deleteCourseCount === 1 ? "" : "s"}. Move them to another level (edit each course) or delete them first.`
+        : "This level has no courses, so it is safe to delete.")
 
   return (
     <>
@@ -211,7 +237,7 @@ export function StudyTab({ study, universityId, departmentId, batches, onRefresh
               universityId={universityId}
               departmentId={departmentId}
               onEdit={openEdit}
-              onDelete={(s) => setDeleteTarget(s)}
+              onDelete={openDelete}
             />
           ))}
         </div>
@@ -234,6 +260,8 @@ export function StudyTab({ study, universityId, departmentId, batches, onRefresh
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
         loading={deleting}
+        message={deleteMessage}
+        blocked={deleteCourseCount !== 0 || !!deleteError}
       />
     </>
   )
