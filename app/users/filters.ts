@@ -6,7 +6,7 @@ export const USER_FILTER_KEYS = [
   "role",
   "is_active",
   "is_verified",
-  "is_pro",
+  "plan_status",
   "gender",
   "university_id",
   "department_id",
@@ -15,3 +15,15 @@ export const USER_FILTER_KEYS = [
 ] as const
 
 export type UserFilterKey = (typeof USER_FILTER_KEYS)[number]
+
+// Shared between the filter panel and the edit-user modal.
+export const ROLE_OPTIONS = [
+  { value: "student", label: "Student" },
+  { value: "teacher", label: "Teacher" },
+  { value: "staff", label: "Staff" },
+  { value: "department_admin", label: "Department Admin" },
+  { value: "university_admin", label: "University Admin" },
+  { value: "super_admin", label: "Super Admin" },
+] as const
+
+export const GENDER_OPTIONS = ["Male", "Female"] as const

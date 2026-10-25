@@ -103,7 +103,7 @@ export function SessionModal({
 
   return (
     <Modal open={open} onClose={onClose} title={isEdit ? "Edit Session" : "Add Session"}>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4 p-6">
         {!isEdit && (
           <div className="flex bg-muted p-1 rounded-sm mb-4">
             <button type="button" onClick={() => setMode("single")} className={cn("flex-1 text-sm py-1.5 rounded-sm font-bold transition-all", mode === "single" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}>Single Add</button>

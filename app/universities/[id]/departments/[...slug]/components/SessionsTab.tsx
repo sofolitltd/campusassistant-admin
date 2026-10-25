@@ -20,15 +20,16 @@ export function SessionsTab({ sessions, batches = [], universityId, departmentId
   const [editing, setEditing] = useState<Session | null>(null)
   const [deleting, setDeleting] = useState<Session | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deletePermanently, setDeletePermanently] = useState(false)
   const [search, setSearch] = useState("")
 
   const handleDelete = useCallback(async () => {
     if (!deleting) return
     setDeleteLoading(true)
-    try { await api.sessions.delete(deleting.id); onRefresh() }
+    try { await api.sessions.delete(deleting.id, deletePermanently); onRefresh() }
     catch (e) { console.error(e) }
-    finally { setDeleteLoading(false); setDeleting(null) }
-  }, [deleting, onRefresh])
+    finally { setDeleteLoading(false); setDeleting(null); setDeletePermanently(false) }
+  }, [deleting, deletePermanently, onRefresh])
 
   const filtered = sessions.filter(s => 
     s.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -50,12 +51,14 @@ export function SessionsTab({ sessions, batches = [], universityId, departmentId
         existingSessions={sessions} 
       />
       
-      <ConfirmDelete 
-        open={!!deleting} 
+      <ConfirmDelete
+        open={!!deleting}
         label={`"${deleting?.name}" session`}
-        onClose={() => setDeleting(null)} 
-        onConfirm={handleDelete} 
-        loading={deleteLoading} 
+        onClose={() => { setDeleting(null); setDeletePermanently(false) }}
+        onConfirm={handleDelete}
+        loading={deleteLoading}
+        permanent={deletePermanently}
+        onPermanentChange={setDeletePermanently}
       />
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 transition-all">
