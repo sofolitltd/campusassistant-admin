@@ -5,22 +5,28 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import {
   Search, Filter, MoreHorizontal, UserPlus, Loader2, Phone, Mail, Fingerprint,
   GraduationCap, Building2, CalendarDays, X, Briefcase, Award,
-  Pencil, Trash2, Ban, CheckCircle, AlertTriangle, Users as UsersIcon, ShieldCheck
+  Pencil, Trash2, Ban, CheckCircle, AlertTriangle, Users as UsersIcon, ShieldCheck, Crown
 } from "lucide-react"
 import { api, User, University, Department, Session, Batch, UserStats } from "@/lib/api"
-import { USER_FILTER_KEYS, type UserFilterKey } from "./filters"
+import { USER_FILTER_KEYS, ROLE_OPTIONS, type UserFilterKey } from "./filters"
+import { EditUserModal } from "./EditUserModal"
+import { SubscriptionModal } from "./SubscriptionModal"
 
 const filterSelectCls =
   "w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50 transition-all"
 
-const ROLE_OPTIONS = [
-  { value: "student", label: "Student" },
-  { value: "teacher", label: "Teacher" },
-  { value: "staff", label: "Staff" },
-  { value: "department_admin", label: "Department Admin" },
-  { value: "university_admin", label: "University Admin" },
-  { value: "super_admin", label: "Super Admin" },
-]
+// Backend only flips `is_pro` to false on an hourly sweep, so a lapsed user can still
+// have is_pro=true for up to an hour after pro_expiry — check both before showing "Pro".
+function isUserCurrentlyPro(user: User) {
+  if (!user.is_pro) return false
+  if (!user.pro_expiry) return true
+  return new Date(user.pro_expiry) > new Date()
+}
+
+// Pro flag still set but pro_expiry already passed (backend hasn't swept it yet).
+function isUserExpiredPro(user: User) {
+  return !!user.is_pro && !!user.pro_expiry && new Date(user.pro_expiry) <= new Date()
+}
 
 interface UsersClientProps {
   initialUsers: User[]
@@ -57,7 +63,10 @@ export default function UsersClient({
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "")
   const [isSearching, setIsSearching] = useState(false)
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
+  const [editTarget, setEditTarget] = useState<User | null>(null)
+  const [subscriptionTarget, setSubscriptionTarget] = useState<User | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
+  const [deletePermanently, setDeletePermanently] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [actionError, setActionError] = useState("")
   const menuRef = useRef<HTMLDivElement>(null)
@@ -154,8 +163,9 @@ export default function UsersClient({
     if (!deleteTarget) return
     setDeleting(true); setActionError("")
     try {
-      await api.users.delete(deleteTarget.id)
+      await api.users.delete(deleteTarget.id, deletePermanently)
       setDeleteTarget(null)
+      setDeletePermanently(false)
       setActiveMenu(null)
       router.refresh()
     } catch (e: any) {
@@ -253,10 +263,11 @@ export default function UsersClient({
                 </select>
               </FilterField>
               <FilterField label="Plan">
-                <select value={filterValue("is_pro")} onChange={(e) => setFilter("is_pro", e.target.value)} className={filterSelectCls}>
+                <select value={filterValue("plan_status")} onChange={(e) => setFilter("plan_status", e.target.value)} className={filterSelectCls}>
                   <option value="">Any plan</option>
-                  <option value="true">Pro</option>
-                  <option value="false">Basic</option>
+                  <option value="pro">Pro</option>
+                  <option value="expired">Expired</option>
+                  <option value="basic">Basic</option>
                 </select>
               </FilterField>
               <FilterField label="Gender">
@@ -325,6 +336,7 @@ export default function UsersClient({
                 <th className="px-6 py-4">Identity</th>
                 <th className="px-6 py-4">Affiliation</th>
                 <th className="px-6 py-4">Role Details</th>
+                <th className="px-6 py-4 text-center">Plan</th>
                 <th className="px-6 py-4">Joined Date</th>
                 <th className="px-6 py-4 text-center">Status</th>
                 <th className="px-6 py-4 text-right">Actions</th>
@@ -333,7 +345,7 @@ export default function UsersClient({
             <tbody className="divide-y divide-border">
               {initialUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-20 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-6 py-20 text-center text-muted-foreground">
                     <div className="flex flex-col items-center gap-2">
                       <Search className="h-8 w-8 opacity-20" />
                       <p>No users match your search or filters.</p>
@@ -458,6 +470,43 @@ export default function UsersClient({
                         )}
                       </td>
 
+                      {/* Plan Column */}
+                      <td className="px-6 py-4 text-center">
+                        {isUserCurrentlyPro(user) ? (
+                          <div className="inline-flex flex-col items-center gap-1">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSubscriptionTarget(user) }}
+                              className="inline-flex items-center gap-1 rounded-full bg-primary-gradient px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-primary-foreground hover:opacity-90 transition-all"
+                              title="View / edit subscription"
+                            >
+                              <Crown className="h-3 w-3" /> Pro
+                            </button>
+                            {user.pro_expiry && (
+                              <span className="text-[8px] font-medium text-muted-foreground">
+                                till {new Date(user.pro_expiry).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </span>
+                            )}
+                          </div>
+                        ) : isUserExpiredPro(user) ? (
+                          <div className="inline-flex flex-col items-center gap-1">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setSubscriptionTarget(user) }}
+                              className="inline-flex items-center gap-1 rounded-full border border-destructive bg-destructive-subtle px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-destructive hover:opacity-80 transition-all"
+                              title="Pro expired — view / renew subscription"
+                            >
+                              <Crown className="h-3 w-3" /> Expired
+                            </button>
+                            <span className="text-[8px] font-medium text-muted-foreground">
+                              since {new Date(user.pro_expiry!).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="inline-flex rounded-full border bg-muted px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                            Basic
+                          </span>
+                        )}
+                      </td>
+
                       {/* Joined Date Column */}
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-0.5">
@@ -493,7 +542,7 @@ export default function UsersClient({
                         {activeMenu === user.id && (
                           <div ref={menuRef} className="absolute right-4 top-12 z-50 w-44 rounded-sm border bg-card shadow-xl animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
                             <button
-                              onClick={(e) => { e.stopPropagation(); setActiveMenu(null) }}
+                              onClick={(e) => { e.stopPropagation(); setEditTarget(user); setActiveMenu(null) }}
                               className="flex w-full items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-left hover:bg-accent transition-all"
                             >
                               <Pencil className="h-3.5 w-3.5 text-muted-foreground" /> Edit User
@@ -557,9 +606,27 @@ export default function UsersClient({
         </div>
       </div>
 
+      {/* ── Edit User Modal ───────────────────────────────────── */}
+      {editTarget && (
+        <EditUserModal
+          user={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSuccess={() => router.refresh()}
+        />
+      )}
+
+      {/* ── Subscription Modal ────────────────────────────────── */}
+      {subscriptionTarget && (
+        <SubscriptionModal
+          user={subscriptionTarget}
+          onClose={() => setSubscriptionTarget(null)}
+          onSuccess={() => router.refresh()}
+        />
+      )}
+
       {/* ── Confirm Delete Modal ──────────────────────────────── */}
       {deleteTarget && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" onClick={() => setDeleteTarget(null)}>
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" onClick={() => { setDeleteTarget(null); setDeletePermanently(false) }}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div className="relative z-10 w-full max-w-sm rounded-sm border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
             <div className="flex flex-col items-center text-center gap-3">
@@ -570,15 +637,33 @@ export default function UsersClient({
               <p className="text-sm text-muted-foreground">
                 Delete <strong>{deleteTarget.first_name} {deleteTarget.last_name}</strong> ({deleteTarget.email})?
               </p>
-              <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
+              <p className="text-sm text-muted-foreground">
+                {deletePermanently
+                  ? "This removes the account from the database entirely — cannot be undone, and frees the email for reuse."
+                  : "This deactivates the account (soft delete) — it disappears from lists, but can be restored from the database if needed."}
+              </p>
+
+              <label className="flex w-full items-start gap-2.5 rounded-md border border-destructive/30 bg-destructive-subtle p-3 text-left">
+                <input
+                  type="checkbox"
+                  checked={deletePermanently}
+                  onChange={(e) => setDeletePermanently(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-destructive"
+                />
+                <span className="text-xs font-medium text-destructive">
+                  Permanently delete — skip the soft delete and erase this account for good.
+                </span>
+              </label>
+
               {actionError && <p className="text-sm text-destructive bg-destructive-subtle w-full rounded-sm p-2">{actionError}</p>}
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => { setDeleteTarget(null); setActionError("") }} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">
+              <button onClick={() => { setDeleteTarget(null); setDeletePermanently(false); setActionError("") }} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">
                 Cancel
               </button>
               <button onClick={handleDelete} disabled={deleting} className="flex-1 rounded-sm bg-destructive px-4 py-2.5 text-sm font-bold text-white hover:bg-destructive/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-                {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}Delete
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                {deletePermanently ? "Delete Permanently" : "Delete"}
               </button>
             </div>
           </div>

@@ -152,8 +152,11 @@ export function Modal({ open, onClose, title, children, className }: { open: boo
 
 // `message` replaces the default warning; `blocked` disables Delete (e.g. the
 // item still has dependents) and shows the message as the reason.
-export function ConfirmDelete({ open, label, onClose, onConfirm, loading, message, blocked = false }: { open: boolean; label: string; onClose: () => void; onConfirm: () => void; loading: boolean; message?: string; blocked?: boolean }) {
+// `permanent`/`onPermanentChange` opt a caller into the hard-delete checkbox
+// (omit both to keep the plain soft-delete-only confirm, as most callers do).
+export function ConfirmDelete({ open, label, onClose, onConfirm, loading, message, blocked = false, permanent, onPermanentChange }: { open: boolean; label: string; onClose: () => void; onConfirm: () => void; loading: boolean; message?: string; blocked?: boolean; permanent?: boolean; onPermanentChange?: (value: boolean) => void }) {
   if (!open) return null
+  const showPermanentOption = onPermanentChange !== undefined
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
@@ -161,12 +164,33 @@ export function ConfirmDelete({ open, label, onClose, onConfirm, loading, messag
         <div className="flex flex-col items-center text-center gap-3">
           <div className="rounded-full bg-destructive-subtle p-3"><AlertTriangle className="h-6 w-6 text-destructive" /></div>
           <h3 className="text-lg font-bold">Delete {label}?</h3>
-          <p className={cn("text-sm", blocked ? "text-destructive" : "text-muted-foreground")}>{message ?? "This action cannot be undone and will delete all associated data."}</p>
+          <p className={cn("text-sm", blocked ? "text-destructive" : "text-muted-foreground")}>
+            {message ?? (showPermanentOption
+              ? (permanent
+                ? "This removes it from the database entirely — cannot be undone."
+                : "This deactivates it (soft delete) — it disappears from lists, but can be restored if needed.")
+              : "This action cannot be undone and will delete all associated data.")}
+          </p>
+
+          {showPermanentOption && (
+            <label className="flex w-full items-start gap-2.5 rounded-md border border-destructive/30 bg-destructive-subtle p-3 text-left">
+              <input
+                type="checkbox"
+                checked={!!permanent}
+                onChange={(e) => onPermanentChange(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-destructive"
+              />
+              <span className="text-xs font-medium text-destructive">
+                Permanently delete — skip the soft delete and erase this for good.
+              </span>
+            </label>
+          )}
         </div>
         <div className="flex gap-3 mt-6">
           <button onClick={onClose} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
           <button onClick={onConfirm} disabled={loading || blocked} className="flex-1 rounded-sm bg-destructive px-4 py-2.5 text-sm font-bold text-white hover:bg-destructive/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}Delete
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            {showPermanentOption && permanent ? "Delete Permanently" : "Delete"}
           </button>
         </div>
       </div>

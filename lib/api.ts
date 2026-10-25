@@ -1043,6 +1043,8 @@ export interface User {
   avatar_url: string;
   is_active: boolean;
   is_verified: boolean;
+  is_pro: boolean;
+  pro_expiry?: string | null; // null = lifetime; absent/past = not Pro
   university_id?: string;
   university?: University;
   department_id?: string;
@@ -1396,7 +1398,10 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
-    delete: (id: string) => fetchWithAuth(`/users/${id}`, {
+    // Soft-deletes by default (sets deleted_at; row and its email stay in
+    // the DB, excluded from normal queries). permanent=true hard-deletes it
+    // — irreversible, and frees the email for reuse.
+    delete: (id: string, permanent?: boolean) => fetchWithAuth(`/users/${id}${permanent ? '?permanent=true' : ''}`, {
       method: 'DELETE',
     }),
   },
@@ -1604,16 +1609,18 @@ export const api = {
   sessions: {
     getAll: (params?: string): Promise<Session[]> =>
       fetchWithAuth(`/sessions?${params || ''}`).then((res: PaginatedResponse<Session>) => res.data ?? []),
+    // limit=100 is the backend's cap; the default of 20 dropped older/newer sessions
+    // once a department passed 20 (same issue as batches.getAllByDepartment).
     getAllByDepartment: (deptId: string): Promise<Session[]> =>
-      fetchWithAuth(`/sessions?department_id=${deptId}`).then((res: PaginatedResponse<Session>) => res.data ?? []),
+      fetchWithAuth(`/sessions?department_id=${deptId}&limit=100`).then((res: PaginatedResponse<Session>) => res.data ?? []),
     getAllByUniversity: (uniId: string): Promise<Session[]> =>
-      fetchWithAuth(`/sessions?university_id=${uniId}`).then((res: PaginatedResponse<Session>) => res.data ?? []),
+      fetchWithAuth(`/sessions?university_id=${uniId}&limit=100`).then((res: PaginatedResponse<Session>) => res.data ?? []),
     create: (data: Partial<Session>): Promise<Session> =>
       fetchWithAuth('/sessions', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: Partial<Session>): Promise<Session> =>
       fetchWithAuth(`/sessions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    delete: (id: string): Promise<void> =>
-      fetchWithAuth(`/sessions/${id}`, { method: 'DELETE' }),
+    delete: (id: string, permanent?: boolean): Promise<void> =>
+      fetchWithAuth(`/sessions/${id}${permanent ? '?permanent=true' : ''}`, { method: 'DELETE' }),
   },
   batches: {
     // Both lists come back newest-first (see sortBatches) so every picker agrees.
@@ -1831,6 +1838,19 @@ export const api = {
     // to moderators, staff, contributors, etc.
     adminGrant: (data: { user_id: string; plan_id: string; note?: string }): Promise<UserSubscription> =>
       fetchWithAuth('/subscriptions/admin-grant', { method: 'POST', body: JSON.stringify(data) }),
+    // Current (most recent) subscription for one user — null if they've
+    // never had one. `getAll`'s rows don't carry a convenient per-user
+    // lookup, so this hits GetUserSubscription directly.
+    getForUser: (userId: string): Promise<UserSubscription | null> =>
+      fetchWithAuth(`/subscriptions/user/${userId}`),
+    // Overwrites the current subscription's end date directly (extend or
+    // shorten access) — null means "never expires". Does not change plan
+    // or price, only how long it lasts.
+    setExpiry: (userId: string, endDate: string | null): Promise<UserSubscription> =>
+      fetchWithAuth(`/subscriptions/user/${userId}/expiry`, {
+        method: 'PUT',
+        body: JSON.stringify({ end_date: endDate }),
+      }),
   },
   coupons: {
     getAll: (): Promise<CouponCode[]> =>
