@@ -1086,6 +1086,39 @@ export interface SystemLogStats {
   top_failing_paths: { path: string; count: number }[];
 }
 
+// One "forgot password" request, as reported by GET /admin/password-resets.
+// The backend's PasswordReset table deliberately serializes nothing (all
+// json:"-"), so this view is what its admin handler exposes instead — the
+// 6-digit code and reset token hashes never appear here.
+// status: pending | verified | used | superseded | expired | exhausted.
+// email_status: last password_reset email to that address — sent | failed,
+// correlated within ±3 minutes of the reset row ("", no matching log).
+export interface PasswordResetView {
+  id: string;
+  email: string;
+  account_type: "user" | "admin";
+  status: "pending" | "verified" | "used" | "superseded" | "expired" | "exhausted";
+  attempts: number;
+  request_ip: string;
+  created_at: string;
+  expires_at: string;
+  verified_at?: string;
+  consumed_at?: string;
+  email_status?: "sent" | "failed" | "";
+  email_error?: string;
+}
+
+// Response of POST /admin/password-resets/issue — the freshly minted code,
+// shown to the admin exactly once; nothing related is stored beyond the
+// server-side bcrypt hash.
+export interface IssuedResetCode {
+  code: string;
+  email: string;
+  account_type: "user" | "admin";
+  expires_at: string;
+  minutes: number;
+}
+
 export interface DailyCount {
   date: string;
   count: number;
@@ -1679,6 +1712,15 @@ export const api = {
       fetchWithAuth('/students', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: Partial<Student>): Promise<Student> =>
       fetchWithAuth(`/students/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    // Emails the student their profile-claim code (actionable mail template).
+    // Server rejects with 409 for already-claimed profiles and 400 when the
+    // profile has no email on file.
+    // Regenerates an unclaimed student's claim code (legacy rows sometimes
+    // have none) — the Send Mail / Claim flows need a code to exist first.
+    generateCode: (id: string): Promise<Student> =>
+      fetchWithAuth(`/students/${id}/generate-code`, { method: 'POST' }),
+    sendCodeEmail: (id: string): Promise<void> =>
+      fetchWithAuth(`/students/${id}/send-code-email`, { method: 'POST' }),
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/students/${id}`, { method: 'DELETE' }),
   },
@@ -2103,5 +2145,16 @@ export const api = {
       fetchWithAuth(`/system-logs?limit=50&${params || ''}`),
     getStats: (): Promise<SystemLogStats> =>
       fetchWithAuth('/system-logs/stats'),
+  },
+  passwordResets: {
+    // History of "forgot password" requests (last 7 days — the backend side
+    // hard-deletes older rows and there are no hashes in this payload).
+    // params: page, pageSize, email, account_type, status
+    getAll: (params?: string): Promise<{ page: number; pageSize: number; total: number; resets: PasswordResetView[] }> =>
+      fetchWithAuth(`/admin/password-resets?${params || ''}`),
+    // The repair path when the emailed code never lands: mints a fresh code
+    // and returns it once. Issuing again supersedes the previous one.
+    issueCode: (email: string, accountType: "user" | "admin" = "user"): Promise<IssuedResetCode> =>
+      fetchWithAuth('/admin/password-resets/issue', { method: 'POST', body: JSON.stringify({ email, account_type: accountType }) }),
   },
 };
