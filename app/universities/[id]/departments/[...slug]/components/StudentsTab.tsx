@@ -5,6 +5,7 @@ import { api, Student, Batch, Session, Contributor, CR, getApiUrl } from "@/lib/
 import { Avatar, Badge, ConfirmDelete, selectCls, inputCls, Modal, ActionMenu } from "./SharedUI"
 import { StudentModal } from "./StudentModal"
 import { MakeCRModal, EndCRModal, isActiveCR } from "./CRModals"
+import { GrantProModal, GrantProTarget } from "@/components/GrantProModal"
 import { Users, Plus, Pencil, Trash2, Mail, Phone, ExternalLink, Search, Copy, Share2, RefreshCcw, Loader2, LayoutGrid, List, ChevronLeft, ChevronRight, MoreVertical, GraduationCap, Handshake, UserCheck, Send, UserMinus, Crown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -44,11 +45,15 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
   const [activeCRs, setActiveCRs] = useState<CR[]>([])
   const [crStudent, setCrStudent] = useState<Student | null>(null)
   const [endingCR, setEndingCR] = useState<CR | null>(null)
+  const [proTarget, setProTarget] = useState<GrantProTarget | null>(null)
   const [sessions, setSessions] = useState<Session[]>([])
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
-  const [batchCounts, setBatchCounts] = useState<Record<string, number>>({})
   const filterScrollRef = useRef<HTMLDivElement>(null)
   const tableScrollRef = useRef<HTMLDivElement>(null)
+  // Rows open the preview dialog on click; a drag-to-scroll gesture must not
+  // count as one. The scroll effect sets this on any horizontal drag move and
+  // the row click consumes it.
+  const tableMovedRef = useRef(false)
   
   const deferredSearch = useDeferredValue(search)
   const ITEMS_PER_PAGE = 20
@@ -97,28 +102,28 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
 
   useEffect(() => { loadData() }, [loadData])
 
-  // Load per-batch counts
-  useEffect(() => {
-    if (batches.length === 0) return
-    const controller = new AbortController()
-    ;(async () => {
-      const results = await Promise.allSettled(
-        batches.map(async (b) => {
-          const res = await fetch(`${getApiUrl()}/students?department_id=${departmentId}&batch_id=${b.id}&limit=1`, {
-            signal: controller.signal
-          })
-          const json = await res.json()
-          return { id: b.id, count: json.count || 0 }
-        })
-      )
-      const counts: Record<string, number> = {}
-      for (const r of results) {
-        if (r.status === 'fulfilled') counts[r.value.id] = r.value.count
-      }
-      setBatchCounts(counts)
-    })()
-    return () => controller.abort()
-  }, [batches, departmentId])
+  // Claimed/total ratio for the counter — one tiny count-only request per
+  // filter change (deliberately NOT re-run on page changes; pagination can't
+  // shift it, only membership mutations can, and those call it explicitly).
+  const [claimedCount, setClaimedCount] = useState(0)
+  const loadClaimedCount = useCallback(async () => {
+    try {
+      const params = new URLSearchParams({
+        department_id: departmentId,
+        limit: "1",
+        is_claimed: "true",
+        ...(deferredSearch && { search: deferredSearch }),
+        ...(filterBatch && { batch_id: filterBatch })
+      })
+      const response = await fetch(`${getApiUrl()}/students?${params.toString()}`)
+      const result = await response.json()
+      setClaimedCount(result.count || 0)
+    }
+    catch (err) {
+      console.error("Error loading claimed count:", err)
+    }
+  }, [departmentId, deferredSearch, filterBatch])
+  useEffect(() => { loadClaimedCount() }, [loadClaimedCount])
 
   const loadContributors = useCallback(async () => {
     try {
@@ -169,7 +174,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
     let isDown = false, startX = 0, scrollLeft = 0
     const onDown = (e: MouseEvent) => { isDown = true; startX = e.pageX - el.offsetLeft; scrollLeft = el.scrollLeft; el.style.cursor = 'grabbing' }
     const onUp = () => { isDown = false; el.style.cursor = 'grab' }
-    const onMove = (e: MouseEvent) => { if (!isDown) return; e.preventDefault(); el.scrollLeft = scrollLeft - (e.pageX - el.offsetLeft - startX) }
+    const onMove = (e: MouseEvent) => { if (!isDown) return; e.preventDefault(); tableMovedRef.current = true; el.scrollLeft = scrollLeft - (e.pageX - el.offsetLeft - startX) }
     const onWheel = (e: WheelEvent) => {
       if (el.scrollWidth <= el.clientWidth) return
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
@@ -206,7 +211,8 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
     setDeleteLoading(true)
     try { 
       await api.students.delete(deleting.id)
-      loadData() 
+      loadData()
+      loadClaimedCount()
       setToast("Student removed successfully")
     }
     catch (err: any) { 
@@ -222,6 +228,34 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
     const msg = `🎓 *Campus Assistant Student Profile*\n----------------------------------\nName: ${s.name}\nBatch: ${batchName}\nStudent ID: ${s.student_id}\nVerification Code: ${s.verification_code}\n\n🚀 *How to verify:*\n1. Download App: https://play.google.com/store/apps/details?id=com.sofolit.campusassistant\n2. Create a new account\n3. Provide the code above & verify your profile.`
     navigator.clipboard.writeText(msg)
     setToast("Verification details copied!")
+  }
+
+  // Mints a fresh 6-digit claim code for an unclaimed student — the repair
+  // path for legacy rows that have none, after which Send Mail becomes
+  // available. Server 409s claimed profiles as a backstop.
+  async function handleGenerateCode(s: Student) {
+    try {
+      await api.students.generateCode(s.id)
+      loadData()
+      setToast(`New claim code generated for ${s.name}`)
+    }
+    catch (err: any) {
+      alert(err.message || "Failed to generate code")
+    }
+  }
+
+  // Emails the profile-claim code to the student via the actionable mail
+  // template. Only meaningful for unclaimed profiles with an email on file —
+  // the menus/modals disable the action otherwise, and the server 409s an
+  // already-claimed profile as a backstop.
+  async function handleSendMail(s: Student) {
+    try {
+      await api.students.sendCodeEmail(s.id)
+      setToast(`Claim code emailed to ${s.email}`)
+    }
+    catch (err: any) {
+      alert(err.message || "Failed to send email")
+    }
   }
 
   const handleAddToAlumni = (s: Student) => {
@@ -284,14 +318,25 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
         departmentId={departmentId} 
         currentBatchId={filterBatch || undefined}
         student={editing} 
-        onSuccess={loadData} 
+        onSuccess={() => { loadData(); loadClaimedCount() }}
       />
 
-      <StudentPreviewModal 
-        student={previewStudent} 
-        onClose={() => setPreviewStudent(null)} 
+      <GrantProModal 
+        open={!!proTarget} 
+        target={proTarget} 
+        onClose={() => setProTarget(null)} 
+        onSuccess={() => { loadData(); setToast("Pro access granted") }} 
+      />
+
+      <StudentPreviewModal
+        student={previewStudent}
+        onClose={() => setPreviewStudent(null)}
         batches={batches}
         sessions={sessions}
+        onToast={setToast}
+        onCopyDetails={() => previewStudent && handleCopyCode(previewStudent)}
+        onSendMail={() => previewStudent && handleSendMail(previewStudent)}
+        onRefresh={loadData}
       />
 
       {alumniStudent && (
@@ -420,31 +465,14 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
         loading={removeContributorLoading}
       />
 
-      {/* Header & Search */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <div>
-          <h3 className="text-xl font-bold tracking-tight">Department Students</h3>
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mt-1">Registry Management</p>
+      {/* Header — title and Add button share one row on every screen size */}
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <div className="min-w-0">
+          <h3 className="text-xl font-bold tracking-tight truncate">Department Students</h3>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mt-1 truncate">Registry Management</p>
         </div>
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <div className="relative flex-1 md:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50" />
-            <input 
-              type="text" 
-              placeholder="Search by name, ID, or email..." 
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-              className={cn(inputCls, "pl-10 w-full h-11 font-medium")}
-            />
-          </div>
-          <button 
-            onClick={() => setViewMode(v => v === 'table' ? 'card' : 'table')}
-            className="flex items-center gap-2 rounded-sm border px-4 py-2 text-sm font-bold hover:bg-muted transition-all h-11 shrink-0"
-            title={viewMode === 'table' ? 'Card View' : 'Table View'}
-          >
-            {viewMode === 'table' ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}
-          </button>
-          <button 
+        <div className="flex items-center gap-2 shrink-0">
+          <button
             onClick={() => { setEditing(null); setModalOpen(true) }}
             className="flex items-center gap-2 rounded-sm bg-primary-gradient px-6 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all shadow-md h-11 shrink-0 active:scale-95"
           >
@@ -453,53 +481,79 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
         </div>
       </div>
 
-      {/* Batch Filters */}
-      <div className="relative mb-2 group">
-        <button 
-          onClick={() => filterScrollRef.current?.scrollBy({ left: -200, behavior: 'smooth' })}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full border bg-background shadow-md flex items-center justify-center hover:bg-muted transition-all opacity-0 group-hover:opacity-100"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-        <div ref={filterScrollRef} className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide -mx-1 px-1 cursor-grab active:cursor-grabbing">
-          <button 
-            onClick={() => { setFilterBatch(null); setCurrentPage(1); }}
-            className={cn(
-              "flex items-center gap-2 px-5 py-2 rounded-full text-[11px] font-black transition-all border shrink-0 uppercase tracking-tighter",
-              !filterBatch ? "bg-primary-gradient text-white border-primary shadow-md" : "bg-card text-muted-foreground hover:bg-muted border-border"
-            )}
+      {/* Toolbar: batch tabs + search + live total, one strip */}
+      <div className="flex flex-col lg:flex-row lg:items-center gap-2 mb-2">
+        <div className="relative group flex-1 min-w-0">
+          <button
+            onClick={() => filterScrollRef.current?.scrollBy({ left: -200, behavior: 'smooth' })}
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full border bg-background shadow-md flex items-center justify-center hover:bg-muted transition-all opacity-0 group-hover:opacity-100"
           >
-            All Students
-            <span className={cn("px-1.5 py-0.5 rounded-full text-[9px] leading-none", !filterBatch ? "bg-white/20" : "bg-muted-foreground/10")}>
-              {totalCount}
-            </span>
+            <ChevronLeft className="h-4 w-4" />
           </button>
-          {[...batches].sort((a, b) => {
-  const numA = parseInt(a.name.match(/\d+/)?.[0] || "0")
-  const numB = parseInt(b.name.match(/\d+/)?.[0] || "0")
-  return numB - numA
-}).map((b) => (
-            <button 
-              key={b.id}
-              onClick={() => { setFilterBatch(b.id); setCurrentPage(1); }}
+          <div ref={filterScrollRef} className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide -mx-1 px-1 cursor-grab active:cursor-grabbing">
+            <button
+              onClick={() => { setFilterBatch(null); setCurrentPage(1); }}
               className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-black transition-all border shrink-0 whitespace-nowrap uppercase tracking-tighter",
-                filterBatch === b.id ? "bg-primary-gradient text-white border-primary shadow-md" : "bg-card text-muted-foreground hover:bg-muted border-border"
+                "flex items-center gap-2 px-5 h-9 rounded-full text-[11px] font-black transition-all border shrink-0 uppercase tracking-tighter",
+                !filterBatch ? "bg-primary-gradient text-white border-primary shadow-md" : "bg-card text-muted-foreground hover:bg-muted border-border"
               )}
             >
-              {b.name}
-              <span className={cn("px-1.5 py-0.5 rounded-full text-[9px] leading-none", filterBatch === b.id ? "bg-white/20" : "bg-muted-foreground/10")}>
-                {batchCounts[b.id] ?? "..."}
-              </span>
+              All Students
             </button>
-          ))}
+            {[...batches].sort((a, b) => {
+              const numA = parseInt(a.name.match(/\d+/)?.[0] || "0")
+              const numB = parseInt(b.name.match(/\d+/)?.[0] || "0")
+              return numB - numA
+            }).map((b) => (
+              <button
+                key={b.id}
+                onClick={() => { setFilterBatch(b.id); setCurrentPage(1); }}
+                className={cn(
+                  "flex items-center gap-2 px-4 h-9 rounded-full text-[11px] font-black transition-all border shrink-0 whitespace-nowrap uppercase tracking-tighter",
+                  filterBatch === b.id ? "bg-primary-gradient text-white border-primary shadow-md" : "bg-card text-muted-foreground hover:bg-muted border-border"
+                )}
+              >
+                {b.name}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => filterScrollRef.current?.scrollBy({ left: 200, behavior: 'smooth' })}
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full border bg-background shadow-md flex items-center justify-center hover:bg-muted transition-all opacity-0 group-hover:opacity-100"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
         </div>
-        <button 
-          onClick={() => filterScrollRef.current?.scrollBy({ left: 200, behavior: 'smooth' })}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full border bg-background shadow-md flex items-center justify-center hover:bg-muted transition-all opacity-0 group-hover:opacity-100"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </button>
+        {/* Right cluster: search, claimed/total counter, view switch.
+            While a fetch is in flight the counter just slots a single dash
+            into its usual spot — no spinners, no shimmer, no locking. */}
+        <div className="flex items-center gap-2 shrink-0 lg:pb-4">
+          <div className="relative flex-1 lg:w-56">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50" />
+            <input
+              type="text"
+              placeholder="Search students..."
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+              className={cn(inputCls, "pl-10 w-full h-9 font-medium text-sm")}
+            />
+          </div>
+          <div className="flex items-center gap-1.5 px-3 h-9 rounded-sm border bg-card text-muted-foreground text-[11px] font-black uppercase tracking-tighter shrink-0 whitespace-nowrap">
+            <Users className="h-3.5 w-3.5" />
+            {loading ? (
+              <span className="opacity-40">-</span>
+            ) : (
+              <span>{claimedCount}/{totalCount}</span>
+            )}
+          </div>
+          <button
+            onClick={() => setViewMode(v => v === 'table' ? 'card' : 'table')}
+            className="flex items-center justify-center rounded-sm border px-3 h-9 text-sm font-bold hover:bg-muted transition-all shrink-0 bg-card"
+            title={viewMode === 'table' ? 'Card View' : 'Table View'}
+          >
+            {viewMode === 'table' ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -523,15 +577,12 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
           {viewMode === 'card' ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {sortedStudents.map((s) => {
-                const batchName = batches.find(b => b.id === s.batch_id)?.name || "N/A"
                 const sessionName = sessions.find(sess => sess.id === s.session_id)?.name || "N/A"
                 return (
-                  <div key={s.id} className="relative rounded-sm border p-4 bg-card hover:shadow-lg transition-all group overflow-hidden border-border/60 hover:border-primary/40">
+                  <div key={s.id} onClick={() => setPreviewStudent(s)} className="relative rounded-sm border p-4 bg-card hover:shadow-lg transition-all group overflow-hidden border-border/60 hover:border-primary/40 cursor-pointer active:scale-[0.995]">
                     <div className="flex items-start justify-between gap-2 mb-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <button onClick={() => setPreviewStudent(s)} className="hover:scale-105 transition-transform">
-                          <Avatar name={s.name} size="md" imageUrl={s.user?.avatar_url} />
-                        </button>
+                        <Avatar name={s.name} size="md" imageUrl={s.user?.avatar_url} />
                         <div className="min-w-0">
                           <p className="font-black truncate text-sm tracking-tight">{s.name}</p>
                           {s.email && <p className="text-[10px] text-muted-foreground truncate">{s.email}</p>}
@@ -543,13 +594,13 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
                         </div>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <button onClick={() => { setEditing(s); setModalOpen(true) }} 
-                          className="p-2 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-primary transition-all shadow-sm" 
+                        <button onClick={(e) => { e.stopPropagation(); setEditing(s); setModalOpen(true) }}
+                          className="p-2 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-primary transition-all shadow-sm"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => setDeleting(s)} 
-                          className="p-2 rounded-sm border bg-background hover:bg-destructive/5 text-muted-foreground hover:text-destructive transition-all shadow-sm" 
+                        <button onClick={(e) => { e.stopPropagation(); setDeleting(s) }}
+                          className="p-2 rounded-sm border bg-background hover:bg-destructive/5 text-muted-foreground hover:text-destructive transition-all shadow-sm"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
@@ -581,55 +632,84 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
                                 <Crown className="h-4 w-4 text-primary" /> Make CR
                               </button>
                             )}
-                            <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
-                              <UserCheck className="h-4 w-4" /> Att to Pro
-                            </button>
-                            <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
-                              <Send className="h-4 w-4" /> Send Mail
-                            </button>
+                            {s.user_id ? (
+                              <button onClick={() => { setActionMenuStudentId(null); setProTarget({ id: s.user_id!, name: s.name, email: s.email }) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
+                                <UserCheck className="h-4 w-4" /> Make User Pro
+                              </button>
+                            ) : (
+                              <button disabled title="Not claimed yet — Pro needs a claimed account" className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
+                                <UserCheck className="h-4 w-4" /> Make User Pro
+                              </button>
+                            )}
+                            {!s.is_claimed && (
+                              <button onClick={() => { setActionMenuStudentId(null); handleGenerateCode(s) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
+                                <RefreshCcw className="h-4 w-4 text-primary" /> Generate Code
+                              </button>
+                            )}
+                            {!s.is_claimed && s.verification_code && s.email ? (
+                              <button onClick={() => { setActionMenuStudentId(null); setActionMenuAnchor(null); handleSendMail(s) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
+                                <Send className="h-4 w-4" /> Send Mail
+                              </button>
+                            ) : (
+                              <button disabled title={!s.email ? "No email on file for this profile" : "Already claimed — no code left to send"} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
+                                <Send className="h-4 w-4" /> Send Mail
+                              </button>
+                            )}
                           </ActionMenu>
                         </div>
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="flex items-center gap-1 bg-primary/5 border border-primary/10 rounded-sm px-2 py-0.5">
-                         <p className="text-[9px] font-black text-primary uppercase tracking-tighter">{batchName}</p>
-                      </div>
-                      <Badge variant={s.is_regular ? "success" : "warn"} className="text-[9px] px-2 py-0.5 leading-tight font-black uppercase">
+                    <div className="flex items-center gap-2 mb-0 flex-wrap">
+                      {/* Soft rounded pills (the old batch-badge container),
+                          tinted per state instead of the shared palette. */}
+                      <span className={cn(
+                        "inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter leading-tight whitespace-nowrap",
+                        s.is_regular ? "bg-success-subtle border-success/20 text-success" : "bg-warning-subtle border-warning/20 text-warning"
+                      )}>
                         {s.is_regular ? "Regular" : "Irregular"}
-                      </Badge>
-                      {s.blood_group && (
-                        <Badge variant="danger" className="text-[9px] px-2 py-0.5 leading-tight font-black">{s.blood_group}</Badge>
+                      </span>
+                      {s.is_claimed ? (
+                        <span className="inline-flex items-center gap-0.5 rounded-sm border px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter leading-tight whitespace-nowrap bg-success-subtle border-success/20 text-success">
+                          <RefreshCcw className="h-2.5 w-2.5" /> Claimed
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter leading-tight whitespace-nowrap bg-warning-subtle border-warning/20 text-warning">
+                          Unclaimed
+                        </span>
                       )}
-                    </div>
-
-                    <div className="pt-4 border-t border-dashed border-border flex items-center justify-between">
-                      <div className="flex flex-col">
-                        <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.2em] leading-none mb-1.5">Verification Code</p>
-                        <div className="flex items-center gap-2">
+                      {s.blood_group && (
+                        <span className="inline-flex items-center rounded-sm border border-destructive/20 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter leading-tight whitespace-nowrap bg-destructive-subtle text-destructive">
+                          {s.blood_group}
+                        </span>
+                      )}
+                      {/* Verification code rides the same row, pushed to the
+                          right edge — hidden entirely when none exists so no
+                          dash placeholder bloats the badges row. */}
+                      {s.verification_code ? (
+                        <div className="ml-auto flex items-center gap-1.5">
                           <code className={cn(
-                            "text-[14px] font-black tracking-[0.2em]",
+                            "text-[12px] font-black tracking-[0.15em]",
                             s.is_claimed ? "text-muted-foreground/40 line-through" : "text-primary drop-shadow-sm"
                           )}>
-                            {s.verification_code || "------"}
+                            {s.verification_code}
                           </code>
                           {s.is_claimed && (
                             <div className="h-4 w-4 rounded-full bg-success-subtle text-success flex items-center justify-center" title="Verified">
-                               <RefreshCcw className="h-2.5 w-2.5" />
+                              <RefreshCcw className="h-2.5 w-2.5" />
                             </div>
                           )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleCopyCode(s) }}
+                            className="p-1 rounded-sm text-muted-foreground/60 hover:text-foreground hover:bg-muted transition-colors"
+                            title="Copy Details"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </button>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button 
-                          onClick={() => handleCopyCode(s)}
-                          className="p-2.5 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all shadow-sm group/btn"
-                          title="Copy Details"
-                        >
-                          <Copy className="h-4 w-4 group-hover/btn:scale-110 transition-transform" />
-                        </button>
-                      </div>
+                      ) : (
+                        <span className="ml-auto text-muted-foreground/40 font-bold">-</span>
+                      )}
                     </div>
                   </div>
                 )
@@ -642,10 +722,10 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
                   <tr>
                     <th className="px-4 py-3 w-10"></th>
                     <th className="px-4 py-3">Name</th>
-                    <th className="px-4 py-3">ID</th>
                     <th className="px-4 py-3 whitespace-nowrap">Batch</th>
-                    <th className="px-4 py-3 whitespace-nowrap">Session</th>
-                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">ID / Session</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Regular</th>
+                    <th className="px-4 py-3 whitespace-nowrap">Claimed</th>
                     <th className="px-4 py-3">Code</th>
                     <th className="px-4 py-3 w-24"></th>
                   </tr>
@@ -655,36 +735,71 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
                     const batchName = batches.find(b => b.id === s.batch_id)?.name || "N/A"
                     const sessionName = sessions.find(sess => sess.id === s.session_id)?.name || "N/A"
                     return (
-                      <tr key={s.id} className="hover:bg-muted/30 transition-colors">
+                      <tr key={s.id} onClick={(e) => {
+                        if (tableMovedRef.current) { tableMovedRef.current = false; return }
+                        const path = e.nativeEvent.composedPath?.() as unknown[] | undefined
+                        if (path?.some(n => n instanceof HTMLElement && n.tagName === 'BUTTON')) return
+                        setPreviewStudent(s)
+                      }} className="hover:bg-muted/30 transition-colors cursor-pointer">
                         <td className="px-4 py-2.5">
-                          <button onClick={() => setPreviewStudent(s)} className="hover:scale-105 transition-transform">
-                            <Avatar name={s.name} size="sm" imageUrl={s.user?.avatar_url} />
-                          </button>
+                          <Avatar name={s.name} size="sm" imageUrl={s.user?.avatar_url} />
                         </td>
                         <td className="px-4 py-2.5">
                           <p className="font-bold truncate max-w-[180px]">{s.name}</p>
                           {s.email && <p className="text-[10px] text-muted-foreground truncate max-w-[180px]">{s.email}</p>}
                         </td>
-                        <td className="px-4 py-2.5 font-mono text-xs font-bold">{s.student_id}</td>
                         <td className="px-4 py-2.5 whitespace-nowrap">
                           <span className="rounded-sm bg-primary/5 border border-primary/10 px-2 py-0.5 text-[10px] font-black text-primary uppercase tracking-tighter whitespace-nowrap">{batchName}</span>
                         </td>
-                        <td className="px-4 py-2.5 text-xs text-muted-foreground font-bold whitespace-nowrap">{sessionName}</td>
                         <td className="px-4 py-2.5">
+                          <p className="font-mono text-xs font-bold">{s.student_id}</p>
+                          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight mt-0.5">{sessionName}</p>
+                        </td>
+                        <td className="px-4 py-2.5 whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                            <Badge variant={s.is_regular ? "success" : "warn"} className="text-[9px] px-2 py-0.5 leading-tight font-black uppercase">{s.is_regular ? "Regular" : "Irregular"}</Badge>
+                            <span className={cn(
+                              "inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter leading-tight whitespace-nowrap",
+                              s.is_regular ? "bg-success-subtle border-success/20 text-success" : "bg-warning-subtle border-warning/20 text-warning"
+                            )}>
+                              {s.is_regular ? "Regular" : "Irregular"}
+                            </span>
                             {s.blood_group && (
-                              <Badge variant="danger" className="text-[9px] px-2 py-0.5 leading-tight font-black">{s.blood_group}</Badge>
+                              <span className="inline-flex items-center rounded-sm border border-destructive/20 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter leading-tight whitespace-nowrap bg-destructive-subtle text-destructive">
+                                {s.blood_group}
+                              </span>
                             )}
                           </div>
                         </td>
+                        <td className="px-4 py-2.5 whitespace-nowrap">
+                          {s.is_claimed ? (
+                            <span className="inline-flex items-center gap-0.5 rounded-sm border px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter leading-tight whitespace-nowrap bg-success-subtle border-success/20 text-success">
+                              <RefreshCcw className="h-2.5 w-2.5" /> Claimed
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[8px] font-black uppercase tracking-tighter leading-tight whitespace-nowrap bg-warning-subtle border-warning/20 text-warning">
+                              Unclaimed
+                            </span>
+                          )}
+                        </td>
                         <td className="px-4 py-2.5">
-                          <code className={cn(
-                            "text-xs font-black tracking-wider",
-                            s.is_claimed ? "text-muted-foreground/40 line-through" : "text-primary"
-                          )}>
-                            {s.verification_code || "------"}
-                          </code>
+                          {s.verification_code ? (
+                            <div className="flex items-center gap-1.5 group/code">
+                              <code className={cn(
+                                "text-xs font-black tracking-wider",
+                                s.is_claimed ? "text-muted-foreground/40 line-through" : "text-primary"
+                              )}>
+                                {s.verification_code}
+                              </code>
+                              <button onClick={(e) => { e.stopPropagation(); handleCopyCode(s) }}
+                                className="p-1 rounded-sm text-muted-foreground/60 hover:text-foreground hover:bg-muted transition-colors"
+                                title="Copy Details"
+                              >
+                                <Copy className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground/40 font-bold">-</span>
+                          )}
                         </td>
                         <td className="px-4 py-2.5">
                           <div className="flex items-center gap-1">
@@ -693,16 +808,10 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </button>
-                            <button onClick={() => setDeleting(s)} 
+                            <button onClick={() => setDeleting(s)}
                               className="p-1.5 rounded-sm border bg-background hover:bg-destructive/5 text-muted-foreground hover:text-destructive transition-all"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                            <button onClick={() => handleCopyCode(s)}
-                              className="p-1.5 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
-                              title="Copy Details"
-                            >
-                              <Copy className="h-3.5 w-3.5" />
                             </button>
                             <div>
                               <button onClick={(e) => { e.stopPropagation(); const el = e.currentTarget; setActionMenuAnchor(el); setActionMenuStudentId(actionMenuStudentId === s.id ? null : s.id) }}
@@ -732,12 +841,29 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
                                     <Crown className="h-4 w-4 text-primary" /> Make CR
                                   </button>
                                 )}
-                                <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
-                                  <UserCheck className="h-4 w-4" /> Att to Pro
-                                </button>
-                                <button disabled className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
-                                  <Send className="h-4 w-4" /> Send Mail
-                                </button>
+                                {s.user_id ? (
+                                  <button onClick={() => { setActionMenuStudentId(null); setProTarget({ id: s.user_id!, name: s.name, email: s.email }) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
+                                    <UserCheck className="h-4 w-4" /> Make User Pro
+                                  </button>
+                                ) : (
+                                  <button disabled title="Not claimed yet — Pro needs a claimed account" className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
+                                    <UserCheck className="h-4 w-4" /> Make User Pro
+                                  </button>
+                                )}
+                                {!s.is_claimed && (
+                                  <button onClick={() => { setActionMenuStudentId(null); handleGenerateCode(s) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
+                                    <RefreshCcw className="h-4 w-4 text-primary" /> Generate Code
+                                  </button>
+                                )}
+                                {!s.is_claimed && s.verification_code && s.email ? (
+                                  <button onClick={() => { setActionMenuStudentId(null); setActionMenuAnchor(null); handleSendMail(s) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
+                                    <Send className="h-4 w-4" /> Send Mail
+                                  </button>
+                                ) : (
+                                  <button disabled title={!s.email ? "No email on file for this profile" : "Already claimed — no code left to send"} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-muted-foreground/50 text-left cursor-not-allowed">
+                                    <Send className="h-4 w-4" /> Send Mail
+                                  </button>
+                                )}
                               </ActionMenu>
                             </div>
                           </div>
@@ -793,93 +919,200 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
   )
 }
 
-function StudentPreviewModal({ student, onClose, batches, sessions }: { student: Student | null; onClose: () => void; batches: Batch[]; sessions: Session[] }) {
+function StudentPreviewModal({ student, onClose, batches, sessions, onToast, onCopyDetails, onSendMail, onRefresh }: {
+  student: Student | null
+  onClose: () => void
+  batches: Batch[]
+  sessions: Session[]
+  onToast?: (msg: string) => void
+  onCopyDetails?: () => void
+  onSendMail?: () => void
+  onRefresh?: () => void
+}) {
   const [zoom, setZoom] = useState(false)
+  const [mailing, setMailing] = useState(false)
+  // A just-minted code lives here only — the parent's student prop still
+  // carries the old (empty) value until the list reloads.
+  const [mintedCode, setMintedCode] = useState<string | null>(null)
+  const [minting, setMinting] = useState(false)
+
+  // Fresh state per opened student — the component stays mounted while hidden.
+  useEffect(() => { setZoom(false); setMailing(false); setMintedCode(null); setMinting(false) }, [student?.id])
+
   if (!student) return null
 
   const batchName = batches.find(b => b.id === student.batch_id)?.name || "Unknown Batch"
   const sessionName = sessions.find(s => s.id === student.session_id)?.name || "Unknown Session"
+  const shownCode = mintedCode ?? student.verification_code
+  const canSendMail = !student.is_claimed && !!shownCode && !!student.email
+
+  async function handleGenerate() {
+    if (!student || minting) return
+    setMinting(true)
+    try {
+      const fresh = await api.students.generateCode(student.id)
+      setMintedCode(fresh.verification_code)
+      onToast?.(`New claim code generated for ${student.name}`)
+      onRefresh?.()
+    }
+    catch (err: any) {
+      onToast?.(err.message || "Failed to generate code")
+    }
+    finally {
+      setMinting(false)
+    }
+  }
+
+  async function handleSendMail() {
+    if (!student || mailing) return
+    setMailing(true)
+    try {
+      await api.students.sendCodeEmail(student.id)
+      onToast?.(`Claim code emailed to ${student.email}`)
+    }
+    catch (err: any) {
+      onToast?.(err.message || "Failed to send email")
+    }
+    finally {
+      setMailing(false)
+    }
+  }
 
   return (
-    <Modal open={!!student} onClose={() => { setZoom(false); onClose() }} title="Profile Identity">
-      <div className="flex flex-col items-center">
-        <div 
-          onClick={() => setZoom(!zoom)}
-          className={cn(
-            "relative overflow-hidden group transition-all duration-500 shadow-2xl border-4 border-white cursor-zoom-in rounded-xl",
-            zoom ? "w-full aspect-square" : "h-44 w-44 mb-8"
-          )}
-        >
-          {student.user?.avatar_url ? (
-            <img src={student.user?.avatar_url} alt={student.name} className="h-full w-full object-cover" />
-          ) : (
-            <div className="h-full w-full flex items-center justify-center bg-primary/5 text-primary text-5xl font-black italic">
-              {student.name.split(" ").slice(0, 2).map(n => n[0]).join("")}
+    <Modal open={!!student} onClose={() => { setZoom(false); onClose() }} title="Student Profile" className="sm:max-w-md">
+      {/* Modal body renders with p-0 — this wrapper provides the single, even
+          gutter the old version lacked (it mixed mb-8/pt-4/space-y-8 instead). */}
+      <div className="p-6">
+        {/* Identity header — photo left, name + badges right. Clicking the
+            photo expands it in place; it is NOT the click target for the list
+            (the whole row/card owns that). */}
+        <div className="flex flex-wrap items-center gap-4 mb-4">
+          <div
+            onClick={() => setZoom(z => !z)}
+            title={zoom ? "Shrink photo" : "View photo"}
+            className={cn(
+              "overflow-hidden shrink-0 rounded-xl border border-border shadow-sm cursor-zoom-in transition-all duration-300 hover:ring-2 hover:ring-primary/20",
+              zoom && "w-full basis-full cursor-zoom-out"
+            )}
+          >
+            {student.user?.avatar_url ? (
+              <img src={student.user.avatar_url} alt={student.name} className={cn("object-cover", zoom ? "w-full aspect-square" : "h-20 w-20")} />
+            ) : (
+              <div className={cn("flex items-center justify-center bg-primary/10 text-primary font-black", zoom ? "w-full aspect-square text-7xl" : "h-20 w-20 text-2xl")}>
+                {student.name.split(" ").slice(0, 2).map(n => n[0]).join("").toUpperCase()}
+              </div>
+            )}
+          </div>
+          {!zoom && (
+            <div className="min-w-0 flex-1">
+              <h2 className="text-xl font-black tracking-tight truncate">{student.name}</h2>
+              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                {student.is_cr && (
+                  <Badge variant="info" className="font-black uppercase text-[9px] tracking-tighter">Class Rep</Badge>
+                )}
+                <Badge variant={student.is_regular ? "success" : "warn"} className="font-black uppercase text-[9px] tracking-tighter">{student.is_regular ? "Regular" : "Irregular"}</Badge>
+                <Badge variant={student.is_claimed ? "success" : "warn"} className="font-black uppercase text-[9px] tracking-tighter">{student.is_claimed ? "Verified" : "Pending"}</Badge>
+              </div>
             </div>
           )}
-          <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-black uppercase tracking-widest pointer-events-none backdrop-blur-xs">
-            {zoom ? "Click to close" : "Click to view"}
+        </div>
+
+        {/* Registry facts — compact single-line boxes instead of the old
+            oversized p-3/p-4 blocks with mb-8/space-y-8 gutters. */}
+        <div className="grid grid-cols-3 gap-2 mb-2">
+          {[
+            { label: "Batch", value: batchName },
+            { label: "Session", value: sessionName },
+            { label: "Student ID", value: student.student_id }
+          ].map(item => (
+            <div key={item.label} className="rounded-sm border bg-muted/20 p-2.5 text-center min-w-0">
+              <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">{item.label}</p>
+              <p className="text-xs font-black truncate tracking-tight">{item.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <div className="rounded-sm border bg-muted/20 p-2.5 text-center">
+            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Blood Group</p>
+            <p className="text-sm font-black text-destructive tracking-tighter">{student.blood_group || "--"}</p>
+          </div>
+          <div className="rounded-sm border bg-muted/20 p-2.5 text-center">
+            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Account</p>
+            <p className={cn("text-sm font-black tracking-tighter", student.is_claimed ? "text-success" : "text-warning")}>
+              {student.is_claimed ? "Claimed" : "Unclaimed"}
+            </p>
           </div>
         </div>
 
-        {!zoom && (
-          <div className="w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="text-center">
-              <p className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-2 leading-none">Registered Student</p>
-              <h2 className="text-3xl font-black tracking-tight leading-none">{student.name}</h2>
-              <div className="flex items-center justify-center gap-2 mt-4">
-                {student.is_cr && (
-                  <Badge variant="info" className="bg-primary text-white border-0 font-black uppercase text-[9px] tracking-tighter">Class Representative</Badge>
-                )}
-                <Badge variant={student.is_regular ? "success" : "warn"} className="font-black uppercase text-[9px] tracking-tighter">{student.is_regular ? "Regular" : "Irregular"}</Badge>
-              </div>
+        {student.email && (
+          <div className="rounded-sm border border-primary/20 bg-primary/5 p-3 flex items-center justify-between gap-2 mb-2">
+            <div className="min-w-0">
+              <p className="text-[8px] font-black text-primary uppercase tracking-widest mb-0.5">Institutional Email</p>
+              <p className="text-sm font-bold truncate tracking-tight">{student.email}</p>
             </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { label: "Batch", value: batchName },
-                { label: "Session", value: sessionName },
-                { label: "Student ID", value: student.student_id }
-              ].map(item => (
-                <div key={item.label} className="rounded-lg border bg-muted/20 p-3 text-center">
-                  <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-1">{item.label}</p>
-                  <p className="text-xs font-black truncate tracking-tight">{item.value}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-lg border bg-muted/20 p-4 text-center">
-                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-2">Blood Group</p>
-                <p className="text-2xl font-black text-destructive tracking-tighter">{student.blood_group || "--"}</p>
-              </div>
-              <div className="rounded-lg border bg-muted/20 p-4 text-center">
-                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-2">Status</p>
-                <Badge variant={student.is_claimed ? "success" : "default"} className="font-black uppercase tracking-tighter">
-                  {student.is_claimed ? "Verified" : "Pending"}
-                </Badge>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {student.email && (
-                <div className="rounded-xl border p-4 bg-primary/5 border-primary/20 flex items-center justify-between group/row hover:bg-primary/10 transition-colors">
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-black text-primary uppercase tracking-widest mb-1">Institutional Email</p>
-                    <p className="text-sm font-bold truncate tracking-tight">{student.email}</p>
-                  </div>
-                  <a href={`mailto:${student.email}`} className="h-10 w-10 rounded-lg bg-primary-gradient text-white flex items-center justify-center hover:scale-110 transition-all shadow-lg shrink-0">
-                    <Mail className="h-5 w-5" />
-                  </a>
-                </div>
-              )}
-            </div>
-
-            <p className="text-[9px] text-center text-muted-foreground font-black uppercase tracking-[0.3em] pt-4 opacity-40">
-              ID Registry: {student.id.slice(0, 8)}
-            </p>
+            <a href={`mailto:${student.email}`} className="h-9 w-9 rounded-sm bg-primary-gradient text-white flex items-center justify-center hover:opacity-90 transition-all shadow-md shrink-0" title="Open in mail client">
+              <Mail className="h-4 w-4" />
+            </a>
           </div>
         )}
+
+        {shownCode ? (
+          <div className="rounded-sm border border-dashed border-border bg-muted/10 p-3 flex items-center justify-between gap-2">
+            <div>
+              <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest mb-0.5">Claim Code</p>
+              <code className={cn("text-base font-black tracking-[0.25em]", student.is_claimed ? "text-muted-foreground/40 line-through" : "text-primary")}>
+                {shownCode}
+              </code>
+            </div>
+            <button
+              onClick={() => { navigator.clipboard.writeText(shownCode); onToast?.("Claim code copied") }}
+              className="p-2 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all shrink-0"
+              title="Copy code"
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : null}
+
+        {/* Actions — the mail button calls the API's actionable claim-code
+            endpoint; Copy includes name/batch/code in the shared copy. */}
+        <div className="flex gap-2 mt-5 pb-1">
+          {canSendMail ? (
+            <button
+              onClick={handleSendMail}
+              disabled={mailing}
+              className="flex-1 rounded-sm bg-primary-gradient px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-md"
+            >
+              {mailing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {mailing ? "Sending…" : "Send Claim Code Mail"}
+            </button>
+          ) : !student.is_claimed && !shownCode ? (
+            <button
+              onClick={handleGenerate}
+              disabled={minting}
+              className="flex-1 rounded-sm bg-primary-gradient px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-md"
+            >
+              {minting ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+              {minting ? "Generating…" : "Generate Claim Code"}
+            </button>
+          ) : (
+            <button
+              disabled
+              title={student.is_claimed ? "Already claimed — no code left to send" : "No email on file for this profile"}
+              className="flex-1 rounded-sm bg-primary-gradient px-4 py-2.5 text-sm font-bold text-primary-foreground opacity-60 cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <Send className="h-4 w-4" /> Send Claim Code Mail
+            </button>
+          )}
+          <button
+            onClick={() => onCopyDetails?.()}
+            className="rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all flex items-center justify-center gap-2"
+            title="Copy full details"
+          >
+            <Copy className="h-4 w-4" /> Copy
+          </button>
+        </div>
       </div>
     </Modal>
   )

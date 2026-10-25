@@ -63,7 +63,7 @@ function LevelCard({ level, universityId, departmentId, onEdit, onDelete }: Leve
             <BookOpen className="h-4 w-4" />
           </div>
           <div className="min-w-0">
-            <p className="font-bold truncate text-sm leading-tight">Level {level.name}</p>
+            <p className="font-bold truncate text-sm leading-tight">{level.name}</p>
             <p className="text-xs text-muted-foreground mt-0.5 font-medium flex items-center gap-1">
               Order: {level.order}
               <ChevronRight className="h-3 w-3 text-primary/50 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -256,7 +256,7 @@ export function StudyTab({ study, universityId, departmentId, batches, onRefresh
 
       <ConfirmDelete
         open={!!deleteTarget}
-        label={deleteTarget ? `Level ${deleteTarget.name}` : ""}
+        label={deleteTarget ? `${deleteTarget.name}` : ""}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
         loading={deleting}

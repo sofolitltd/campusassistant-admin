@@ -1679,6 +1679,15 @@ export const api = {
       fetchWithAuth('/students', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: Partial<Student>): Promise<Student> =>
       fetchWithAuth(`/students/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    // Emails the student their profile-claim code (actionable mail template).
+    // Server rejects with 409 for already-claimed profiles and 400 when the
+    // profile has no email on file.
+    // Regenerates an unclaimed student's claim code (legacy rows sometimes
+    // have none) — the Send Mail / Claim flows need a code to exist first.
+    generateCode: (id: string): Promise<Student> =>
+      fetchWithAuth(`/students/${id}/generate-code`, { method: 'POST' }),
+    sendCodeEmail: (id: string): Promise<void> =>
+      fetchWithAuth(`/students/${id}/send-code-email`, { method: 'POST' }),
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/students/${id}`, { method: 'DELETE' }),
   },
