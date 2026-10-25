@@ -6,13 +6,14 @@ import {
   Search, Filter, MoreHorizontal, UserPlus, Loader2, Phone, Mail, Fingerprint,
   GraduationCap, Building2, CalendarDays, X, Briefcase, Award,
   Pencil, Trash2, Ban, CheckCircle, AlertTriangle, Users as UsersIcon, ShieldCheck, Crown,
-  LayoutGrid, List, ChevronDown
+  LayoutGrid, List, ChevronDown, KeyRound
 } from "lucide-react"
 import { api, User, University, Department, Session, Batch, UserStats } from "@/lib/api"
 import { USER_FILTER_KEYS, ROLE_OPTIONS, type UserFilterKey } from "./filters"
 import { EditUserModal } from "./EditUserModal"
 import { SubscriptionModal } from "./SubscriptionModal"
 import { GrantProModal, GrantProTarget } from "@/components/GrantProModal"
+import { IssueResetCodeModal, type ResetCodeTarget } from "@/components/IssueResetCodeModal"
 import { fmtDdMmYy } from "@/lib/utils"
 
 const filterSelectCls =
@@ -31,13 +32,14 @@ function isUserExpiredPro(user: User) {
   return !!user.is_pro && !!user.pro_expiry && new Date(user.pro_expiry) <= new Date()
 }
 
-function UserMenuList({ user, onEdit, onPro, onExpiry, onClose, onDelete }: {
+function UserMenuList({ user, onEdit, onPro, onExpiry, onClose, onDelete, onResetCode }: {
   user: User
   onEdit: (e: React.MouseEvent) => void
   onPro: (e: React.MouseEvent) => void
   onExpiry: (e: React.MouseEvent) => void
   onClose: (e: React.MouseEvent) => void
   onDelete: (e: React.MouseEvent) => void
+  onResetCode: (e: React.MouseEvent) => void
 }) {
   return (
     <>
@@ -46,6 +48,12 @@ function UserMenuList({ user, onEdit, onPro, onExpiry, onClose, onDelete }: {
         className="flex w-full items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-left hover:bg-accent transition-all"
       >
         <Pencil className="h-3.5 w-3.5 text-muted-foreground" /> Edit User
+      </button>
+      <button
+        onClick={onResetCode}
+        className="flex w-full items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-left hover:bg-accent transition-all"
+      >
+        <KeyRound className="h-3.5 w-3.5 text-muted-foreground" /> Send Reset Code
       </button>
       <div className="border-t border-border/50" />
       <button
@@ -85,7 +93,7 @@ function UserMenuList({ user, onEdit, onPro, onExpiry, onClose, onDelete }: {
 }
 
 
-function UsersCardView({ users, uniMap, deptMap, batchMap, sessionMap, onEdit, onPro, onExpiry, onDelete, onOpen }: {
+function UsersCardView({ users, uniMap, deptMap, batchMap, sessionMap, onEdit, onPro, onExpiry, onDelete, onOpen, onResetCode }: {
   users: User[]
   uniMap: Map<string, University>
   deptMap: Map<string, Department>
@@ -96,6 +104,7 @@ function UsersCardView({ users, uniMap, deptMap, batchMap, sessionMap, onEdit, o
   onExpiry: (u: User) => void
   onDelete: (u: User) => void
   onOpen: (u: User) => void
+  onResetCode: (u: User) => void
 }) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -190,6 +199,7 @@ function UsersCardView({ users, uniMap, deptMap, batchMap, sessionMap, onEdit, o
                         onExpiry={(e) => { e.stopPropagation(); onExpiry(user); setActiveMenu(null) }}
                         onClose={(e) => { e.stopPropagation(); setActiveMenu(null) }}
                         onDelete={(e) => { e.stopPropagation(); onDelete(user); setActiveMenu(null) }}
+                        onResetCode={(e) => { e.stopPropagation(); onResetCode(user); setActiveMenu(null) }}
                       />
                     </div>
                   )}
@@ -328,6 +338,7 @@ export default function UsersClient({
   const [deletePermanently, setDeletePermanently] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [actionError, setActionError] = useState("")
+  const [resetCodeTarget, setResetCodeTarget] = useState<ResetCodeTarget | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const filterValue = (key: UserFilterKey) => searchParams.get(key) || ""
@@ -653,6 +664,7 @@ export default function UsersClient({
             onExpiry={(u) => setSubscriptionTarget(u)}
             onDelete={(u) => setDeleteTarget(u)}
             onOpen={(u) => router.push(`/users/${u.id}`)}
+            onResetCode={(u) => setResetCodeTarget({ email: u.email, accountType: "user" })}
           />
         )}
 
@@ -821,6 +833,7 @@ export default function UsersClient({
                               onExpiry={(e) => { e.stopPropagation(); setSubscriptionTarget(user); setActiveMenu(null) }}
                               onClose={(e) => { e.stopPropagation(); setActiveMenu(null) }}
                               onDelete={(e) => { e.stopPropagation(); setDeleteTarget(user); setActiveMenu(null) }}
+                              onResetCode={(e) => { e.stopPropagation(); setResetCodeTarget({ email: user.email, accountType: "user" }); setActiveMenu(null) }}
                             />
                           </div>
                         )}
@@ -886,6 +899,14 @@ export default function UsersClient({
           onSuccess={() => router.refresh()}
         />
       )}
+
+      {/* ── Issue Reset Code Modal ────────────────────────────── */}
+      <IssueResetCodeModal
+        open={resetCodeTarget !== null}
+        target={resetCodeTarget}
+        onClose={() => setResetCodeTarget(null)}
+        onSuccess={() => router.refresh()}
+      />
 
       {/* ── Confirm Delete Modal ──────────────────────────────── */}
       {deleteTarget && (

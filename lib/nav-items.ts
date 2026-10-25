@@ -23,6 +23,7 @@ import {
   Smartphone,
   Gift,
   type LucideIcon,
+  KeyRound,
 } from "lucide-react"
 
 export interface NavLeaf {
@@ -97,6 +98,7 @@ export const navStructure: NavEntry[] = [
     icon: Shield,
     items: [
       { title: "Admins", href: "/admins", icon: Shield },
+      { title: "Password Resets", href: "/password-resets", icon: KeyRound },
       { title: "Logs", href: "/logs", icon: ScrollText },
       { title: "App Version", href: "/app-version", icon: Smartphone },
     ],
