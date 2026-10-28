@@ -6,13 +6,13 @@ import Link from "next/link"
 import {
   ArrowLeft, GraduationCap, Layers, Users, BookOpen, UserSquare2,
   Briefcase, Megaphone, Phone, Info, Clock, Loader2, MapPin, Globe,
-  School, CalendarDays, ExternalLink, Users2, Bell
+  School, CalendarDays, ExternalLink, Users2, Bell, ClipboardList
 } from "lucide-react"
 
 // API & Types
 import {
   api, Department, Session, Batch, Student, Teacher, Staff,
-  Level, CR, Banner, EmergencyContact, University, Alumni, Routine, Notice
+  Level, CR, Banner, EmergencyContact, University, Alumni, Routine, Notice, ExamNotice
 } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { addRecentDepartment } from "@/lib/department-jump"
@@ -30,14 +30,15 @@ import { CareerTab } from "./components/CareerTab"
 import { AlumniTab } from "./components/AlumniTab"
 import { RoutineTab } from "./components/RoutineTab"
 import { NoticesTab } from "./components/NoticesTab"
+import { ExamsTab } from "./components/ExamsTab"
 
-type TabType = "overview" | "sessions" | "batches" | "students" | "study" | "career" | "teachers" | "staff" | "crs" | "banners" | "contacts" | "alumni" | "routines" | "notices"
+type TabType = "overview" | "sessions" | "batches" | "students" | "study" | "career" | "teachers" | "staff" | "crs" | "banners" | "contacts" | "alumni" | "routines" | "notices" | "exams"
 
 interface TabData {
   sessions: Session[]; batches: Batch[]; students: Student[]
   study: Level[]; teachers: Teacher[]; staff: Staff[]
   crs: CR[]; banners: Banner[]; contacts: EmergencyContact[]; alumni: Alumni[]; routines: Routine[]
-  notices: Notice[]
+  notices: Notice[]; exams: ExamNotice[]
 }
 
 interface DepartmentDetailClientProps {
@@ -66,7 +67,7 @@ export default function DepartmentDetailClient({
   const [tabData, setTabData] = useState<TabData>(() => ({
     sessions: [], batches: [], students: [], study: [],
     teachers: [], staff: [], crs: [], contacts: [], alumni: [], routines: [],
-    notices: [],
+    notices: [], exams: [],
     ...getCached<{ tabData: TabData }>(cacheKey)?.tabData,
     banners: initialBanners,
   }))
@@ -139,6 +140,13 @@ export default function DepartmentDetailClient({
         case "alumni": patch = { alumni: await api.alumni.getAllByDepartment(universityId, departmentId) }; break
         case "routines": patch = { routines: await api.routines.getAllByDepartment(universityId, departmentId) }; break
         case "notices": patch = { notices: await api.notices.getAllByDepartment(departmentId) }; break
+        case "exams": {
+          const [examList, batchList] = await Promise.all([
+            api.examNotices.getAllByDepartment(universityId, departmentId),
+            loadedTabs.has("batches") ? Promise.resolve(tabData.batches) : api.batches.getAllByDepartment(departmentId),
+          ])
+          patch = { exams: examList, batches: batchList }; break
+        }
       }
       setTabData((prev) => ({ ...prev, ...patch }))
       setLoadedTabs((prev) => new Set([...prev, tab]))
@@ -164,6 +172,7 @@ export default function DepartmentDetailClient({
     { id: "alumni", label: "Alumni", icon: Users2 },
     { id: "routines", label: "Routines", icon: CalendarDays },
     { id: "notices", label: "Notices", icon: Bell },
+    { id: "exams", label: "Exams", icon: ClipboardList },
   ]
 
   return (
@@ -246,6 +255,7 @@ export default function DepartmentDetailClient({
         {activeTab === "alumni" && <AlumniTab alumni={tabData.alumni} universityId={universityId} departmentId={departmentId} onRefresh={() => loadTabData("alumni", true)} />}
         {activeTab === "routines" && <RoutineTab routines={tabData.routines} universityId={universityId} departmentId={departmentId} onRefresh={() => loadTabData("routines", true)} />}
         {activeTab === "notices" && <NoticesTab notices={tabData.notices} universityId={universityId} departmentId={departmentId} onRefresh={() => loadTabData("notices", true)} />}
+        {activeTab === "exams" && <ExamsTab exams={tabData.exams} batches={tabData.batches} universityId={universityId} departmentId={departmentId} onRefresh={() => loadTabData("exams", true)} />}
       </main>
     </div>
   )
