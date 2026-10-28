@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AlertTriangle, OctagonAlert, RefreshCcw, Search } from "lucide-react"
 
-import { api, type SystemLog, type SystemLogStats } from "@/lib/api"
+import { api, type SystemLog, type SystemLogStats, type User } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 const inputCls =
@@ -63,6 +63,22 @@ export default function LogsClient({ initialLogs, initialCount, initialStats }: 
   const [level, setLevel] = useState<"" | "error" | "warn">("")
   const [path, setPath] = useState("")
   const [loading, setLoading] = useState(false)
+  const [users, setUsers] = useState<Record<string, User | null>>({})
+
+  useEffect(() => {
+    const unresolvedIds = Array.from(
+      new Set(logs.map((log) => log.user_id).filter((id): id is string => !!id && !(id in users)))
+    )
+    if (unresolvedIds.length === 0) return
+    unresolvedIds.forEach(async (id) => {
+      try {
+        const user = await api.users.getOne(id)
+        setUsers((prev) => ({ ...prev, [id]: user }))
+      } catch {
+        setUsers((prev) => ({ ...prev, [id]: null }))
+      }
+    })
+  }, [logs, users])
 
   async function refresh(nextLevel = level, nextPath = path) {
     setLoading(true)
@@ -173,6 +189,7 @@ export default function LogsClient({ initialLogs, initialCount, initialStats }: 
                 <th className="px-4 py-3">Method</th>
                 <th className="px-4 py-3">Path</th>
                 <th className="px-4 py-3">Message</th>
+                <th className="px-4 py-3">User</th>
                 <th className="px-4 py-3">IP</th>
               </tr>
             </thead>
@@ -189,6 +206,26 @@ export default function LogsClient({ initialLogs, initialCount, initialStats }: 
                   <td className="px-4 py-2.5 font-mono text-xs">{log.path}</td>
                   <td className="max-w-xs truncate px-4 py-2.5 text-xs text-muted-foreground" title={log.message}>
                     {log.message || "—"}
+                  </td>
+                  <td className="px-4 py-2.5 text-xs">
+                    {!log.user_id ? (
+                      <span className="text-muted-foreground">—</span>
+                    ) : users[log.user_id] ? (
+                      <a
+                        href={`/users/${log.user_id}`}
+                        className="font-medium text-primary hover:underline"
+                        title={users[log.user_id]?.email}
+                      >
+                        {`${users[log.user_id]?.first_name ?? ""} ${users[log.user_id]?.last_name ?? ""}`.trim() ||
+                          users[log.user_id]?.email}
+                      </a>
+                    ) : users[log.user_id] === null ? (
+                      <span className="font-mono text-muted-foreground" title="User not found">
+                        {log.user_id.slice(0, 8)}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">…</span>
+                    )}
                   </td>
                   <td className="px-4 py-2.5 text-xs text-muted-foreground">{log.ip_address}</td>
                 </tr>
