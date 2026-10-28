@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { AlertTriangle, Crown, Infinity as InfinityIcon, Loader2, X } from "lucide-react"
+import { AlertTriangle, ChevronDown, Clock, Crown, Infinity as InfinityIcon, Loader2, X } from "lucide-react"
 import { api, User, UserSubscription } from "@/lib/api"
+import { computeSubStatus } from "@/lib/utils"
 
 const inputCls =
   "w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50 transition-all"
@@ -29,6 +30,10 @@ export function SubscriptionModal({ user, onClose, onSuccess }: SubscriptionModa
   const [error, setError] = useState("")
   const [saved, setSaved] = useState(false)
 
+  const [history, setHistory] = useState<UserSubscription[]>([])
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [historyLoading, setHistoryLoading] = useState(false)
+
   useEffect(() => {
     let cancelled = false
     api.subscriptions.getForUser(user.id)
@@ -42,6 +47,18 @@ export function SubscriptionModal({ user, onClose, onSuccess }: SubscriptionModa
       .finally(() => !cancelled && setLoading(false))
     return () => { cancelled = true }
   }, [user.id])
+
+  function toggleHistory() {
+    const opening = !historyOpen
+    setHistoryOpen(opening)
+    if (opening && history.length === 0) {
+      setHistoryLoading(true)
+      api.subscriptions.getHistoryForUser(user.id)
+        .then(setHistory)
+        .catch(() => setHistory([]))
+        .finally(() => setHistoryLoading(false))
+    }
+  }
 
   // Quick +/- buttons work off whatever date is currently in the field (or
   // today, if the plan is set to lifetime / has no date yet) rather than
@@ -69,7 +86,8 @@ export function SubscriptionModal({ user, onClose, onSuccess }: SubscriptionModa
     }
   }
 
-  const expired = sub?.end_date ? new Date(sub.end_date) < new Date() : false
+  const status = sub ? computeSubStatus(sub) : "active"
+  const expired = status === "expired"
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" onClick={onClose}>
@@ -123,6 +141,14 @@ export function SubscriptionModal({ user, onClose, onSuccess }: SubscriptionModa
                 </div>
               </div>
 
+              {status === "grace" && sub.grace_ends_at && (
+                <p className="flex items-center gap-2 text-sm text-warning rounded-sm bg-warning-subtle p-2">
+                  <Clock className="h-4 w-4 flex-shrink-0" />
+                  In grace period — access continues until{" "}
+                  {new Date(sub.grace_ends_at).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}
+                </p>
+              )}
+
               <div className="border-t pt-4 space-y-3">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Adjust expiry</p>
 
@@ -163,6 +189,44 @@ export function SubscriptionModal({ user, onClose, onSuccess }: SubscriptionModa
                 )}
                 {saved && !error && (
                   <p className="text-sm text-success rounded-sm bg-success-subtle p-2">Subscription updated.</p>
+                )}
+              </div>
+
+              <div className="border-t pt-4">
+                <button
+                  type="button"
+                  onClick={toggleHistory}
+                  className="flex w-full items-center justify-between text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  History
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${historyOpen ? "rotate-180" : ""}`} />
+                </button>
+                {historyOpen && (
+                  <div className="mt-3 space-y-2">
+                    {historyLoading ? (
+                      <div className="flex justify-center py-3 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /></div>
+                    ) : history.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic">No past subscriptions.</p>
+                    ) : (
+                      history.map((row) => (
+                        <div key={row.id} className="rounded-md border p-2.5 text-xs space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold">{row.plan}</span>
+                            <span className="text-muted-foreground">{(row.price || 0).toLocaleString()} TK</span>
+                          </div>
+                          <div className="flex items-center justify-between text-muted-foreground">
+                            <span>
+                              {new Date(row.start_date).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}
+                              {" – "}
+                              {row.end_date ? new Date(row.end_date).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" }) : "Lifetime"}
+                            </span>
+                            <span className="capitalize">{(row.grant_reason ?? "payment").replace("_", " ")}</span>
+                          </div>
+                          {row.refunded_at && <p className="text-destructive">Refunded {new Date(row.refunded_at).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}</p>}
+                        </div>
+                      ))
+                    )}
+                  </div>
                 )}
               </div>
             </>
