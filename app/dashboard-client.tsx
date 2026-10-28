@@ -1,19 +1,155 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { 
-  Users, 
-  Image as ImageIcon, 
-  CreditCard, 
+import {
+  Users,
+  Image as ImageIcon,
+  CreditCard,
   TrendingUp,
   Loader2,
 } from "lucide-react"
-import { api, DashboardStats, UserGrowth, UserGrowthRange } from "@/lib/api"
+import { api, ActiveUserStats, DashboardStats, UserGrowth, UserGrowthRange } from "@/lib/api"
 import { cn } from "@/lib/utils"
+
+// Polling, not a websocket — "now" is a 5-minute backend window (see
+// ActiveUserStats), so a fetch every 30s stays well within it without
+// needing a persistent connection just for a dashboard tile.
+const ACTIVE_USERS_POLL_MS = 30_000
+
+function ActiveUsersCard() {
+  const [active, setActive] = useState<ActiveUserStats | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const data = await api.stats.getActiveUsers()
+        if (!cancelled) setActive(data)
+      } catch {
+        // Silent — this tile just keeps showing its last known value.
+      }
+    }
+    load()
+    const interval = setInterval(load, ACTIVE_USERS_POLL_MS)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [])
+
+  const metrics: { label: string; value: number | undefined }[] = [
+    { label: "Today", value: active?.today },
+    { label: "7 Days", value: active?.week },
+    { label: "30 Days", value: active?.month },
+  ]
+
+  return (
+    <div className="rounded-xl border bg-card p-6 shadow-sm transition-all hover:shadow-md">
+      <div className="flex items-center justify-between">
+        <div className="rounded-lg p-2 bg-success-subtle text-success">
+          <Users className="h-6 w-6" />
+        </div>
+        <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-success">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+          </span>
+          Live
+        </span>
+      </div>
+      <div className="mt-4">
+        <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest text-[10px]">Active Now</p>
+        <h2 className="text-3xl font-black mt-1 tracking-tight">
+          {active ? active.now.toLocaleString() : <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />}
+        </h2>
+      </div>
+      <div className="mt-4 grid grid-cols-3 gap-2 border-t pt-3">
+        {metrics.map((m) => (
+          <div key={m.label}>
+            <p className="text-sm font-bold leading-tight">{m.value !== undefined ? m.value.toLocaleString() : "—"}</p>
+            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{m.label}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 interface DashboardClientProps {
   stats: DashboardStats
+}
+
+// How long "View" stays in its loading spinner before the amount appears,
+// and how long the amount stays visible before it hides itself again.
+const REVENUE_REVEAL_DELAY_MS = 1200
+const REVENUE_VISIBLE_MS = 4000
+
+function RevenueCard({ amount }: { amount: number }) {
+  const [state, setState] = useState<"hidden" | "revealing" | "shown">("hidden")
+
+  useEffect(() => {
+    if (state !== "shown") return
+    const timer = setTimeout(() => setState("hidden"), REVENUE_VISIBLE_MS)
+    return () => clearTimeout(timer)
+  }, [state])
+
+  useEffect(() => {
+    if (state !== "revealing") return
+    const timer = setTimeout(() => setState("shown"), REVENUE_REVEAL_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [state])
+
+  return (
+    <div className="rounded-xl border bg-card p-6 shadow-sm transition-all hover:shadow-md group">
+      <div className="flex items-center justify-between">
+        <div className="rounded-lg p-2 bg-warning-subtle text-warning transition-transform group-hover:scale-110">
+          <TrendingUp className="h-6 w-6" />
+        </div>
+      </div>
+      <div className="mt-4">
+        <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest text-[10px]">Revenue</p>
+        <div className="mt-1 flex h-9 items-center">
+          {state === "shown" ? (
+            <h2 className="animate-in fade-in slide-in-from-bottom-1 duration-500 text-3xl font-black tracking-tight">
+              {amount.toLocaleString()} TK
+            </h2>
+          ) : state === "revealing" ? (
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setState("revealing")}
+              className="text-sm font-black uppercase tracking-widest text-primary hover:underline"
+            >
+              View
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SubscriptionsCard({ total, paid, free }: { total: number; paid: number; free: number }) {
+  return (
+    <div className="rounded-xl border bg-card p-6 shadow-sm transition-all hover:shadow-md group">
+      <div className="flex items-center justify-between">
+        <div className="rounded-lg p-2 bg-success-subtle text-success transition-transform group-hover:scale-110">
+          <CreditCard className="h-6 w-6" />
+        </div>
+      </div>
+      <div className="mt-4">
+        <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest text-[10px]">Subscriptions</p>
+        <h2 className="text-3xl font-black mt-1 tracking-tight">{total.toLocaleString()}</h2>
+      </div>
+      <div className="mt-3 flex items-center gap-3 border-t pt-2.5 text-[10px] font-bold uppercase tracking-widest">
+        <span className="text-success">{paid.toLocaleString()} Paid</span>
+        <span className="text-muted-foreground">+</span>
+        <span className="text-warning">{free.toLocaleString()} Free</span>
+      </div>
+    </div>
+  )
 }
 
 const GROWTH_RANGES: { value: UserGrowthRange; label: string }[] = [
@@ -59,26 +195,12 @@ export default function DashboardClient({ stats }: DashboardClientProps) {
       color: "text-info", 
       bg: "bg-info-subtle" 
     },
-    { 
-      title: "Active Banners", 
-      value: (stats.active_banners || 0).toString(), 
-      icon: ImageIcon, 
-      color: "text-info", 
-      bg: "bg-info-subtle" 
-    },
-    { 
-      title: "Subscriptions", 
-      value: (stats.total_subscriptions || 0).toLocaleString(), 
-      icon: CreditCard, 
-      color: "text-success", 
-      bg: "bg-success-subtle" 
-    },
-    { 
-      title: "Revenue", 
-      value: `${(stats.total_revenue || 0).toLocaleString()} TK`, 
-      icon: TrendingUp, 
-      color: "text-warning", 
-      bg: "bg-warning-subtle" 
+    {
+      title: "Active Banners",
+      value: (stats.active_banners || 0).toString(),
+      icon: ImageIcon,
+      color: "text-info",
+      bg: "bg-info-subtle"
     },
   ]
 
@@ -120,7 +242,8 @@ export default function DashboardClient({ stats }: DashboardClientProps) {
         <p className="text-sm text-muted-foreground">Welcome back to the Campus Assistant administrative portal.</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
+        <ActiveUsersCard />
         {statCards.map((stat, i) => (
           <div key={i} className="rounded-xl border bg-card p-6 shadow-sm transition-all hover:shadow-md group">
             <div className="flex items-center justify-between">
@@ -134,6 +257,12 @@ export default function DashboardClient({ stats }: DashboardClientProps) {
             </div>
           </div>
         ))}
+        <SubscriptionsCard
+          total={stats.total_subscriptions || 0}
+          paid={stats.paid_subscriptions || 0}
+          free={stats.free_subscriptions || 0}
+        />
+        <RevenueCard amount={stats.total_revenue || 0} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
