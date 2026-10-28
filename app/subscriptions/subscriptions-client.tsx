@@ -4,12 +4,47 @@ import { useState, useEffect, useCallback, useRef } from "react"
 import {
   CreditCard, Users, Settings2, Plus, Trash2, Pencil,
   Check, Calendar, ChevronRight as ChevronRightIcon,
-  ChevronDown, X, Building2, Globe, ChevronLeft, Gift, Search
+  ChevronDown, X, Building2, Globe, ChevronLeft, Gift, Search,
+  BarChart3, Loader2, LineChart as LineChartIcon
 } from "lucide-react"
-import { api, UserSubscription, SubscriptionPlan, SubscriptionTarget, University, User } from "@/lib/api"
-import { cn } from "@/lib/utils"
+import { api, UserSubscription, SubscriptionPlan, SubscriptionTarget, University, User, SubscriptionAnalytics, UserGrowthRange } from "@/lib/api"
+import { cn, computeSubStatus } from "@/lib/utils"
 
 const PAGE_SIZE = 20
+
+const ANALYTICS_RANGES: { value: UserGrowthRange; label: string }[] = [
+  { value: "today", label: "Today" },
+  { value: "7d", label: "Last 7 days" },
+  { value: "30d", label: "Last 30 days" },
+  { value: "12m", label: "Last 12 months" },
+  { value: "lifetime", label: "Lifetime" },
+]
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+// Bucket keys are already in Bangladesh time, so parse the parts by hand
+// instead of via Date (which would shift them into the viewer's zone).
+function bucketLabel(key: string, granularity: SubscriptionAnalytics["granularity"], range: UserGrowthRange, full = false): string {
+  const [datePart, hourPart] = key.split("T")
+  const [y, m, d] = datePart.split("-").map(Number)
+  switch (granularity) {
+    case "hour": {
+      const h = Number(hourPart)
+      const label = `${h % 12 || 12} ${h < 12 ? "AM" : "PM"}`
+      return full ? `${label} – ${(h + 1) % 12 || 12} ${h + 1 < 12 || h + 1 === 24 ? "AM" : "PM"}` : label
+    }
+    case "day": {
+      const weekday = WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]
+      if (full) return `${weekday}, ${d} ${MONTHS[m - 1]}`
+      return range === "7d" ? weekday : `${d} ${MONTHS[m - 1]}`
+    }
+    case "month":
+      return full || range === "lifetime" ? `${MONTHS[m - 1]} ${String(y).slice(2)}` : MONTHS[m - 1]
+    default:
+      return String(y)
+  }
+}
 
 function getPageNumbers(current: number, total: number): (number | "...")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
@@ -426,9 +461,315 @@ function GrantProModal({
   )
 }
 
+// ── Point (line) chart ───────────────────────────────────────────────────────
+// Dots sit at the center of equal-width flex slots, and the SVG line/area use
+// the same x-centers, so the two overlays line up exactly.
+function PointChart({
+  points, metric, maxVal, loading, granularity, range
+}: {
+  points: { date: string; revenue: number; count: number }[]
+  metric: "revenue" | "count"
+  maxVal: number
+  loading: boolean
+  granularity: SubscriptionAnalytics["granularity"]
+  range: UserGrowthRange
+}) {
+  const n = points.length
+  const xAt = (i: number) => ((i + 0.5) / n) * 100
+  const yAt = (val: number) => 100 - Math.min((val / maxVal) * 100, 100)
+
+  const linePath = points.map((p, i) => {
+    const val = metric === "revenue" ? p.revenue : p.count
+    return `${i === 0 ? "M" : "L"} ${xAt(i)} ${yAt(val)}`
+  }).join(" ")
+  const areaPath = `${linePath} L ${xAt(n - 1)} 100 L ${xAt(0)} 100 Z`
+
+  return (
+    <div className={cn("relative mt-8 h-64 w-full", loading && "opacity-50")}>
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
+        <path d={areaPath} fill="var(--primary)" fillOpacity="0.08" stroke="none" />
+        <path d={linePath} fill="none" stroke="var(--primary)" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+      </svg>
+      <div className="absolute inset-0 flex">
+        {points.map((p, i) => {
+          const val = metric === "revenue" ? p.revenue : p.count
+          const topPct = yAt(val)
+          return (
+            <div key={p.date} className="group relative h-full flex-1">
+              <div
+                className="absolute left-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary border-2 border-card transition-transform group-hover:scale-125 shadow-sm"
+                style={{ top: `${topPct}%` }}
+              />
+              <div
+                className={cn(
+                  "pointer-events-none absolute z-10 rounded bg-primary-gradient px-2 py-1 text-[10px] font-bold text-primary-foreground opacity-0 transition-opacity group-hover:opacity-100 shadow-lg whitespace-nowrap",
+                  i < n / 4 ? "left-0" : i > (n * 3) / 4 ? "right-0" : "left-1/2 -translate-x-1/2"
+                )}
+                style={{ top: `calc(${topPct}% - 2.75rem)` }}
+              >
+                <span className="block font-medium opacity-80">{bucketLabel(p.date, granularity, range, true)}</span>
+                {metric === "revenue" ? `${p.revenue.toLocaleString()} TK` : `${p.count} sub${p.count !== 1 ? "s" : ""}`}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── Analytics Tab ────────────────────────────────────────────────────────────
+// YouTube-Studio-style revenue/subscriber-count chart over a selectable
+// range, plus a per-plan breakdown for that same window.
+function AnalyticsTab() {
+  const [range, setRange] = useState<UserGrowthRange>("30d")
+  const [metric, setMetric] = useState<"revenue" | "count">("revenue")
+  const [chartType, setChartType] = useState<"line" | "bar">("line")
+  const [data, setData] = useState<SubscriptionAnalytics | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  const load = useCallback(async (r: UserGrowthRange) => {
+    setLoading(true); setError("")
+    try { setData(await api.stats.getSubscriptionAnalytics(r)) }
+    catch (err) { setError(err instanceof Error ? err.message : "Failed to load analytics") }
+    finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => { load(range) }, [range, load])
+
+  const points = data?.points ?? []
+  const maxVal = points.reduce((m, p) => Math.max(m, metric === "revenue" ? p.revenue : p.count), 0) || 1
+  const labelEvery = Math.max(1, Math.ceil(points.length / 8))
+  const breakdown = data?.plan_breakdown ?? []
+  const maxBreakdown = breakdown.reduce((m, b) => Math.max(m, b.revenue), 0) || 1
+  const rangeLabel = ANALYTICS_RANGES.find(r => r.value === range)?.label.toLowerCase() || ""
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-base font-bold flex items-center gap-2"><BarChart3 className="h-4 w-4 text-primary" /> Revenue & Subscribers Over Time</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              <strong className="text-foreground">
+                {metric === "revenue" ? `${(data?.total_revenue || 0).toLocaleString()} TK` : (data?.total_count || 0).toLocaleString()}
+              </strong>{" "}
+              {metric === "revenue" ? "collected" : "subscriptions"} {range === "today" ? "today" : range === "lifetime" ? "all time" : `in the ${rangeLabel}`}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            <div className="flex gap-1 rounded-sm border bg-muted/20 p-1">
+              {(["line", "bar"] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setChartType(t)}
+                  title={t === "line" ? "Point chart" : "Bar chart"}
+                  className={cn("p-1.5 rounded-sm transition-all",
+                    chartType === t ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {t === "line" ? <LineChartIcon className="h-3.5 w-3.5" /> : <BarChart3 className="h-3.5 w-3.5" />}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1 rounded-sm border bg-muted/20 p-1">
+              {(["revenue", "count"] as const).map(m => (
+                <button
+                  key={m}
+                  onClick={() => setMetric(m)}
+                  className={cn("px-2.5 py-1 text-[10px] font-black uppercase tracking-widest rounded-sm transition-all",
+                    metric === m ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {m === "revenue" ? "Revenue" : "Subscribers"}
+                </button>
+              ))}
+            </div>
+            <select
+              value={range}
+              onChange={e => setRange(e.target.value as UserGrowthRange)}
+              className="rounded-sm border bg-background px-3 py-1.5 text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              {ANALYTICS_RANGES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {error && <p className="mt-3 rounded-sm bg-destructive-subtle p-2 text-xs text-destructive">{error}</p>}
+
+        {points.length === 0 ? (
+          <div className="mt-8 flex h-64 w-full items-center justify-center text-sm text-muted-foreground">No data</div>
+        ) : chartType === "line" ? (
+          <PointChart points={points} metric={metric} maxVal={maxVal} loading={loading} granularity={data!.granularity} range={range} />
+        ) : (
+          <div className={cn("mt-8 flex h-64 items-end justify-between", points.length > 31 ? "gap-px" : points.length > 12 ? "gap-1" : "gap-2", loading && "opacity-50")}>
+            {points.map((p, i) => {
+              const val = metric === "revenue" ? p.revenue : p.count
+              return (
+                <div key={p.date} className="group relative flex h-full flex-1 items-end">
+                  <div
+                    className="w-full rounded-t-lg bg-primary/10 transition-all group-hover:bg-primary group-hover:opacity-100 opacity-60"
+                    style={{ height: `${Math.max((val / maxVal) * 100, val > 0 ? 2 : 0)}%` }}
+                  ></div>
+                  <div className={cn(
+                    "pointer-events-none absolute -top-10 z-10 rounded bg-primary-gradient px-2 py-1 text-[10px] font-bold text-primary-foreground opacity-0 transition-opacity group-hover:opacity-100 shadow-lg whitespace-nowrap",
+                    i < points.length / 4 ? "left-0" : i > (points.length * 3) / 4 ? "right-0" : "left-1/2 -translate-x-1/2"
+                  )}>
+                    <span className="block font-medium opacity-80">{bucketLabel(p.date, data!.granularity, range, true)}</span>
+                    {metric === "revenue" ? `${p.revenue.toLocaleString()} TK` : `${p.count} sub${p.count !== 1 ? "s" : ""}`}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+        {points.length > 0 && (
+          <div className={cn("mt-4 flex text-[10px] font-black text-muted-foreground uppercase tracking-widest", points.length > 31 ? "gap-px" : points.length > 12 ? "gap-1" : "gap-2")}>
+            {points.map((p, i) => (
+              <span key={p.date} className="flex-1 overflow-visible whitespace-nowrap text-center">
+                {i % labelEvery === 0 ? bucketLabel(p.date, data!.granularity, range) : ""}
+              </span>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      <Card className="p-4">
+        <h3 className="text-base font-bold">Plan Breakdown</h3>
+        <p className="text-xs text-muted-foreground mt-0.5">Revenue share by plan {range === "today" ? "today" : range === "lifetime" ? "all time" : `in the ${rangeLabel}`}.</p>
+        <div className="mt-4 space-y-3">
+          {breakdown.length > 0 ? breakdown.map(b => (
+            <div key={b.plan}>
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="font-bold truncate">{b.plan}</span>
+                <span className="text-muted-foreground font-medium">{b.revenue.toLocaleString()} TK · {b.count} sub{b.count !== 1 ? "s" : ""}</span>
+              </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div className="h-full rounded-full bg-primary-gradient transition-all" style={{ width: `${Math.max((b.revenue / maxBreakdown) * 100, b.revenue > 0 ? 2 : 0)}%` }} />
+              </div>
+            </div>
+          )) : (
+            <p className="py-8 text-center text-sm text-muted-foreground italic">No subscriptions in this range.</p>
+          )}
+        </div>
+      </Card>
+    </div>
+  )
+}
+
+// The "who's getting free Pro" shortlist — every admin_grant row, so it
+// doesn't quietly become impossible to audit as it grows.
+function GrantedTab() {
+  const [rows, setRows] = useState<UserSubscription[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [offset, setOffset] = useState(0)
+  const [loading, setLoading] = useState(true)
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+  const currentPage = Math.floor(offset / PAGE_SIZE) + 1
+
+  const load = useCallback(async (newOffset = 0) => {
+    setLoading(true)
+    try {
+      const res = await api.subscriptions.getGranted(newOffset, PAGE_SIZE)
+      setRows(res.data)
+      setTotalCount(res.count)
+      setOffset(newOffset)
+    } catch (err) { console.error(err) }
+    finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => { load(0) }, [load])
+
+  return (
+    <Card className="p-0">
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead>
+            <tr className="border-b bg-muted/30">
+              <th className="px-4 py-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground">User</th>
+              <th className="px-4 py-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Plan</th>
+              <th className="px-4 py-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Note</th>
+              <th className="px-4 py-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Granted By</th>
+              <th className="px-4 py-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Date</th>
+              <th className="px-4 py-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {loading ? (
+              <tr><td colSpan={6} className="px-4 py-16 text-center text-muted-foreground"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></td></tr>
+            ) : rows.length === 0 ? (
+              <tr><td colSpan={6} className="px-4 py-16 text-center text-muted-foreground italic">No free Pro grants yet.</td></tr>
+            ) : (
+              rows.map(row => {
+                const status = computeSubStatus(row)
+                return (
+                  <tr key={row.id} className="hover:bg-muted/10 transition-colors">
+                    <td className="px-4 py-4">
+                      <p className="font-bold truncate text-sm">{row.user?.first_name} {row.user?.last_name}</p>
+                      <p className="text-[10px] text-muted-foreground truncate uppercase tracking-tight">{row.user?.email}</p>
+                    </td>
+                    <td className="px-4 py-4"><Badge variant="indigo">{row.plan}</Badge></td>
+                    <td className="px-4 py-4 max-w-[220px]">
+                      <p className="text-xs text-muted-foreground truncate" title={row.note || ""}>{row.note || "—"}</p>
+                    </td>
+                    <td className="px-4 py-4 text-xs font-medium">{row.granted_by_admin?.name || "—"}</td>
+                    <td className="px-4 py-4 text-xs font-medium">{new Date(row.start_date).toLocaleDateString("en-GB")}</td>
+                    <td className="px-4 py-4">
+                      {status === "expired" && <Badge variant="warning">Expired</Badge>}
+                      {status === "grace" && <Badge variant="indigo">Grace period</Badge>}
+                      {status === "refunded" && <Badge variant="warning">Refunded</Badge>}
+                      {status === "active" && <Badge variant="success">Active Pro</Badge>}
+                    </td>
+                  </tr>
+                )
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 p-4 border-t">
+          <button
+            onClick={() => load((currentPage - 2) * PAGE_SIZE)}
+            disabled={currentPage <= 1}
+            className="rounded-sm border p-2 hover:bg-accent transition-colors disabled:opacity-30 disabled:pointer-events-none"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          {getPageNumbers(currentPage, totalPages).map((p, i) =>
+            p === "..." ? (
+              <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground/40 text-sm">...</span>
+            ) : (
+              <button
+                key={p}
+                onClick={() => load(((p as number) - 1) * PAGE_SIZE)}
+                className={`min-w-[36px] h-9 rounded-sm text-sm font-bold transition-all ${
+                  p === currentPage ? "bg-primary-gradient text-primary-foreground shadow-sm" : "border hover:bg-accent"
+                }`}
+              >
+                {p}
+              </button>
+            )
+          )}
+          <button
+            onClick={() => load(currentPage * PAGE_SIZE)}
+            disabled={currentPage >= totalPages}
+            className="rounded-sm border p-2 hover:bg-accent transition-colors disabled:opacity-30 disabled:pointer-events-none"
+          >
+            <ChevronRightIcon className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+    </Card>
+  )
+}
+
 // ── Main Page ───────────────────────────────────────────────────────────────
 export default function SubscriptionsClient() {
-  const [activeTab, setActiveTab] = useState<"subscribers" | "plans">("subscribers")
+  const [activeTab, setActiveTab] = useState<"subscribers" | "plans" | "analytics" | "granted">("subscribers")
   const [subscribers, setSubscribers] = useState<UserSubscription[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [totalRevenue, setTotalRevenue] = useState(0)
@@ -539,9 +880,29 @@ export default function SubscriptionsClient() {
         >
           <Settings2 className="h-4 w-4" /> Plan Configuration
         </button>
+        <button
+          onClick={() => setActiveTab("analytics")}
+          className={cn("flex items-center gap-2 px-4 py-2 text-sm font-bold transition-all rounded-sm",
+            activeTab === "analytics" ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <BarChart3 className="h-4 w-4" /> Analytics
+        </button>
+        <button
+          onClick={() => setActiveTab("granted")}
+          className={cn("flex items-center gap-2 px-4 py-2 text-sm font-bold transition-all rounded-sm",
+            activeTab === "granted" ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Gift className="h-4 w-4" /> Granted Pro
+        </button>
       </div>
 
-      {activeTab === "subscribers" ? (
+      {activeTab === "analytics" ? (
+        <AnalyticsTab />
+      ) : activeTab === "granted" ? (
+        <GrantedTab />
+      ) : activeTab === "subscribers" ? (
         <Card className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -561,7 +922,7 @@ export default function SubscriptionsClient() {
                   <tr><td colSpan={7} className="px-4 py-16 text-center text-muted-foreground italic">No subscription history available.</td></tr>
                 ) : (
                   subscribers.map(sub => {
-                    const isExpired = sub.end_date !== null && new Date(sub.end_date) < new Date()
+                    const status = computeSubStatus(sub)
                     return (
                       <tr key={sub.id} className="hover:bg-muted/10 transition-colors">
                         <td className="px-4 py-4">
@@ -601,7 +962,10 @@ export default function SubscriptionsClient() {
                           </div>
                         </td>
                         <td className="px-4 py-4">
-                          {isExpired ? <Badge variant="warning">Expired</Badge> : <Badge variant="success">Active Pro</Badge>}
+                          {status === "expired" && <Badge variant="warning">Expired</Badge>}
+                          {status === "grace" && <Badge variant="indigo">Grace period</Badge>}
+                          {status === "refunded" && <Badge variant="warning">Refunded</Badge>}
+                          {status === "active" && <Badge variant="success">Active Pro</Badge>}
                         </td>
                         <td className="px-4 py-4 text-right pr-6">
                           <button onClick={() => {}} className="rounded-full p-2 hover:bg-info-subtle hover:text-info transition-all text-muted-foreground">

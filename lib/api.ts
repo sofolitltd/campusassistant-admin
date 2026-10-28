@@ -382,6 +382,24 @@ export interface ClassNotice {
   created_at: string;
 }
 
+export interface ExamNotice {
+  id: string;
+  university_id: string;
+  department_id: string;
+  batch_id?: string | null;
+  course_name: string;
+  course_code: string;
+  exam_type: "midterm" | "final" | "quiz" | "retake" | "improvement";
+  exam_date: string;
+  start_time: string;
+  room: string;
+  seat_plan_url: string;
+  syllabus_url: string;
+  note: string;
+  created_at: string;
+  updated_at?: string;
+}
+
 export interface ClassSlot {
   id: string;
   university_id: string;
@@ -707,6 +725,13 @@ export interface Merchant {
   nid_proof_url?: string;
   payout_method?: string;
   payout_account?: string;
+  // Base city for delivery-charge zoning, and the two flat delivery fees
+  // (Taka) this merchant charges per order — inside_charge when the buyer's
+  // shipping city matches `city`, outside_charge otherwise. Both default to
+  // 0 (free delivery) until the merchant/admin sets them.
+  city?: string;
+  delivery_charge_inside: number;
+  delivery_charge_outside: number;
   created_at: string;
 }
 
@@ -774,6 +799,7 @@ export interface Order {
   shipping_phone: string;
   shipping_address_line: string;
   shipping_city: string;
+  delivery_charge: number;
   total_amount: number;
   status: OrderStatus;
   items: OrderItem[];
@@ -1019,9 +1045,13 @@ export interface UserSubscription {
   price: number;
   start_date: string;
   end_date: string | null; // null = Lifetime plan, never expires
+  grace_ends_at: string | null; // null = lifetime, or not yet backfilled
   created_at: string;
   grant_reason?: 'payment' | 'admin_grant' | 'coupon';
   granted_by?: string;
+  granted_by_admin?: Admin;
+  note?: string;
+  refunded_at?: string;
 }
 
 export interface PaginatedResponse<T> {
@@ -1145,6 +1175,29 @@ export interface RecentSubscriber {
   date: string;
 }
 
+export interface SubscriptionPoint {
+  date: string;
+  count: number;
+  revenue: number;
+}
+
+export interface PlanBreakdown {
+  plan: string;
+  count: number;
+  revenue: number;
+}
+
+/** Series behind the Subscriptions page's Analytics tab. `date` keys use the
+ * same bucketing as UserGrowth. */
+export interface SubscriptionAnalytics {
+  range: UserGrowthRange;
+  granularity: "hour" | "day" | "month" | "year";
+  total_count: number;
+  total_revenue: number;
+  points: SubscriptionPoint[];
+  plan_breakdown: PlanBreakdown[];
+}
+
 export interface AppNotification {
   id: string;
   title: string;
@@ -1164,6 +1217,8 @@ export interface DashboardStats {
   total_users: number;
   active_banners: number;
   total_subscriptions: number;
+  paid_subscriptions: number;
+  free_subscriptions: number;
   total_revenue: number;
   user_trend: string;
   banner_trend: string;
@@ -1182,6 +1237,16 @@ export interface UserStats {
   students: number;
   teachers: number;
   staff: number;
+}
+
+// Distinct users seen via the app's device heartbeat (last_seen_at on
+// user_devices) within each window — "now" is a 5-minute window, so it
+// approximates concurrent online users without needing a websocket.
+export interface ActiveUserStats {
+  now: number;
+  today: number;
+  week: number;
+  month: number;
 }
 
 /**
@@ -1413,6 +1478,10 @@ export const api = {
       fetchWithAuth('/stats'),
     getUserGrowth: (range: UserGrowthRange): Promise<UserGrowth> =>
       fetchWithAuth(`/stats/user-growth?range=${range}`),
+    getSubscriptionAnalytics: (range: UserGrowthRange): Promise<SubscriptionAnalytics> =>
+      fetchWithAuth(`/stats/subscription-analytics?range=${range}`),
+    getActiveUsers: (): Promise<ActiveUserStats> =>
+      fetchWithAuth('/stats/active-users'),
   },
   users: {
     getAll: (search?: string): Promise<User[]> => {
@@ -1880,11 +1949,19 @@ export const api = {
     // to moderators, staff, contributors, etc.
     adminGrant: (data: { user_id: string; plan_id: string; note?: string }): Promise<UserSubscription> =>
       fetchWithAuth('/subscriptions/admin-grant', { method: 'POST', body: JSON.stringify(data) }),
+    // The "who's getting free Pro" shortlist — every admin_grant row,
+    // newest first, with the granting admin resolved to a name.
+    getGranted: (offset?: number, limit?: number): Promise<PaginatedResponse<UserSubscription>> =>
+      fetchWithAuth(`/subscriptions/granted?offset=${offset ?? 0}&limit=${limit ?? 20}`),
     // Current (most recent) subscription for one user — null if they've
     // never had one. `getAll`'s rows don't carry a convenient per-user
     // lookup, so this hits GetUserSubscription directly.
     getForUser: (userId: string): Promise<UserSubscription | null> =>
       fetchWithAuth(`/subscriptions/user/${userId}`),
+    // Every subscription row for a user, newest first — the full
+    // purchase/grant history, unlike getForUser's single latest row.
+    getHistoryForUser: (userId: string): Promise<UserSubscription[]> =>
+      fetchWithAuth(`/subscriptions/user/${userId}/history`),
     // Overwrites the current subscription's end date directly (extend or
     // shorten access) — null means "never expires". Does not change plan
     // or price, only how long it lasts.
@@ -2017,6 +2094,16 @@ export const api = {
       fetchWithAuth(`/class-notices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/class-notices/${id}`, { method: 'DELETE' }),
+  },
+  examNotices: {
+    getAllByDepartment: (universityId: string, deptId: string): Promise<ExamNotice[]> =>
+      fetchWithAuth(`/exam-notices?university_id=${universityId}&department_id=${deptId}&limit=200`).then((res: PaginatedResponse<ExamNotice>) => res.data ?? []),
+    create: (data: Partial<ExamNotice>): Promise<ExamNotice> =>
+      fetchWithAuth('/exam-notices', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<ExamNotice>): Promise<ExamNotice> =>
+      fetchWithAuth(`/exam-notices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string): Promise<void> =>
+      fetchWithAuth(`/exam-notices/${id}`, { method: 'DELETE' }),
   },
   classSlots: {
     getAllByBatch: (departmentId: string, batchId: string): Promise<ClassSlot[]> =>

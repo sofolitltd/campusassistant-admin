@@ -11,6 +11,7 @@ import {
   Loader2,
   Percent,
   Save,
+  Truck,
   AlertTriangle,
   Phone,
   Mail,
@@ -83,6 +84,14 @@ export default function MerchantDetailClient({ merchant: initialMerchant, initia
   const [approving, setApproving] = useState(false)
   const [commissionDraft, setCommissionDraft] = useState<string | undefined>(undefined)
   const [savingCommission, setSavingCommission] = useState(false)
+  const [cityDraft, setCityDraft] = useState(merchant.city ?? "")
+  const [insideDraft, setInsideDraft] = useState(String(merchant.delivery_charge_inside))
+  const [outsideDraft, setOutsideDraft] = useState(String(merchant.delivery_charge_outside))
+  const [savingDelivery, setSavingDelivery] = useState(false)
+  const deliveryDirty =
+    cityDraft !== (merchant.city ?? "") ||
+    insideDraft !== String(merchant.delivery_charge_inside) ||
+    outsideDraft !== String(merchant.delivery_charge_outside)
 
   async function handleApprove() {
     setApproving(true)
@@ -132,6 +141,25 @@ export default function MerchantDetailClient({ merchant: initialMerchant, initia
       alert("Failed to update commission rate")
     } finally {
       setSavingCommission(false)
+    }
+  }
+
+  async function handleSaveDelivery() {
+    const inside = parseInt(insideDraft, 10)
+    const outside = parseInt(outsideDraft, 10)
+    if (Number.isNaN(inside) || Number.isNaN(outside)) return
+    setSavingDelivery(true)
+    try {
+      await api.merchants.update(merchant.id, {
+        city: cityDraft.trim(),
+        delivery_charge_inside: inside,
+        delivery_charge_outside: outside,
+      })
+      setMerchant(prev => ({ ...prev, city: cityDraft.trim(), delivery_charge_inside: inside, delivery_charge_outside: outside }))
+    } catch (err) {
+      alert("Failed to update delivery charge")
+    } finally {
+      setSavingDelivery(false)
     }
   }
 
@@ -348,6 +376,57 @@ export default function MerchantDetailClient({ merchant: initialMerchant, initia
                 className="w-full flex items-center justify-center gap-1.5 rounded-sm bg-primary-gradient px-3 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50"
               >
                 {savingCommission ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                Save
+              </button>
+            )}
+          </div>
+
+          <div className="rounded-lg border bg-card shadow-xs p-6 space-y-4">
+            <h3 className="text-sm font-bold flex items-center gap-2">
+              <Truck className="h-4 w-4 text-muted-foreground" /> Delivery Charge
+            </h3>
+            <p className="text-xs text-muted-foreground -mt-2">
+              Flat fee this merchant charges per order. Zero means free delivery.
+            </p>
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase text-muted-foreground font-bold">Base city</label>
+              <input
+                type="text"
+                value={cityDraft}
+                onChange={e => setCityDraft(e.target.value)}
+                placeholder="e.g. Dhaka"
+                className="w-full rounded-sm border bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase text-muted-foreground font-bold">Inside city (৳)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={insideDraft}
+                  onChange={e => setInsideDraft(e.target.value)}
+                  className="w-full rounded-sm border bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase text-muted-foreground font-bold">Outside city (৳)</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={outsideDraft}
+                  onChange={e => setOutsideDraft(e.target.value)}
+                  className="w-full rounded-sm border bg-background px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+            </div>
+            {deliveryDirty && (
+              <button
+                onClick={handleSaveDelivery}
+                disabled={savingDelivery}
+                className="w-full flex items-center justify-center gap-1.5 rounded-sm bg-primary-gradient px-3 py-2 text-xs font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50"
+              >
+                {savingDelivery ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                 Save
               </button>
             )}
