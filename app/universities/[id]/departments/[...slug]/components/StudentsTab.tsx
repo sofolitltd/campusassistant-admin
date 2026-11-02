@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useEffect, useCallback, useDeferredValue, useRef } from "react"
-import { api, Student, Batch, Session, Contributor, CR, getApiUrl } from "@/lib/api"
+import { api, Student, Batch, BatchProgram, BATCH_PROGRAM_LABEL, Session, Contributor, CR, getApiUrl, getFullImageUrl } from "@/lib/api"
 import { Avatar, Badge, ConfirmDelete, selectCls, inputCls, Modal, ActionMenu } from "./SharedUI"
 import { StudentModal } from "./StudentModal"
+import { ProgramHistory } from "./ProgramHistory"
 import { CreateCRDirectoryEntryModal, EndCRModal, isActiveCR } from "./CRModals"
 import { GrantProModal, GrantProTarget } from "@/components/GrantProModal"
 import { ModeratorRoleManager } from "@/components/ModeratorRoleManager"
-import { Users, Plus, Pencil, Trash2, Mail, Phone, ExternalLink, Search, Copy, Share2, RefreshCcw, Loader2, LayoutGrid, List, ChevronLeft, ChevronRight, MoreVertical, GraduationCap, Handshake, UserCheck, Send, UserMinus, ShieldCheck } from "lucide-react"
+import { Users, Plus, Pencil, Trash2, Mail, Phone, ExternalLink, Search, Copy, Share2, RefreshCcw, Loader2, LayoutGrid, List, ArrowLeft, MoreVertical, GraduationCap, Handshake, UserCheck, Send, UserMinus, ShieldCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const CONTRIBUTOR_TIERS = ["Platinum", "Gold", "Silver", "Bronze"]
@@ -27,6 +28,14 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [filterBatch, setFilterBatch] = useState<string | null>(null)
+  // Without a batch, "All Students" or a search, the tab shows the batch
+  // card grid (Honors | Masters) instead of a student list.
+  const [showAll, setShowAll] = useState(false)
+  const [programTab, setProgramTab] = useState<BatchProgram>("honours")
+  const [batchCounts, setBatchCounts] = useState<Record<string, number>>({})
+  // Distinct students in the department — summing batchCounts would count a
+  // student promoted Honors → Masters twice.
+  const [departmentTotal, setDepartmentTotal] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Student | null>(null)
@@ -50,7 +59,6 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
   const [proTarget, setProTarget] = useState<GrantProTarget | null>(null)
   const [sessions, setSessions] = useState<Session[]>([])
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
-  const filterScrollRef = useRef<HTMLDivElement>(null)
   const tableScrollRef = useRef<HTMLDivElement>(null)
   // Rows open the preview dialog on click; a drag-to-scroll gesture must not
   // count as one. The scroll effect sets this on any horizontal drag move and
@@ -59,6 +67,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
   
   const deferredSearch = useDeferredValue(search)
   const ITEMS_PER_PAGE = 20
+  const showList = !!filterBatch || showAll || !!deferredSearch
 
   useEffect(() => {
     if (toast) {
@@ -69,6 +78,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
 
   // ELITE: Server-side search & pagination implementation
   const loadData = useCallback(async () => {
+    if (!showList) { setLoading(false); return }
     setLoading(true)
     try { 
       const offset = (currentPage - 1) * ITEMS_PER_PAGE
@@ -77,7 +87,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
         limit: ITEMS_PER_PAGE.toString(),
         offset: offset.toString(),
         ...(deferredSearch && { search: deferredSearch }),
-        ...(filterBatch && { batch_id: filterBatch })
+        ...(filterBatch && { batch_id: filterBatch, include_history: "true" })
       })
       queryParams.set('preload', 'true')
 
@@ -100,7 +110,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
       setStudents([]) 
     }
     finally { setLoading(false) }
-  }, [departmentId, universityId, currentPage, deferredSearch, filterBatch])
+  }, [departmentId, universityId, currentPage, deferredSearch, filterBatch, showList])
 
   useEffect(() => { loadData() }, [loadData])
 
@@ -109,13 +119,14 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
   // shift it, only membership mutations can, and those call it explicitly).
   const [claimedCount, setClaimedCount] = useState(0)
   const loadClaimedCount = useCallback(async () => {
+    if (!showList) return
     try {
       const params = new URLSearchParams({
         department_id: departmentId,
         limit: "1",
         is_claimed: "true",
         ...(deferredSearch && { search: deferredSearch }),
-        ...(filterBatch && { batch_id: filterBatch })
+        ...(filterBatch && { batch_id: filterBatch, include_history: "true" })
       })
       const response = await fetch(`${getApiUrl()}/students?${params.toString()}`)
       const result = await response.json()
@@ -124,8 +135,24 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
     catch (err) {
       console.error("Error loading claimed count:", err)
     }
-  }, [departmentId, deferredSearch, filterBatch])
+  }, [departmentId, deferredSearch, filterBatch, showList])
   useEffect(() => { loadClaimedCount() }, [loadClaimedCount])
+
+  // Student count per batch for the cards — count-only requests, in parallel.
+  useEffect(() => {
+    let cancelled = false
+    Promise.all(batches.map(async (b) => {
+      const res = await fetch(`${getApiUrl()}/students?${new URLSearchParams({ batch_id: b.id, include_history: "true", limit: "1" })}`)
+      return [b.id, (await res.json()).count ?? 0] as const
+    }))
+      .then((pairs) => { if (!cancelled) setBatchCounts(Object.fromEntries(pairs)) })
+      .catch((err) => console.error("Error loading batch counts:", err))
+    fetch(`${getApiUrl()}/students?${new URLSearchParams({ department_id: departmentId, limit: "1" })}`)
+      .then((res) => res.json())
+      .then((body) => { if (!cancelled) setDepartmentTotal(body.count ?? 0) })
+      .catch((err) => console.error("Error loading department total:", err))
+    return () => { cancelled = true }
+  }, [batches, departmentId])
 
   const loadContributors = useCallback(async () => {
     try {
@@ -154,21 +181,6 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
 
   const crOf = (s: Student) => activeCRs.find(c => c.target_student_id === s.id || (!!s.user_id && c.user_id === s.user_id))
 
-  // Drag-to-scroll for batch filters
-  useEffect(() => {
-    const el = filterScrollRef.current
-    if (!el) return
-    let isDown = false, startX = 0, scrollLeft = 0
-    const onDown = (e: MouseEvent) => { isDown = true; startX = e.pageX - el.offsetLeft; scrollLeft = el.scrollLeft; el.style.cursor = 'grabbing' }
-    const onUp = () => { isDown = false; el.style.cursor = 'grab' }
-    const onMove = (e: MouseEvent) => { if (!isDown) return; e.preventDefault(); el.scrollLeft = scrollLeft - (e.pageX - el.offsetLeft - startX) }
-    el.addEventListener('mousedown', onDown)
-    el.addEventListener('mouseup', onUp)
-    el.addEventListener('mouseleave', onUp)
-    el.addEventListener('mousemove', onMove)
-    return () => { el.removeEventListener('mousedown', onDown); el.removeEventListener('mouseup', onUp); el.removeEventListener('mouseleave', onUp); el.removeEventListener('mousemove', onMove) }
-  }, [])
-
   // Drag-to-scroll + wheel-to-horizontal-scroll for the students table (narrow/md screens)
   useEffect(() => {
     const el = tableScrollRef.current
@@ -196,7 +208,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
       el.removeEventListener('mousemove', onMove)
       el.removeEventListener('wheel', onWheel)
     }
-  }, [])
+  }, [showList, loading, viewMode])
 
   // Sort students: by student_id (roll)
   // "All" tab → descending (newest first), batch filter → ascending (oldest first)
@@ -208,11 +220,11 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE)
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!deleting) return
     setDeleteLoading(true)
     try { 
-      await api.students.delete(deleting.id)
+      await api.students.delete(deleting.id); if (permanent) await api.trash.purgeDeleted("students", deleting.id)
       loadData()
       loadClaimedCount()
       setToast("Student removed successfully")
@@ -269,11 +281,11 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
     setContributorStudent(s)
   }
 
-  async function handleRemoveContributor() {
+  async function handleRemoveContributor(permanent = false) {
     if (!removingContributor) return
     setRemoveContributorLoading(true)
     try {
-      await api.contributors.hardDelete(removingContributor.id)
+      await api.contributors.delete(removingContributor.id); if (permanent) await api.trash.purgeDeleted("contributors", removingContributor.id)
       setToast("Removed from contributors")
       setRemovingContributor(null)
       loadContributors()
@@ -436,7 +448,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
         open={!!deleting}
         label={`student "${deleting?.name}"`}
         onClose={() => setDeleting(null)}
-        onConfirm={handleDelete}
+        trashType="students" onConfirm={handleDelete}
         loading={deleteLoading}
       />
 
@@ -464,9 +476,9 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
 
       <ConfirmDelete
         open={!!removingContributor}
-        label={`"${removingContributor?.name}" from Contributors (permanent)`}
+        label={`"${removingContributor?.name}" from Contributors`}
         onClose={() => setRemovingContributor(null)}
-        onConfirm={handleRemoveContributor}
+        trashType="contributors" onConfirm={handleRemoveContributor}
         loading={removeContributorLoading}
       />
 
@@ -486,53 +498,47 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
         </div>
       </div>
 
-      {/* Toolbar: batch tabs + search + live total, one strip */}
-      <div className="flex flex-col lg:flex-row lg:items-center gap-2 mb-2">
-        <div className="relative group flex-1 min-w-0">
-          <button
-            onClick={() => filterScrollRef.current?.scrollBy({ left: -200, behavior: 'smooth' })}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full border bg-background shadow-md flex items-center justify-center hover:bg-muted transition-all opacity-0 group-hover:opacity-100"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <div ref={filterScrollRef} className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide -mx-1 px-1 cursor-grab active:cursor-grabbing">
-            <button
-              onClick={() => { setFilterBatch(null); setCurrentPage(1); }}
-              className={cn(
-                "flex items-center gap-2 px-5 h-9 rounded-full text-[11px] font-black transition-all border shrink-0 uppercase tracking-tighter",
-                !filterBatch ? "bg-primary-gradient text-white border-primary shadow-md" : "bg-card text-muted-foreground hover:bg-muted border-border"
-              )}
-            >
-              All Students
-            </button>
-            {[...batches].sort((a, b) => {
-              const numA = parseInt(a.name.match(/\d+/)?.[0] || "0")
-              const numB = parseInt(b.name.match(/\d+/)?.[0] || "0")
-              return numB - numA
-            }).map((b) => (
+      {/* Toolbar: program tabs + All (grid view) or back + scope (list view),
+          then search, live total and view switch. */}
+      <div className="flex flex-col lg:flex-row lg:items-center gap-2 mb-4">
+        <div className="flex flex-1 min-w-0 items-center gap-2">
+          {showList ? (
+            <>
               <button
-                key={b.id}
-                onClick={() => { setFilterBatch(b.id); setCurrentPage(1); }}
-                className={cn(
-                  "flex items-center gap-2 px-4 h-9 rounded-full text-[11px] font-black transition-all border shrink-0 whitespace-nowrap uppercase tracking-tighter",
-                  filterBatch === b.id ? "bg-primary-gradient text-white border-primary shadow-md" : "bg-card text-muted-foreground hover:bg-muted border-border"
-                )}
+                onClick={() => { setFilterBatch(null); setShowAll(false); setSearch(""); setCurrentPage(1) }}
+                className="flex items-center gap-1.5 rounded-sm border bg-card px-3 h-9 text-sm font-bold hover:bg-muted transition-all shrink-0"
               >
-                {b.name}
+                <ArrowLeft className="h-4 w-4" /> Batches
               </button>
-            ))}
-          </div>
-          <button
-            onClick={() => filterScrollRef.current?.scrollBy({ left: 200, behavior: 'smooth' })}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full border bg-background shadow-md flex items-center justify-center hover:bg-muted transition-all opacity-0 group-hover:opacity-100"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+              <p className="truncate text-sm font-bold">
+                {filterBatch ? (batches.find((b) => b.id === filterBatch)?.name ?? "Batch") : deferredSearch ? "Search results" : "All Students"}
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="flex bg-muted p-1 rounded-sm">
+                {(Object.keys(BATCH_PROGRAM_LABEL) as BatchProgram[]).map((p) => (
+                  <button key={p} type="button" onClick={() => setProgramTab(p)}
+                    className={cn("px-4 text-sm py-1.5 rounded-sm font-bold transition-all", programTab === p ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}>
+                    {BATCH_PROGRAM_LABEL[p]}
+                    <span className="ml-1.5 text-xs font-medium text-muted-foreground">{batches.filter((b) => (b.program ?? "honours") === p).length}</span>
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => { setShowAll(true); setCurrentPage(1) }}
+                className="flex items-center gap-1.5 rounded-sm border bg-card px-3 h-9 text-sm font-bold hover:bg-muted transition-all shrink-0"
+              >
+                <Users className="h-4 w-4 text-primary" /> All Students
+                <span className="text-xs font-medium text-muted-foreground">{departmentTotal ?? ""}</span>
+              </button>
+            </>
+          )}
         </div>
         {/* Right cluster: search, claimed/total counter, view switch.
             While a fetch is in flight the counter just slots a single dash
             into its usual spot — no spinners, no shimmer, no locking. */}
-        <div className="flex items-center gap-2 shrink-0 lg:pb-4">
+        <div className="flex items-center gap-2 shrink-0">
           <div className="relative flex-1 lg:w-56">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50" />
             <input
@@ -543,6 +549,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
               className={cn(inputCls, "pl-10 w-full h-9 font-medium text-sm")}
             />
           </div>
+          {showList && <>
           <div className="flex items-center gap-1.5 px-3 h-9 rounded-sm border bg-card text-muted-foreground text-[11px] font-black uppercase tracking-tighter shrink-0 whitespace-nowrap">
             <Users className="h-3.5 w-3.5" />
             {loading ? (
@@ -558,10 +565,18 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
           >
             {viewMode === 'table' ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}
           </button>
+          </>}
         </div>
       </div>
 
-      {loading ? (
+      {!showList ? (
+        <BatchCardGrid
+          batches={batches.filter((b) => (b.program ?? "honours") === programTab)}
+          emptyLabel={`No ${BATCH_PROGRAM_LABEL[programTab]} batches yet`}
+          counts={batchCounts}
+          onOpen={(id) => { setFilterBatch(id); setCurrentPage(1) }}
+        />
+      ) : loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 opacity-60">
           {[1,2,3,4,5,6].map(i => (
             <div key={i} className="h-32 rounded-sm border bg-card animate-pulse" />
@@ -598,7 +613,8 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
+                      {s.history_enrollment_id && <MovedOnBadge student={s} batches={batches} />}
+                      <div className={cn("flex items-center gap-1.5 shrink-0", s.history_enrollment_id && "hidden")}>
                         <button onClick={(e) => { e.stopPropagation(); setEditing(s); setModalOpen(true) }}
                           className="p-2 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-primary transition-all shadow-sm"
                         >
@@ -811,7 +827,8 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
                           )}
                         </td>
                         <td className="px-4 py-2.5">
-                          <div className="flex items-center gap-1">
+                          {s.history_enrollment_id && <MovedOnBadge student={s} batches={batches} />}
+                          <div className={cn("flex items-center gap-1", s.history_enrollment_id && "hidden")}>
                             <button onClick={() => { setEditing(s); setModalOpen(true) }} 
                               className="p-1.5 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-primary transition-all"
                             >
@@ -932,6 +949,60 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
   )
 }
 
+// A former member listed in an earlier batch (e.g. Honors, now in Masters).
+// The row shows that batch's roll/session; editing it would move the student
+// back, so its actions are replaced by where they are now.
+function MovedOnBadge({ student, batches }: { student: Student; batches: Batch[] }) {
+  const now = batches.find((b) => b.id === student.current_batch_id)?.name
+  return (
+    <span className="inline-flex items-center rounded-sm border border-info/20 bg-info-subtle px-1.5 py-0.5 text-[10px] font-bold text-info whitespace-nowrap"
+      title="Edit this student from their current batch">
+      {now ? `Now in ${now}` : "Moved on"}
+    </span>
+  )
+}
+
+// Batch cards for the Students tab: cover, name and student count, newest
+// batch first. Clicking one lists that batch's students.
+function BatchCardGrid({ batches, emptyLabel, counts, onOpen }: {
+  batches: Batch[]
+  emptyLabel: string
+  counts: Record<string, number>
+  onOpen: (batchId: string) => void
+}) {
+  const num = (b: Batch) => parseInt(b.name.match(/\d+/)?.[0] ?? "0", 10)
+  const sorted = [...batches].sort((a, b) => num(b) - num(a))
+  if (!sorted.length) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 rounded-sm border border-dashed bg-muted/30">
+        <GraduationCap className="h-10 w-10 text-muted-foreground/30 mb-2" />
+        <p className="text-muted-foreground">{emptyLabel}</p>
+      </div>
+    )
+  }
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {sorted.map((b) => (
+        <button key={b.id} type="button" onClick={() => onOpen(b.id)}
+          className="overflow-hidden rounded-sm border bg-card text-left hover:shadow-md hover:border-primary/40 transition-all">
+          <div className="aspect-video bg-primary-subtle">
+            {b.image_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={getFullImageUrl(b.image_url)} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full items-center justify-center text-3xl font-black text-primary/40">{num(b) || "—"}</div>
+            )}
+          </div>
+          <div className="px-3 py-2.5">
+            <p className="truncate text-sm font-bold">{b.name}</p>
+            <p className="text-xs text-muted-foreground">{counts[b.id] === undefined ? "\u00a0" : `${counts[b.id]} students`}</p>
+          </div>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function StudentPreviewModal({ student, onClose, batches, sessions, onToast, onCopyDetails, onSendMail, onRefresh }: {
   student: Student | null
   onClose: () => void
@@ -1044,6 +1115,8 @@ function StudentPreviewModal({ student, onClose, batches, sessions, onToast, onC
             </div>
           ))}
         </div>
+
+        <ProgramHistory studentId={student.id} onToast={onToast} onReverted={() => { onRefresh?.(); onClose() }} />
 
         <div className="grid grid-cols-2 gap-2 mb-2">
           <div className="rounded-sm border bg-muted/20 p-2.5 text-center">

@@ -20,11 +20,11 @@ export function CategoriesClient() {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleDelete = async () => {
+  const handleDelete = async (permanent = false) => {
     if (!deleteId) return
     setDeleteLoading(true)
     try {
-      await api.marketplaceCategories.delete(deleteId)
+      await api.marketplaceCategories.delete(deleteId); if (permanent) await api.trash.purgeDeleted("marketplace-categories", deleteId)
       setCategories(prev => prev.filter(c => c.id !== deleteId))
     } catch (err: any) {
       alert(`Failed to delete: ${err.message}`)
@@ -144,7 +144,7 @@ export function CategoriesClient() {
         open={!!deleteId}
         label="category"
         onClose={() => setDeleteId(null)}
-        onConfirm={handleDelete}
+        trashType="marketplace-categories" onConfirm={handleDelete}
         loading={deleteLoading}
       />
     </div>

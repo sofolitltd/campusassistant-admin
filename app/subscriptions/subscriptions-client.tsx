@@ -5,12 +5,18 @@ import {
   CreditCard, Users, Settings2, Plus, Trash2, Pencil,
   Check, Calendar, ChevronRight as ChevronRightIcon,
   ChevronDown, X, Building2, Globe, ChevronLeft, Gift, Search,
-  BarChart3, Loader2, LineChart as LineChartIcon
+  BarChart3, Loader2, LineChart as LineChartIcon, Mail, Phone,
+  GraduationCap, UserRound
 } from "lucide-react"
-import { api, UserSubscription, SubscriptionPlan, SubscriptionTarget, University, User, SubscriptionAnalytics, UserGrowthRange } from "@/lib/api"
+import { api, getFullImageUrl, UserSubscription, SubscriptionPlan, SubscriptionTarget, University, User, SubscriptionAnalytics, UserGrowthRange } from "@/lib/api"
 import { cn, computeSubStatus } from "@/lib/utils"
+import { ConfirmDelete } from "@/app/universities/[id]/departments/[...slug]/components/SharedUI"
 
 const PAGE_SIZE = 20
+
+type SubscriberProfileSummary = Pick<User, "id" | "first_name" | "last_name" | "email"> & {
+  avatar_url?: string
+}
 
 const ANALYTICS_RANGES: { value: UserGrowthRange; label: string }[] = [
   { value: "today", label: "Today" },
@@ -769,6 +775,18 @@ function GrantedTab() {
 
 // ── Main Page ───────────────────────────────────────────────────────────────
 export default function SubscriptionsClient() {
+  const [deletePlan, setDeletePlan] = useState<SubscriptionPlan | null>(null)
+  const [deletingPlan, setDeletingPlan] = useState(false)
+  async function confirmDeletePlan(permanent = false) {
+    if (!deletePlan) return
+    setDeletingPlan(true)
+    try {
+      await api.subscriptions.deletePlan(deletePlan.id)
+      if (permanent) await api.trash.purgeDeleted("subscription-plans", deletePlan.id)
+      loadData(0)
+    } catch (err) { alert(String(err)) }
+    finally { setDeletingPlan(false); setDeletePlan(null) }
+  }
   const [activeTab, setActiveTab] = useState<"subscribers" | "plans" | "analytics" | "granted">("subscribers")
   const [subscribers, setSubscribers] = useState<UserSubscription[]>([])
   const [totalCount, setTotalCount] = useState(0)
@@ -776,6 +794,11 @@ export default function SubscriptionsClient() {
   const [offset, setOffset] = useState(0)
   const [plans, setPlans] = useState<SubscriptionPlan[]>([])
   const [universities, setUniversities] = useState<University[]>([])
+  const [selectedProfile, setSelectedProfile] = useState<SubscriberProfileSummary | null>(null)
+  const [profileDetails, setProfileDetails] = useState<User | null>(null)
+  const [profileLoading, setProfileLoading] = useState(false)
+  const [profileError, setProfileError] = useState("")
+  const profileRequestId = useRef(0)
 
   const [loading, setLoading] = useState(true)
   const [planModal, setPlanModal] = useState(false)
@@ -808,6 +831,92 @@ export default function SubscriptionsClient() {
   const goToPage = (page: number) => {
     loadData((page - 1) * PAGE_SIZE)
   }
+
+  async function openSubscriberProfile(sub: UserSubscription) {
+    const requestId = ++profileRequestId.current
+    const user = sub.user
+    setSelectedProfile({
+      id: sub.user_id,
+      first_name: user?.first_name ?? "",
+      last_name: user?.last_name ?? "",
+      email: user?.email ?? "",
+      avatar_url: user?.avatar_url,
+    })
+    setProfileDetails(null)
+    setProfileLoading(true)
+    setProfileError("")
+
+    try {
+      const details = await api.users.getOne(sub.user_id)
+      if (profileRequestId.current === requestId) {
+        const student = details.student
+        const [batchResult, sessionResult] = await Promise.allSettled([
+          student?.batch || !student?.batch_id
+            ? Promise.resolve(student?.batch)
+            : api.batches.getOne(student.batch_id),
+          student?.session || !student?.session_id
+            ? Promise.resolve(student?.session)
+            : api.sessions.getOne(student.session_id),
+        ])
+        if (profileRequestId.current !== requestId) return
+
+        const batch = batchResult.status === "fulfilled" ? batchResult.value : undefined
+        const session = sessionResult.status === "fulfilled" ? sessionResult.value : undefined
+        const referenceErrors = [
+          batchResult.status === "rejected" && student?.batch_id
+            ? `batch: ${batchResult.reason instanceof Error ? batchResult.reason.message : String(batchResult.reason)}`
+            : null,
+          sessionResult.status === "rejected" && student?.session_id
+            ? `session: ${sessionResult.reason instanceof Error ? sessionResult.reason.message : String(sessionResult.reason)}`
+            : null,
+        ].filter((message): message is string => message !== null)
+
+        setProfileDetails({
+          ...details,
+          student: student
+            ? {
+                ...student,
+                batch: student.batch ?? batch,
+                session: student.session ?? session,
+              }
+            : undefined,
+        })
+        setProfileError(referenceErrors.length > 0
+          ? `Could not resolve academic references (${referenceErrors.join("; ")})`
+          : "")
+        setSelectedProfile({
+          id: details.id,
+          first_name: details.first_name,
+          last_name: details.last_name,
+          email: details.email,
+          avatar_url: details.avatar_url,
+        })
+      }
+    } catch (error) {
+      if (profileRequestId.current === requestId) {
+        setProfileError(error instanceof Error ? error.message : "Could not load user details")
+      }
+    } finally {
+      if (profileRequestId.current === requestId) setProfileLoading(false)
+    }
+  }
+
+  function closeSubscriberProfile() {
+    profileRequestId.current += 1
+    setSelectedProfile(null)
+  }
+
+  useEffect(() => {
+    if (!selectedProfile) return
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        profileRequestId.current += 1
+        setSelectedProfile(null)
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [selectedProfile])
 
   return (
     <div className="space-y-8 pb-20">
@@ -926,15 +1035,24 @@ export default function SubscriptionsClient() {
                     return (
                       <tr key={sub.id} className="hover:bg-muted/10 transition-colors">
                         <td className="px-4 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="h-9 w-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center font-black text-primary text-xs uppercase">
-                              {sub.user?.first_name?.[0] || "U"}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="font-bold truncate text-sm">{sub.user?.first_name} {sub.user?.last_name}</p>
-                              <p className="text-[10px] text-muted-foreground truncate uppercase tracking-tight">{sub.user?.email}</p>
-                            </div>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => openSubscriberProfile(sub)}
+                            aria-label={`View profile for ${sub.user?.first_name || "user"} ${sub.user?.last_name || ""}`}
+                            className="flex max-w-full items-center gap-3 rounded-sm text-left transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                          >
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-primary/20 bg-primary/10 text-xs font-black text-primary">
+                              {sub.user?.avatar_url ? (
+                                <img src={getFullImageUrl(sub.user.avatar_url)} alt="" className="h-full w-full object-cover" />
+                              ) : (
+                                sub.user?.first_name?.[0] || <UserRound className="h-4 w-4" />
+                              )}
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-bold">{sub.user?.first_name} {sub.user?.last_name}</span>
+                              <span className="block truncate text-[10px] tracking-tight text-muted-foreground">{sub.user?.email?.toLowerCase()}</span>
+                            </span>
+                          </button>
                         </td>
                         <td className="px-4 py-4">
                           <Badge variant="indigo">{sub.plan}</Badge>
@@ -1027,7 +1145,7 @@ export default function SubscriptionsClient() {
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
                   <button onClick={() => { setEditPlan(plan); setPlanModal(true) }} className="p-1.5 hover:bg-muted rounded-sm transition-all text-muted-foreground hover:text-primary"><Pencil className="h-3.5 w-3.5" /></button>
-                  <button onClick={async () => { if (confirm("Delete this elite plan?")) { await api.subscriptions.deletePlan(plan.id); loadData(0) } }} className="p-1.5 hover:bg-destructive-subtle rounded-sm transition-all text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => setDeletePlan(plan)} className="p-1.5 hover:bg-destructive-subtle rounded-sm transition-all text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
                 </div>
               </div>
 
@@ -1091,6 +1209,103 @@ export default function SubscriptionsClient() {
         plans={plans}
         onSuccess={() => loadData(0)}
       />
+      <ConfirmDelete
+        open={!!deletePlan}
+        label={deletePlan ? `plan "${deletePlan.title}"` : ""}
+        trashType="subscription-plans"
+        onClose={() => setDeletePlan(null)}
+        onConfirm={confirmDeletePlan}
+        loading={deletingPlan}
+      />
+      {selectedProfile && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/50 p-4"
+          onClick={closeSubscriberProfile}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="subscriber-profile-title"
+            onClick={(event) => event.stopPropagation()}
+            className="relative max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl border bg-card p-5 shadow-2xl"
+          >
+            <button
+              type="button"
+              onClick={closeSubscriberProfile}
+              aria-label="Close user profile"
+              className="absolute right-3 top-3 rounded-sm p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="flex items-center gap-4 pr-8">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-primary/20 bg-primary/10 text-lg font-black text-primary">
+                {selectedProfile.avatar_url ? (
+                  <img src={getFullImageUrl(selectedProfile.avatar_url)} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  selectedProfile.first_name[0] || <UserRound className="h-7 w-7" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <h2 id="subscriber-profile-title" className="truncate text-lg font-black">
+                  {selectedProfile.first_name} {selectedProfile.last_name || (profileLoading ? "Loading…" : "")}
+                </h2>
+                <p className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+                  <Mail className="h-3 w-3 shrink-0" />
+                  {selectedProfile.email.toLowerCase() || "Email unavailable"}
+                </p>
+                {profileDetails?.role && (
+                  <span className="mt-1 inline-block rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold capitalize text-muted-foreground">
+                    {profileDetails.role.replaceAll("_", " ")}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {profileError && (
+              <p role="alert" className="mt-4 rounded-sm bg-destructive-subtle p-3 text-xs text-destructive">
+                Profile details warning: {profileError}
+              </p>
+            )}
+
+            {profileLoading ? (
+              <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading user details…
+              </div>
+            ) : profileDetails ? (
+              <div className="mt-5 space-y-3">
+                <div className="rounded-lg border bg-background p-4">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Contact</h3>
+                  <div className="mt-3 space-y-2 text-sm">
+                    <p className="flex items-center gap-2 break-all"><Mail className="h-4 w-4 shrink-0 text-muted-foreground" /> {profileDetails.email.toLowerCase()}</p>
+                    <p className="flex items-center gap-2"><Phone className="h-4 w-4 shrink-0 text-muted-foreground" /> {profileDetails.phone || "No phone number"}</p>
+                  </div>
+                </div>
+                <div className="rounded-lg border bg-background p-4">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">University & Department</h3>
+                  <div className="mt-3 space-y-2 text-sm">
+                    <p className="flex items-center gap-2"><Globe className="h-4 w-4 shrink-0 text-muted-foreground" /> {profileDetails.university?.name || profileDetails.university_id || "No university"}</p>
+                    <p className="flex items-center gap-2"><Building2 className="h-4 w-4 shrink-0 text-muted-foreground" /> {profileDetails.department?.name || profileDetails.department_id || "No department"}</p>
+                  </div>
+                </div>
+                {profileDetails.student && (
+                  <div className="rounded-lg border bg-background p-4">
+                    <h3 className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                      <GraduationCap className="h-3.5 w-3.5" /> Student Profile
+                    </h3>
+                    <div className="mt-3 space-y-2 text-sm">
+                      <p><span className="text-muted-foreground">Batch:</span> {profileDetails.student.batch?.name || profileDetails.student.batch_id || "No batch"}</p>
+                      <p><span className="text-muted-foreground">Session:</span> {profileDetails.student.session?.name || (profileDetails.student.session_id ? "Session name unavailable" : "No session assigned")}</p>
+                      <p><span className="text-muted-foreground">Student ID:</span> {profileDetails.student.student_id || "—"}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="mt-5 break-all text-xs text-muted-foreground">User ID: {selectedProfile.id}</p>
+            )}
+          </section>
+        </div>
+      )}
     </div>
   )
 }

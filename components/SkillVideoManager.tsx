@@ -11,12 +11,14 @@ import {
   Link as LinkIcon
 } from "lucide-react"
 import { api, SkillVideo } from "@/lib/api"
+import { ConfirmDelete } from "@/app/universities/[id]/departments/[...slug]/components/SharedUI"
 
 interface SkillVideoManagerProps {
   skillId: string
 }
 
 export function SkillVideoManager({ skillId }: SkillVideoManagerProps) {
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null)
   const [videos, setVideos] = useState<SkillVideo[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -75,10 +77,15 @@ export function SkillVideoManager({ skillId }: SkillVideoManagerProps) {
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("Remove this video from the skill?")) return
+  function handleDelete(id: string) { setPendingDelete(id) }
+
+  async function confirmDelete(permanent = false) {
+    const id = pendingDelete
+    if (!id) return
+    setPendingDelete(null)
     try {
       await api.skillVideos.delete(id)
+      if (permanent) await api.trash.purgeDeleted("skill-videos", id)
       setVideos(prev => prev.filter(v => v.id !== id))
     } catch (err: any) {
       alert(`Failed to delete video: ${err.message}`)
@@ -214,6 +221,14 @@ export function SkillVideoManager({ skillId }: SkillVideoManagerProps) {
           ))}
         </div>
       )}
+      <ConfirmDelete
+        open={!!pendingDelete}
+        label="this video"
+        trashType="skill-videos"
+        onClose={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
+        loading={false}
+      />
     </div>
   )
 }

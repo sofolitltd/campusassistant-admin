@@ -35,6 +35,7 @@ function LoginForm() {
       const res = await api.auth.adminLogin(email, password)
       await startSession({
         access_token: res.access_token,
+        refresh_token: res.refresh_token,
         expires_in: res.expires_in,
         admin: res.admin,
       })

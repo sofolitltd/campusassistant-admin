@@ -159,11 +159,11 @@ export function StudyTab({ study, universityId, departmentId, batches, onRefresh
     }
   }
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      await api.levels.delete(deleteTarget.id)
+      await api.levels.delete(deleteTarget.id); if (permanent) await api.trash.purgeDeleted("levels", deleteTarget.id)
       setDeleteTarget(null)
       onRefresh()
     } catch (e: any) {
@@ -258,7 +258,7 @@ export function StudyTab({ study, universityId, departmentId, batches, onRefresh
         open={!!deleteTarget}
         label={deleteTarget ? `${deleteTarget.name}` : ""}
         onClose={() => setDeleteTarget(null)}
-        onConfirm={handleDelete}
+        trashType="levels" onConfirm={handleDelete}
         loading={deleting}
         message={deleteMessage}
         blocked={deleteCourseCount !== 0 || !!deleteError}

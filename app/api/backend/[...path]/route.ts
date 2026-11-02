@@ -1,5 +1,14 @@
 import { cookies } from "next/headers"
 import type { NextRequest } from "next/server"
+import {
+  accessCookieOptions,
+  ADMIN_ACCESS_COOKIE,
+  ADMIN_REFRESH_COOKIE,
+  ADMIN_USER_COOKIE,
+  isAccessTokenExpired,
+  refreshAdminAccessToken,
+  shouldRefreshAccessToken,
+} from "@/lib/admin-session"
 
 // Same-origin proxy to the Go backend.
 //
@@ -30,7 +39,40 @@ const FORWARDED_RESPONSE_HEADERS = ["content-type", "content-disposition", "cach
 
 async function forward(request: NextRequest, path: string[]) {
   const store = await cookies()
-  const token = store.get("admin_token")?.value
+  let token = store.get(ADMIN_ACCESS_COOKIE)?.value
+  const refreshToken = store.get(ADMIN_REFRESH_COOKIE)?.value
+  let refreshAttempted = false
+
+  async function refreshSession(refreshToken: string) {
+    refreshAttempted = true
+    try {
+      const session = await refreshAdminAccessToken(refreshToken)
+      if (session) {
+        token = session.access_token
+        store.set(ADMIN_ACCESS_COOKIE, token, accessCookieOptions(session.expires_in))
+      }
+      return session
+    } catch (error) {
+      console.error("Admin session refresh failed in API proxy", error)
+      throw error
+    }
+  }
+
+  if (shouldRefreshAccessToken(token) && refreshToken) {
+    try {
+      const session = await refreshSession(refreshToken)
+      if (!session && isAccessTokenExpired(token)) {
+        store.delete(ADMIN_ACCESS_COOKIE)
+        store.delete(ADMIN_REFRESH_COOKIE)
+        store.delete(ADMIN_USER_COOKIE)
+        return Response.json({ error: "Session expired; sign in again" }, { status: 401 })
+      }
+    } catch {
+      if (isAccessTokenExpired(token)) {
+        return Response.json({ error: "Session refresh is temporarily unavailable" }, { status: 502 })
+      }
+    }
+  }
 
   const target = `${backendUrl()}/${path.join("/")}${request.nextUrl.search}`
 
@@ -40,24 +82,53 @@ async function forward(request: NextRequest, path: string[]) {
     if (value) headers.set(name, value)
   }
   if (process.env.API_KEY) headers.set("X-API-Key", process.env.API_KEY)
-  if (token) headers.set("Authorization", `Bearer ${token}`)
 
   const hasBody = request.method !== "GET" && request.method !== "HEAD"
+  const retryRequest = hasBody && refreshToken ? request.clone() : request
 
-  let response: Response
-  try {
-    response = await fetch(target, {
+  async function send(source: Request, bearerToken: string | undefined) {
+    const requestHeaders = new Headers(headers)
+    if (bearerToken) requestHeaders.set("Authorization", `Bearer ${bearerToken}`)
+    else requestHeaders.delete("Authorization")
+
+    return fetch(target, {
       method: request.method,
-      headers,
-      body: hasBody ? request.body : undefined,
+      headers: requestHeaders,
+      body: hasBody ? source.body : undefined,
       // Required by undici when streaming a request body through rather than
       // buffering it — this is what lets multipart uploads pass through.
-      duplex: "half",
+      ...(hasBody ? { duplex: "half" as const } : {}),
       redirect: "manual",
       cache: "no-store",
     } as RequestInit)
+  }
+
+  let response: Response
+  try {
+    response = await send(request, token)
   } catch {
     return Response.json({ error: "Upstream API unreachable" }, { status: 502 })
+  }
+
+  if (response.status === 401 && refreshToken && !refreshAttempted) {
+    try {
+      const session = await refreshSession(refreshToken)
+      if (session) {
+        try {
+          response = await send(retryRequest, session.access_token)
+        } catch {
+          return Response.json({ error: "Upstream API unreachable" }, { status: 502 })
+        }
+      }
+    } catch {
+      return Response.json({ error: "Session refresh is temporarily unavailable" }, { status: 502 })
+    }
+  }
+
+  if (response.status === 401) {
+    store.delete(ADMIN_ACCESS_COOKIE)
+    store.delete(ADMIN_REFRESH_COOKIE)
+    store.delete(ADMIN_USER_COOKIE)
   }
 
   const responseHeaders = new Headers()

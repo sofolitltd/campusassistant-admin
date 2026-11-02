@@ -186,6 +186,27 @@ function bucketLabel(key: string, granularity: UserGrowth["granularity"], range:
   }
 }
 
+function smoothCurvePath(points: { x: number; y: number }[]) {
+  if (points.length === 0) return ""
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`
+
+  return points.map((point, index) => {
+    if (index === 0) return `M ${point.x} ${point.y}`
+
+    const previous = points[index - 1]
+    const beforePrevious = points[index - 2] ?? previous
+    const next = points[index + 1] ?? point
+    const minY = Math.min(previous.y, point.y)
+    const maxY = Math.max(previous.y, point.y)
+    const control1Y = Math.min(maxY, Math.max(minY, previous.y + (point.y - beforePrevious.y) / 6))
+    const control2Y = Math.min(maxY, Math.max(minY, point.y - (next.y - previous.y) / 6))
+    const control1X = previous.x + (point.x - previous.x) / 3
+    const control2X = point.x - (point.x - previous.x) / 3
+
+    return `C ${control1X} ${control1Y}, ${control2X} ${control2Y}, ${point.x} ${point.y}`
+  }).join(" ")
+}
+
 export default function DashboardClient({ stats }: DashboardClientProps) {
   const statCards = [
     { 
@@ -230,6 +251,14 @@ export default function DashboardClient({ stats }: DashboardClientProps) {
 
   const growth = growthData.points
   const maxVal = growth.reduce((m, d) => Math.max(m, d.count), 0) || 1
+  const chartPoints = growth.map((point, index) => ({
+    x: ((index + 0.5) / growth.length) * 1000,
+    y: 18 + (1 - point.count / maxVal) * 190,
+  }))
+  const growthCurve = smoothCurvePath(chartPoints)
+  const growthArea = chartPoints.length > 0
+    ? `${growthCurve} L ${chartPoints[chartPoints.length - 1].x} 220 L ${chartPoints[0].x} 220 Z`
+    : ""
   // Long series (today's 24 hours, 30 days, long lifetimes) would crowd the
   // axis, so only every Nth label is shown; the tooltip always has the full one.
   const labelEvery = Math.max(1, Math.ceil(growth.length / 8))
@@ -287,27 +316,52 @@ export default function DashboardClient({ stats }: DashboardClientProps) {
             </div>
           </div>
           {growthError && <p className="mt-3 rounded-sm bg-destructive-subtle p-2 text-xs text-destructive">{growthError}</p>}
-          <div className={cn("mt-8 flex h-64 items-end justify-between", growth.length > 31 ? "gap-px" : growth.length > 12 ? "gap-1" : "gap-2", growthLoading && "opacity-50")}>
-            {growth.length > 0 ? growth.map((d, i) => (
-              <div key={d.date} className="group relative flex h-full flex-1 items-end">
-                <div 
-                  className="w-full rounded-t-lg bg-primary/10 transition-all group-hover:bg-primary group-hover:opacity-100 opacity-60" 
-                  style={{ height: `${Math.max((d.count / maxVal) * 100, d.count > 0 ? 2 : 0)}%` }}
-                ></div>
-                <div className={cn(
-                  "pointer-events-none absolute -top-10 z-10 rounded bg-primary-gradient px-2 py-1 text-[10px] font-bold text-primary-foreground opacity-0 transition-opacity group-hover:opacity-100 shadow-lg whitespace-nowrap",
-                  i < growth.length / 4 ? "left-0" : i > (growth.length * 3) / 4 ? "right-0" : "left-1/2 -translate-x-1/2"
-                )}>
-                  <span className="block font-medium opacity-80">{bucketLabel(d.date, growthData.granularity, range, true)}</span>
-                  {d.count} user{d.count !== 1 ? "s" : ""}
+          <div className={cn("relative mt-8 h-64 w-full", growthLoading && "opacity-50")}>
+            {growth.length > 0 ? (
+              <>
+                <svg viewBox="0 0 1000 240" preserveAspectRatio="none" aria-hidden="true" className="absolute inset-0 h-full w-full">
+                  {[18, 66, 114, 162, 210].map((y) => (
+                    <line key={y} x1="0" x2="1000" y1={y} y2={y} className="stroke-border" strokeWidth="1" />
+                  ))}
+                  <path d={growthArea} fill="var(--primary)" fillOpacity="0.08" />
+                  <path d={growthCurve} fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+                  {chartPoints.map((point, index) => {
+                    if (growth.length > 30 && index % Math.ceil(growth.length / 30) !== 0 && index !== growth.length - 1) return null
+                    return <circle key={growth[index].date} cx={point.x} cy={point.y} r="4" fill="var(--primary)" stroke="var(--card)" strokeWidth="3" vectorEffect="non-scaling-stroke" />
+                  })}
+                </svg>
+                <div className="absolute inset-0 flex">
+                  {growth.map((point, index) => {
+                    const top = `${(chartPoints[index].y / 240) * 100}%`
+                    return (
+                      <div key={point.date} className="group relative h-full flex-1">
+                        <button
+                          type="button"
+                          aria-label={`${bucketLabel(point.date, growthData.granularity, range, true)}: ${point.count} user${point.count !== 1 ? "s" : ""}`}
+                          className="absolute left-1/2 z-10 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-card bg-primary opacity-0 shadow-sm transition-all group-hover:scale-125 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                          style={{ top }}
+                        />
+                        <div
+                          className={cn(
+                            "pointer-events-none absolute z-20 rounded bg-primary-gradient px-2 py-1 text-[10px] font-bold text-primary-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 shadow-lg whitespace-nowrap",
+                            index < growth.length / 4 ? "left-0" : index > (growth.length * 3) / 4 ? "right-0" : "left-1/2 -translate-x-1/2"
+                          )}
+                          style={{ top: `calc(${top} - 2.75rem)` }}
+                        >
+                          <span className="block font-medium opacity-80">{bucketLabel(point.date, growthData.granularity, range, true)}</span>
+                          {point.count} user{point.count !== 1 ? "s" : ""}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
-              </div>
-            )) : (
+              </>
+            ) : (
               <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">No data</div>
             )}
           </div>
           {growth.length > 0 && (
-            <div className={cn("mt-4 flex text-[10px] font-black text-muted-foreground uppercase tracking-widest", growth.length > 31 ? "gap-px" : growth.length > 12 ? "gap-1" : "gap-2")}>
+            <div className="mt-4 flex text-[10px] font-black text-muted-foreground uppercase tracking-widest">
               {growth.map((d, i) => (
                 <span key={d.date} className="flex-1 overflow-visible whitespace-nowrap text-center">
                   {i % labelEvery === 0 ? bucketLabel(d.date, growthData.granularity, range) : ""}
@@ -320,7 +374,7 @@ export default function DashboardClient({ stats }: DashboardClientProps) {
         <div className="rounded-xl border bg-card p-4 shadow-sm lg:col-span-3">
           <h3 className="text-base font-bold">Recent Subscriptions</h3>
           <div className="mt-4 space-y-0.5">
-            {subs.length > 0 ? subs.map((sub, i) => (
+            {subs.length > 0 ? subs.map((sub) => (
               <div key={sub.user_id} className="flex items-center justify-between group cursor-pointer hover:bg-muted/50 -mx-2 p-1.5 rounded-lg transition-colors">
                 <div className="flex items-center gap-2">
                   <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-[10px] uppercase border border-primary/20">

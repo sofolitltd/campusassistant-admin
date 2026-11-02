@@ -261,11 +261,11 @@ function ScheduleModal({ slots, universityId, departmentId, batchId, onClose, on
   const [toDelete, setToDelete] = useState<ClassSlot | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!toDelete) return
     setDeleting(true)
     try {
-      await api.classSlots.delete(toDelete.id)
+      await api.classSlots.delete(toDelete.id); if (permanent) await api.trash.purgeDeleted("class-slots", toDelete.id)
       setToDelete(null)
       onRefresh()
     } finally {
@@ -319,7 +319,7 @@ function ScheduleModal({ slots, universityId, departmentId, batchId, onClose, on
           onSuccess={onRefresh}
         />
       )}
-      <ConfirmDelete open={!!toDelete} label="class" onClose={() => setToDelete(null)} onConfirm={handleDelete} loading={deleting} />
+      <ConfirmDelete open={!!toDelete} label="class" onClose={() => setToDelete(null)} trashType="class-slots" onConfirm={handleDelete} loading={deleting} />
     </Modal>
   )
 }
@@ -577,11 +577,11 @@ export function TodayPanel({ universityId, departmentId }: { universityId: strin
 
   useEffect(() => { load() }, [load])
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!toDelete) return
     setDeleting(true)
     try {
-      await api.classNotices.delete(toDelete.id)
+      await api.classNotices.delete(toDelete.id); if (permanent) await api.trash.purgeDeleted("class-notices", toDelete.id)
       if (toDelete.file_url) await deleteFile(toDelete.file_url)
       setToDelete(null)
       load()
@@ -676,7 +676,7 @@ export function TodayPanel({ universityId, departmentId }: { universityId: strin
           onSuccess={load}
         />
       )}
-      <ConfirmDelete open={!!toDelete} label="notice" onClose={() => setToDelete(null)} onConfirm={handleDelete} loading={deleting} />
+      <ConfirmDelete open={!!toDelete} label="notice" onClose={() => setToDelete(null)} trashType="class-notices" onConfirm={handleDelete} loading={deleting} />
     </div>
   )
 }

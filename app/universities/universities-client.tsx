@@ -32,11 +32,11 @@ export default function UniversitiesClient({ initialUniversities }: Universities
     setTimeout(() => setIsSearching(false), 300)
   }
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!deleting) return
     setDeleteLoading(true)
     try {
-      await api.universities.delete(deleting.id)
+      await api.universities.delete(deleting.id); if (permanent) await api.trash.purgeDeleted("universities", deleting.id)
       setDeleting(null)
       router.refresh() // Refresh server component data
     } catch (err: any) {
@@ -186,7 +186,7 @@ export default function UniversitiesClient({ initialUniversities }: Universities
         open={!!deleting} 
         label={`university "${deleting?.name}"`}
         onClose={() => setDeleting(null)} 
-        onConfirm={handleDelete} 
+        trashType="universities" onConfirm={handleDelete} 
         loading={deleteLoading}
       />
     </div>

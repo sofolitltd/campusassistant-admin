@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
 import type { Admin } from "@/lib/api"
 import { Shield, Plus, Trash2, Key, Pencil, Loader2, X, Mail } from "lucide-react"
+import { ConfirmDelete } from "@/app/universities/[id]/departments/[...slug]/components/SharedUI"
 
 export default function AdminsPage() {
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null)
   const router = useRouter()
   const [admins, setAdmins] = useState<Admin[]>([])
   const [loading, setLoading] = useState(true)
@@ -33,11 +35,16 @@ export default function AdminsPage() {
 
   useEffect(() => { load() }, [])
 
-  async function handleDelete(id: string) {
-    if (!confirm("Are you sure you want to delete this admin?")) return
+  function handleDelete(id: string) { setPendingDelete(id) }
+
+  async function confirmDelete(permanent = false) {
+    const id = pendingDelete
+    if (!id) return
+    setPendingDelete(null)
     setDeleting(id)
     try {
       await api.admins.delete(id)
+      if (permanent) await api.trash.purgeDeleted("admins", id)
       setAdmins((prev) => prev.filter((a) => a.id !== id))
     } catch {
       alert("Failed to delete admin")
@@ -287,6 +294,14 @@ export default function AdminsPage() {
           </div>
         </div>
       )}
+      <ConfirmDelete
+        open={!!pendingDelete}
+        label={`admin "${admins.find((a) => a.id === pendingDelete)?.email ?? ""}"`}
+        trashType="admins"
+        onClose={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
+        loading={false}
+      />
     </div>
   )
 }

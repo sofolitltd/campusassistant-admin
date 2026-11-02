@@ -1,5 +1,7 @@
 import {
   LayoutDashboard,
+  BarChart3,
+  Trash2,
   Users,
   Image as ImageIcon,
   CreditCard,
@@ -52,6 +54,7 @@ export function isNavGroup(entry: NavEntry): entry is NavGroup {
 // desktop sidebar, the mobile drawer and the command palette all read it.
 export const navStructure: NavEntry[] = [
   { title: "Dashboard", href: "/", icon: LayoutDashboard },
+  { title: "Analytics", href: "/analytics", icon: BarChart3 },
   { title: "Universities", href: "/universities", icon: School },
   { title: "Sessions", href: "/sessions", icon: CalendarRange },
   { title: "Users", href: "/users", icon: Users },
@@ -105,6 +108,7 @@ export const navStructure: NavEntry[] = [
       { title: "Moderators", href: "/moderators", icon: BadgeCheck },
       { title: "Password Resets", href: "/password-resets", icon: KeyRound },
       { title: "Logs", href: "/logs", icon: ScrollText },
+      { title: "Trash", href: "/trash", icon: Trash2 },
       { title: "App Version", href: "/app-version", icon: Smartphone },
     ],
   },

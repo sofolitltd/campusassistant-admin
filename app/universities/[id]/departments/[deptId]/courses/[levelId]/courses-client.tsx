@@ -12,29 +12,9 @@ import { api, Course, CourseCategory, CoursePrefix, Level, Batch } from "@/lib/a
 import { cn } from "@/lib/utils"
 import { getCached, setCached } from "@/lib/page-cache"
 import { CourseModal } from "./components/CourseModal"
+import { ConfirmDelete } from "@/app/universities/[id]/departments/[...slug]/components/SharedUI"
 
 // ── Inline primitives ────────────────────────────────────────────────────────
-function ConfirmDelete({ open, label, onClose, onConfirm, loading }: { open: boolean; label: string; onClose: () => void; onConfirm: () => void; loading: boolean }) {
-  if (!open) return null
-  return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-sm rounded-sm border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-        <div className="flex flex-col items-center text-center gap-3">
-          <div className="rounded-full bg-destructive-subtle p-3"><AlertTriangle className="h-6 w-6 text-destructive" /></div>
-          <h3 className="text-lg font-bold">Delete {label}?</h3>
-          <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
-        </div>
-        <div className="flex gap-3 mt-6">
-          <button onClick={onClose} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
-          <button onClick={onConfirm} disabled={loading} className="flex-1 rounded-sm bg-destructive px-4 py-2.5 text-sm font-bold text-white hover:bg-destructive/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}Delete
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function ConfigModal({ open, onClose, title, items, onAdd, onDelete, placeholder }: {
   open: boolean; onClose: () => void; title: string
@@ -172,10 +152,10 @@ export default function CoursesClient({ universityId, departmentId, levelId, lev
     ...Object.keys(grouped).filter((k) => !catOrder.includes(k)),
   ]
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!deleteTarget) return
     setDeleting(true)
-    try { await api.courses.delete(deleteTarget.id); await load() }
+    try { await api.courses.delete(deleteTarget.id); if (permanent) await api.trash.purgeDeleted("courses", deleteTarget.id); await load() }
     finally { setDeleting(false); setDeleteTarget(null) }
   }
 
@@ -331,6 +311,7 @@ export default function CoursesClient({ universityId, departmentId, levelId, lev
         open={!!deleteTarget}
         label={deleteTarget ? `"${deleteTarget.course_title}"` : ""}
         onClose={() => setDeleteTarget(null)}
+        trashType="courses"
         onConfirm={handleDelete}
         loading={deleting}
       />

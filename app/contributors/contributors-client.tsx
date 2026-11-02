@@ -55,11 +55,11 @@ export default function ContributorsClient({ initialContributors }: Contributors
     }
   }
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!deleteId) return
     setDeleteLoading(true)
     try {
-      await api.contributors.hardDelete(deleteId)
+      await api.contributors.delete(deleteId); if (permanent) await api.trash.purgeDeleted("contributors", deleteId)
       setContributors(prev => prev.filter(c => c.id !== deleteId))
       setDeleteId(null)
     } catch {
@@ -174,9 +174,9 @@ export default function ContributorsClient({ initialContributors }: Contributors
 
       <ConfirmDelete
         open={!!deleteId}
-        label="contributor (permanent)"
+        label="contributor"
         onClose={() => setDeleteId(null)}
-        onConfirm={handleDelete}
+        trashType="contributors" onConfirm={handleDelete}
         loading={deleteLoading}
       />
     </div>

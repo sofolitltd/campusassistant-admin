@@ -118,10 +118,10 @@ export default function MerchantDetailClient({ merchant: initialMerchant, initia
     }
   }
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     setDeleteLoading(true)
     try {
-      await api.merchants.delete(merchant.id)
+      await api.merchants.delete(merchant.id); if (permanent) await api.trash.purgeDeleted("merchants", merchant.id)
       router.push("/marketplace/merchants")
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete merchant")
@@ -466,7 +466,7 @@ export default function MerchantDetailClient({ merchant: initialMerchant, initia
         open={deleteOpen}
         label="merchant"
         onClose={() => setDeleteOpen(false)}
-        onConfirm={handleDelete}
+        trashType="merchants" onConfirm={handleDelete}
         loading={deleteLoading}
       />
       <RejectModal

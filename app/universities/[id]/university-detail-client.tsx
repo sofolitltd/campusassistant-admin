@@ -126,11 +126,11 @@ export default function UniversityDetailClient({
     router.replace(`?${newParams.toString()}`, { scroll: false })
   }, [router, searchParams])
 
-  async function handleDeleteDept() {
+  async function handleDeleteDept(permanent = false) {
     if (!deletingDept) return
     setDeleteLoading(true)
     try {
-      await api.departments.delete(deletingDept.id)
+      await api.departments.delete(deletingDept.id); if (permanent) await api.trash.purgeDeleted("departments", deletingDept.id)
       setDepartments(prev => prev.filter(d => d.id !== deletingDept.id))
       setDeletingDept(null)
     } catch (err: any) {
@@ -159,11 +159,11 @@ export default function UniversityDetailClient({
     }
   }
 
-  async function handleDeleteHall() {
+  async function handleDeleteHall(permanent = false) {
     if (!deletingHall) return
     setDeleteLoading(true)
     try {
-      await api.halls.delete(deletingHall.id)
+      await api.halls.delete(deletingHall.id); if (permanent) await api.trash.purgeDeleted("halls", deletingHall.id)
       setHalls(prev => prev.filter(h => h.id !== deletingHall.id))
       setDeletingHall(null)
     } catch (err: any) {
@@ -192,11 +192,11 @@ export default function UniversityDetailClient({
     }
   }
 
-  async function handleDeleteFaculty() {
+  async function handleDeleteFaculty(permanent = false) {
     if (!deletingFaculty) return
     setDeleteLoading(true)
     try {
-      await api.faculties.delete(deletingFaculty.id)
+      await api.faculties.delete(deletingFaculty.id); if (permanent) await api.trash.purgeDeleted("faculties", deletingFaculty.id)
       setFaculties(prev => prev.filter(f => f.id !== deletingFaculty.id))
       setDeletingFaculty(null)
     } catch (err: any) {
@@ -206,11 +206,11 @@ export default function UniversityDetailClient({
     }
   }
 
-  async function handleDeleteBanner() {
+  async function handleDeleteBanner(permanent = false) {
     if (!deletingBanner) return
     setDeleteLoading(true)
     try {
-      await api.banners.delete(deletingBanner.id)
+      await api.banners.delete(deletingBanner.id); if (permanent) await api.trash.purgeDeleted("banners", deletingBanner.id)
       setBanners(prev => prev.filter(b => b.id !== deletingBanner.id))
       setDeletingBanner(null)
     } catch (err: any) {
@@ -547,7 +547,7 @@ export default function UniversityDetailClient({
               open={!!deletingDept} 
               label={`department "${deletingDept?.name}"`}
               onClose={() => setDeletingDept(null)} 
-              onConfirm={handleDeleteDept} 
+              trashType="departments" onConfirm={handleDeleteDept} 
               loading={deleteLoading}
             />
           </div>
@@ -702,7 +702,7 @@ export default function UniversityDetailClient({
               open={!!deletingFaculty}
               label={`faculty "${deletingFaculty?.name}"`}
               onClose={() => setDeletingFaculty(null)}
-              onConfirm={handleDeleteFaculty}
+              trashType="faculties" onConfirm={handleDeleteFaculty}
               loading={deleteLoading}
             />
           </div>
@@ -825,7 +825,7 @@ export default function UniversityDetailClient({
               open={!!deletingHall} 
               label={`hall "${deletingHall?.name}"`}
               onClose={() => setDeletingHall(null)} 
-              onConfirm={handleDeleteHall} 
+              trashType="halls" onConfirm={handleDeleteHall} 
               loading={deleteLoading}
             />
           </div>
@@ -966,7 +966,7 @@ export default function UniversityDetailClient({
         open={!!deletingBanner} 
         label="banner"
         onClose={() => setDeletingBanner(null)} 
-        onConfirm={handleDeleteBanner} 
+        trashType="banners" onConfirm={handleDeleteBanner} 
         loading={deleteLoading}
       />
     </div>

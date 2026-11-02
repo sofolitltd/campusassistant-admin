@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from "react"
 import { Resource, ResourceType, Batch } from "@/lib/api"
 import { AuditHistory } from "@/components/AuditHistory"
 import {
-  Pencil, Trash2, Download, Play, BookOpen, Layers, HelpCircle, FileText, BookMarked, Search, AlertTriangle, Eye, Star
+  Pencil, Trash2, Download, Play, BookOpen, Layers, HelpCircle, FileText, BookMarked, Search, Eye, Star, MinusCircle
 } from "lucide-react"
 
 const TYPE_ICONS: Record<ResourceType, React.ElementType> = {
@@ -40,11 +40,13 @@ function getYoutubeThumb(url: string) {
   return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null
 }
 
-export function ResourceCard({ resource, onEdit, onDelete, onPermanentDelete, onPlay, onView }: { 
+export function ResourceCard({ resource, onEdit, onDelete, onRemoveFromBatch, removeFromBatchLabel, onPlay, onView }: { 
   resource: Resource; 
   onEdit: () => void; 
   onDelete: () => void;
-  onPermanentDelete?: () => void;
+  // Unlinks the resource from one batch only; the file and other batches stay.
+  onRemoveFromBatch?: () => void;
+  removeFromBatchLabel?: string;
   onPlay?: (url: string, title: string, description?: string) => void;
   onView?: (url: string, title: string) => void;
 }) {
@@ -151,15 +153,15 @@ export function ResourceCard({ resource, onEdit, onDelete, onPermanentDelete, on
                   <Trash2 className="h-3 w-3" />
                 </button>
                 {menuOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-sm border bg-card shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
-                    <button onClick={() => { setMenuOpen(false); onDelete() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium hover:bg-muted transition-colors text-left">
-                      <Trash2 className="h-3.5 w-3.5 text-muted-foreground" /> Soft Delete
-                    </button>
-                    {onPermanentDelete && (
-                      <button onClick={() => { setMenuOpen(false); onPermanentDelete() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium hover:bg-destructive-subtle hover:text-destructive transition-colors text-left border-t">
-                        <AlertTriangle className="h-3.5 w-3.5 text-destructive" /> Permanent Delete
+                  <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-sm border bg-card shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+                    {onRemoveFromBatch && (
+                      <button onClick={() => { setMenuOpen(false); onRemoveFromBatch() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium hover:bg-muted transition-colors text-left border-b">
+                        <MinusCircle className="h-3.5 w-3.5 text-muted-foreground" /> Remove from {removeFromBatchLabel}
                       </button>
                     )}
+                    <button onClick={() => { setMenuOpen(false); onDelete() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium hover:bg-muted transition-colors text-left">
+                      <Trash2 className="h-3.5 w-3.5 text-muted-foreground" /> Delete
+                    </button>
                   </div>
                 )}
               </div>
@@ -251,15 +253,15 @@ export function ResourceCard({ resource, onEdit, onDelete, onPermanentDelete, on
               <Trash2 className="h-3.5 w-3.5" />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-sm border bg-card shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
-                <button onClick={() => { setMenuOpen(false); onDelete() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium hover:bg-muted transition-colors text-left">
-                  <Trash2 className="h-3.5 w-3.5 text-muted-foreground" /> Soft Delete
-                </button>
-                {onPermanentDelete && (
-                  <button onClick={() => { setMenuOpen(false); onPermanentDelete() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium hover:bg-destructive-subtle hover:text-destructive transition-colors text-left border-t">
-                    <AlertTriangle className="h-3.5 w-3.5 text-destructive" /> Permanent Delete
+              <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-sm border bg-card shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150">
+                {onRemoveFromBatch && (
+                  <button onClick={() => { setMenuOpen(false); onRemoveFromBatch() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium hover:bg-muted transition-colors text-left border-b">
+                    <MinusCircle className="h-3.5 w-3.5 text-muted-foreground" /> Remove from {removeFromBatchLabel}
                   </button>
                 )}
+                <button onClick={() => { setMenuOpen(false); onDelete() }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs font-medium hover:bg-muted transition-colors text-left">
+                  <Trash2 className="h-3.5 w-3.5 text-muted-foreground" /> Delete
+                </button>
               </div>
             )}
           </div>

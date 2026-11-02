@@ -17,6 +17,7 @@ import { GrantProModal, GrantProTarget } from "@/components/GrantProModal"
 import { IssueResetCodeModal, type ResetCodeTarget } from "@/components/IssueResetCodeModal"
 import { ModeratorRoleManager } from "@/components/ModeratorRoleManager"
 import { fmtDdMmYy } from "@/lib/utils"
+import { useIsSuperAdmin } from "@/lib/auth"
 
 const filterSelectCls =
   "w-full rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50 transition-all"
@@ -431,6 +432,7 @@ export default function UsersClient({
   const [statsOpen, setStatsOpen] = useState(true)
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
   const [deletePermanently, setDeletePermanently] = useState(false)
+  const superAdmin = useIsSuperAdmin()
   const [deleting, setDeleting] = useState(false)
   const [actionError, setActionError] = useState("")
   const [resetCodeTarget, setResetCodeTarget] = useState<ResetCodeTarget | null>(null)
@@ -1010,9 +1012,10 @@ export default function UsersClient({
               <p className="text-sm text-muted-foreground">
                 {deletePermanently
                   ? "This removes the account from the database entirely — cannot be undone, and frees the email for reuse."
-                  : "This deactivates the account (soft delete) — it disappears from lists, but can be restored from the database if needed."}
+                  : "This deactivates the account (soft delete) — it disappears from lists, and can be restored from the Trash."}
               </p>
 
+              {superAdmin && (
               <label className="flex w-full items-start gap-2.5 rounded-md border border-destructive/30 bg-destructive-subtle p-3 text-left">
                 <input
                   type="checkbox"
@@ -1024,6 +1027,7 @@ export default function UsersClient({
                   Permanently delete — skip the soft delete and erase this account for good.
                 </span>
               </label>
+              )}
 
               {actionError && <p className="text-sm text-destructive bg-destructive-subtle w-full rounded-sm p-2">{actionError}</p>}
             </div>

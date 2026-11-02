@@ -12,11 +12,11 @@ export function NoticesTab({ notices, universityId, departmentId, onRefresh }: {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!selected) return
     setLoading(true)
     try {
-      await api.notices.delete(selected.id)
+      await api.notices.delete(selected.id); if (permanent) await api.trash.purgeDeleted("notices", selected.id)
       onRefresh()
       setDeleteOpen(false)
     } catch (e) {
@@ -85,7 +85,7 @@ export function NoticesTab({ notices, universityId, departmentId, onRefresh }: {
         open={deleteOpen}
         label="Notice"
         onClose={() => setDeleteOpen(false)}
-        onConfirm={handleDelete}
+        trashType="notices" onConfirm={handleDelete}
         loading={loading}
       />
     </div>

@@ -108,11 +108,11 @@ export default function MerchantsClient({ initialMerchants }: MerchantsClientPro
     }
   }
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!deleteId) return
     setDeleteLoading(true)
     try {
-      await api.merchants.delete(deleteId)
+      await api.merchants.delete(deleteId); if (permanent) await api.trash.purgeDeleted("merchants", deleteId)
       setMerchants(prev => prev.filter(m => m.id !== deleteId))
       setDeleteId(null)
     } catch (err) {
@@ -287,7 +287,7 @@ export default function MerchantsClient({ initialMerchants }: MerchantsClientPro
         open={!!deleteId}
         label="merchant"
         onClose={() => setDeleteId(null)}
-        onConfirm={handleDelete}
+        trashType="merchants" onConfirm={handleDelete}
         loading={deleteLoading}
       />
       <RejectModal

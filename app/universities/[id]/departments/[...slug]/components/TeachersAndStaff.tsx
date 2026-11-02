@@ -140,10 +140,10 @@ export function TeachersTab({ teachers, universityId, departmentId, onRefresh }:
     return true
   })
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!deleting) return
     setDeleteLoading(true)
-    try { await api.teachers.delete(deleting.id); onRefresh() } catch {}
+    try { await api.teachers.delete(deleting.id); if (permanent) await api.trash.purgeDeleted("teachers", deleting.id); onRefresh() } catch {}
     finally { setDeleteLoading(false); setDeleting(null) }
   }
 
@@ -161,7 +161,7 @@ export function TeachersTab({ teachers, universityId, departmentId, onRefresh }:
 
       <ConfirmDelete 
         open={!!deleting} label={`teacher "${deleting?.name}"`}
-        onClose={() => setDeleting(null)} onConfirm={handleDelete} loading={deleteLoading}
+        onClose={() => setDeleting(null)} trashType="teachers" onConfirm={handleDelete} loading={deleteLoading}
       />
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 transition-all">
@@ -345,10 +345,10 @@ export function StaffTab({ staff, universityId, departmentId, onRefresh }: Staff
     (s.mobile && s.mobile.toLowerCase().includes(search.toLowerCase()))
   ).sort((a,b) => (a.serial || 999) - (b.serial || 999))
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!deleting) return
     setDeleteLoading(true)
-    try { await api.staffs.delete(deleting.id); onRefresh() } catch {}
+    try { await api.staffs.delete(deleting.id); if (permanent) await api.trash.purgeDeleted("staffs", deleting.id); onRefresh() } catch {}
     finally { setDeleteLoading(false); setDeleting(null) }
   }
 
@@ -366,7 +366,7 @@ export function StaffTab({ staff, universityId, departmentId, onRefresh }: Staff
 
       <ConfirmDelete 
         open={!!deleting} label={`staff member "${deleting?.name}"`}
-        onClose={() => setDeleting(null)} onConfirm={handleDelete} loading={deleteLoading}
+        onClose={() => setDeleting(null)} trashType="staffs" onConfirm={handleDelete} loading={deleteLoading}
       />
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 transition-all">

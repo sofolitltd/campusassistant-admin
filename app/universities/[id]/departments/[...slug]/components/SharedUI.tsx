@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils"
 import { X, Plus, AlertTriangle, Loader2, Trash2 } from "lucide-react"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
+import { useIsSuperAdmin } from "@/lib/auth"
 
 /**
  * Dropdown menu rendered into document.body via a portal, positioned by the
@@ -150,47 +151,64 @@ export function Modal({ open, onClose, title, children, className }: { open: boo
   )
 }
 
-// `message` replaces the default warning; `blocked` disables Delete (e.g. the
-// item still has dependents) and shows the message as the reason.
-// `permanent`/`onPermanentChange` opt a caller into the hard-delete checkbox
-// (omit both to keep the plain soft-delete-only confirm, as most callers do).
-export function ConfirmDelete({ open, label, onClose, onConfirm, loading, message, blocked = false, permanent, onPermanentChange }: { open: boolean; label: string; onClose: () => void; onConfirm: () => void; loading: boolean; message?: string; blocked?: boolean; permanent?: boolean; onPermanentChange?: (value: boolean) => void }) {
-  if (!open) return null
-  const showPermanentOption = onPermanentChange !== undefined
+// The one delete dialog for the dashboard.
+// - `trashType` (a Trash type slug, e.g. "batches") marks a soft delete: the
+//   dialog says it goes to the Trash, and super admins get a "Permanently
+//   delete" checkbox. onConfirm(permanent) tells the caller whether it was
+//   ticked; the caller then runs its usual delete and, if permanent,
+//   api.trash.purgeDeleted(trashType, id).
+// - Without `trashType` the delete is final (nothing to restore), and the
+//   dialog says so.
+// `message`/`description` replace the default text; `blocked` disables
+// Delete (e.g. the item still has dependents) and shows the message as the
+// reason.
+export function ConfirmDelete(props: {
+  open: boolean; label: string; onClose: () => void; onConfirm: (permanent: boolean) => void; loading: boolean
+  message?: string; blocked?: boolean; trashType?: string
+  title?: string; description?: React.ReactNode; confirmLabel?: string
+}) {
+  if (!props.open) return null
+  // Mounted fresh on every open, so the checkbox always starts unticked.
+  return <ConfirmDeleteDialog {...props} />
+}
+
+function ConfirmDeleteDialog({ label, onClose, onConfirm, loading, message, blocked = false, trashType, title, description, confirmLabel }: Parameters<typeof ConfirmDelete>[0]) {
+  const superAdmin = useIsSuperAdmin()
+  const [permanent, setPermanent] = useState(false)
+  const canPurge = !!trashType && superAdmin
+  const text = message ?? (!trashType
+    ? "This cannot be undone."
+    : permanent
+      ? "This erases it for good — it skips the Trash and cannot be undone."
+      : "It moves to the Trash, where any admin can restore it.")
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 w-full max-w-sm rounded-sm border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200">
         <div className="flex flex-col items-center text-center gap-3">
           <div className="rounded-full bg-destructive-subtle p-3"><AlertTriangle className="h-6 w-6 text-destructive" /></div>
-          <h3 className="text-lg font-bold">Delete {label}?</h3>
-          <p className={cn("text-sm", blocked ? "text-destructive" : "text-muted-foreground")}>
-            {message ?? (showPermanentOption
-              ? (permanent
-                ? "This removes it from the database entirely — cannot be undone."
-                : "This deactivates it (soft delete) — it disappears from lists, but can be restored if needed.")
-              : "This action cannot be undone and will delete all associated data.")}
-          </p>
+          <h3 className="text-lg font-bold">{title ?? `Delete ${label}?`}</h3>
+          {description ?? <p className={cn("text-sm", blocked ? "text-destructive" : "text-muted-foreground")}>{text}</p>}
 
-          {showPermanentOption && (
+          {canPurge && !blocked && (
             <label className="flex w-full items-start gap-2.5 rounded-md border border-destructive/30 bg-destructive-subtle p-3 text-left">
               <input
                 type="checkbox"
-                checked={!!permanent}
-                onChange={(e) => onPermanentChange(e.target.checked)}
+                checked={permanent}
+                onChange={(e) => setPermanent(e.target.checked)}
                 className="mt-0.5 h-4 w-4 accent-destructive"
               />
               <span className="text-xs font-medium text-destructive">
-                Permanently delete — skip the soft delete and erase this for good.
+                Permanently delete — skip the Trash and erase this for good. Super admins only.
               </span>
             </label>
           )}
         </div>
         <div className="flex gap-3 mt-6">
           <button onClick={onClose} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
-          <button onClick={onConfirm} disabled={loading || blocked} className="flex-1 rounded-sm bg-destructive px-4 py-2.5 text-sm font-bold text-white hover:bg-destructive/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+          <button onClick={() => onConfirm(canPurge && permanent)} disabled={loading || blocked} className="flex-1 rounded-sm bg-destructive px-4 py-2.5 text-sm font-bold text-white hover:bg-destructive/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-            {showPermanentOption && permanent ? "Delete Permanently" : "Delete"}
+            {confirmLabel ?? (canPurge && permanent ? "Delete Permanently" : "Delete")}
           </button>
         </div>
       </div>

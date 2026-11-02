@@ -58,6 +58,9 @@ export async function fetchWithAuth(endpoint: string, options: RequestInit = {})
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}))
+    if (!isServer && response.status === 401 && window.location.pathname !== "/login") {
+      window.location.assign("/login")
+    }
     throw new Error(errorData.error || errorData.message || `API error: ${response.status}`)
   }
 
@@ -150,14 +153,50 @@ export interface Batch {
   name: string;
   slug: string;
   is_studying: boolean;
+  // Honors and Masters are separate batches; students move between them
+  // with api.batches.promote, which keeps the old one as a StudentEnrollment.
+  program?: BatchProgram;
+  // 16:9 WebP cover photo (lib/image-helper.ts compressBatchCover); "" = none.
+  image_url?: string;
   department_id: string;
   university_id: string;
   sessions?: Session[];
   created_at: string;
 }
 
+export type BatchProgram = 'honours' | 'masters';
+
+export const BATCH_PROGRAM_LABEL: Record<BatchProgram, string> = {
+  honours: 'Honors',
+  masters: 'Masters',
+};
+
+// A program the student was in before their current one. The current
+// program is the Student row itself (batch_id, session_id, student_id roll).
+export interface StudentEnrollment {
+  id: string;
+  student_id: string;
+  batch_id: string;
+  batch?: Batch;
+  session_id: string;
+  session?: Session;
+  department_id: string;
+  university_id: string;
+  program: BatchProgram;
+  roll: string;
+  is_cr: boolean;
+  is_regular: boolean;
+  status: 'completed';
+  created_at: string;
+}
+
 export interface Student {
   session?: Session;
+  // Only on rows from GET /students?batch_id=X&include_history=true for a
+  // student who has since moved on (Honors → Masters): the row shows batch
+  // X's roll/session, and they are now in current_batch_id. Read-only.
+  history_enrollment_id?: string;
+  current_batch_id?: string;
   id: string;
   student_id: string;
   name: string;
@@ -346,6 +385,10 @@ export interface Chapter {
   batches?: Batch[];
   created_at: string;
 }
+
+// Trash: soft-deleted rows across the dashboard (see /admin/trash in the API).
+export interface TrashSummary { type: string; name: string; count: number }
+export interface TrashItem { id: string; label: string; deleted_at: string; deleted_by: string }
 
 export type ResourceType = 'note' | 'question' | 'book' | 'syllabus' | 'video' | 'research'
 export type ResourceStatus = 'published' | 'pending' | 'rejected' | 'draft'
@@ -1261,6 +1304,67 @@ export interface SubscriptionAnalytics {
   plan_breakdown: PlanBreakdown[];
 }
 
+export type AnalyticsRange = "7d" | "30d" | "90d";
+
+export interface UsageAnalyticsSummary {
+  active_users: number;
+  resource_opens: number;
+  download_attempts: number;
+  download_successes: number;
+  download_failures: number;
+  download_blocked: number;
+  searches: number;
+  zero_result_searches: number;
+  search_result_opens: number;
+  new_users: number;
+  users_with_first_action: number;
+  cohort_users: number;
+  retained_users: number;
+  retention_rate: number;
+}
+
+export interface UsageAnalyticsTrend {
+  date: string;
+  active_users: number;
+  resource_opens: number;
+  downloads: number;
+  searches: number;
+}
+
+export interface UsageAnalyticsResource {
+  id: string;
+  title: string;
+  type: ResourceType;
+  opens: number;
+  downloads: number;
+}
+
+export interface UsageAnalyticsUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  interactions: number;
+  downloads: number;
+}
+
+export interface UsageAnalyticsSearchCategory {
+  category: string;
+  searches: number;
+  zero_results: number;
+  result_opens: number;
+}
+
+export interface UsageAnalyticsDashboard {
+  range: AnalyticsRange;
+  from: string;
+  summary: UsageAnalyticsSummary;
+  trends: UsageAnalyticsTrend[];
+  top_resources: UsageAnalyticsResource[];
+  top_users: UsageAnalyticsUser[];
+  search_categories: UsageAnalyticsSearchCategory[];
+}
+
 export interface AppNotification {
   id: string;
   title: string;
@@ -1417,6 +1521,21 @@ export interface AdminPayment {
   created_at: string;
 }
 
+export interface SubscriptionAttempt {
+  id: string;
+  payment_id: string;
+  trx_id: string;
+  amount: number;
+  status: PaymentStatus;
+  user_id: string;
+  user_email: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  plan_title: string;
+  created_at: string;
+}
+
 export type PayoutStatus = 'requested' | 'paid' | 'rejected';
 
 export interface MerchantPayout {
@@ -1545,6 +1664,18 @@ export const api = {
       fetchWithAuth(`/stats/subscription-analytics?range=${range}`),
     getActiveUsers: (): Promise<ActiveUserStats> =>
       fetchWithAuth('/stats/active-users'),
+  },
+  analytics: {
+    getDashboard: (
+      range: AnalyticsRange,
+      universityId?: string,
+      departmentId?: string,
+    ): Promise<UsageAnalyticsDashboard> => {
+      const params = new URLSearchParams({ range });
+      if (universityId) params.set("university_id", universityId);
+      if (departmentId) params.set("department_id", departmentId);
+      return fetchWithAuth(`/analytics/dashboard?${params.toString()}`);
+    },
   },
   users: {
     getAll: (search?: string): Promise<User[]> => {
@@ -1775,6 +1906,8 @@ export const api = {
     // The whole global list (newest first) — it's small, so fetch it in one go.
     getAll: (): Promise<Session[]> =>
       fetchWithAuth('/sessions?limit=500').then((res: PaginatedResponse<Session>) => res.data ?? []),
+    getOne: (id: string): Promise<Session> =>
+      fetchWithAuth(`/sessions/${id}`),
     create: (data: Partial<Session>): Promise<Session> =>
       fetchWithAuth('/sessions', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: Partial<Session>): Promise<Session> =>
@@ -1789,12 +1922,18 @@ export const api = {
     // limit=100 is the backend's cap; the default of 20 dropped older batches.
     getAllByDepartment: (deptId: string): Promise<Batch[]> =>
       fetchWithAuth(`/batches?department_id=${deptId}&limit=100`).then((res: PaginatedResponse<Batch>) => sortBatches(res.data ?? [])),
+    getOne: (id: string): Promise<Batch> =>
+      fetchWithAuth(`/batches/${id}`),
     create: (data: Partial<Batch> & { session_ids?: string[] }): Promise<Batch> =>
       fetchWithAuth('/batches', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: Partial<Batch> & { session_ids?: string[] }): Promise<Batch> =>
       fetchWithAuth(`/batches/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/batches/${id}`, { method: 'DELETE' }),
+    // Moves students into this batch (e.g. Honors → Masters). An empty roll
+    // keeps the student's current one. All-or-nothing on the server.
+    promote: (id: string, data: { session_id: string; students: { id: string; roll?: string }[] }): Promise<{ promoted: number }> =>
+      fetchWithAuth(`/batches/${id}/promote`, { method: 'POST', body: JSON.stringify(data) }),
   },
   teachers: {
     getAll: (params?: string): Promise<Teacher[]> =>
@@ -1857,6 +1996,12 @@ export const api = {
       fetchWithAuth(`/students/${id}/send-code-email`, { method: 'POST' }),
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/students/${id}`, { method: 'DELETE' }),
+    // Earlier programs, newest first.
+    getEnrollments: (id: string): Promise<StudentEnrollment[]> =>
+      fetchWithAuth(`/students/${id}/enrollments`).then((res: { data: StudentEnrollment[] }) => res.data ?? []),
+    // Undo the latest promote (only the newest enrollment can be reverted).
+    revertEnrollment: (id: string, enrollmentId: string): Promise<void> =>
+      fetchWithAuth(`/students/${id}/enrollments/${enrollmentId}/revert`, { method: 'POST' }),
   },
   moderators: {
     getAll: (params?: string): Promise<{ data: Moderator[]; count: number }> =>
@@ -1870,7 +2015,7 @@ export const api = {
   },
   levels: {
     getAllByDepartment: (deptId: string): Promise<Level[]> =>
-      fetchWithAuth(`/levels?department_id=${deptId}`).then((res: PaginatedResponse<Level>) => res.data ?? []),
+      fetchWithAuth(`/levels?department_id=${deptId}&limit=100`).then((res: PaginatedResponse<Level>) => res.data ?? []),
     getOne: (id: string): Promise<Level> =>
       fetchWithAuth(`/levels/${id}`),
     create: (data: Partial<Level>): Promise<Level> =>
@@ -1915,8 +2060,9 @@ export const api = {
       fetchWithAuth(`/course-prefixes/${id}`, { method: 'DELETE' }),
   },
   chapters: {
-    getAllByCourse: (courseCode: string): Promise<Chapter[]> =>
-      fetchWithAuth(`/chapters?course_code=${encodeURIComponent(courseCode)}&limit=500`).then((res: PaginatedResponse<Chapter>) => res.data ?? []),
+    // Course codes repeat across departments, so always scope by department.
+    getAllByCourse: (courseCode: string, departmentId: string): Promise<Chapter[]> =>
+      fetchWithAuth(`/chapters?course_code=${encodeURIComponent(courseCode)}&department_id=${departmentId}&limit=500`).then((res: PaginatedResponse<Chapter>) => res.data ?? []),
     create: (data: Partial<Chapter>): Promise<Chapter> =>
       fetchWithAuth('/chapters', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: Partial<Chapter>): Promise<Chapter> =>
@@ -1925,8 +2071,8 @@ export const api = {
       fetchWithAuth(`/chapters/${id}`, { method: 'DELETE' }),
   },
   resources: {
-    getAllByCourse: (courseCode: string, type?: ResourceType, lessonNo?: number): Promise<Resource[]> =>
-      fetchWithAuth(`/resources?course_code=${encodeURIComponent(courseCode)}${type ? `&type=${type}` : ''}${lessonNo ? `&lesson_no=${lessonNo}` : ''}&limit=500&status=published`).then((res: PaginatedResponse<Resource>) => res.data ?? []),
+    getAllByCourse: (courseCode: string, departmentId: string, type?: ResourceType, lessonNo?: number): Promise<Resource[]> =>
+      fetchWithAuth(`/resources?course_code=${encodeURIComponent(courseCode)}&department_id=${departmentId}${type ? `&type=${type}` : ''}${lessonNo ? `&lesson_no=${lessonNo}` : ''}&limit=500&status=published`).then((res: PaginatedResponse<Resource>) => res.data ?? []),
     getAllByDepartment: (departmentId: string, type?: ResourceType, search?: string, offset?: number, limit?: number): Promise<PaginatedResponse<Resource>> =>
       fetchWithAuth(`/resources?department_id=${departmentId}&limit=${limit ?? 20}&offset=${offset ?? 0}${type ? `&type=${type}` : ''}${search ? `&search=${search}` : ''}`),
     create: (data: Partial<Resource>): Promise<Resource> =>
@@ -1939,6 +2085,24 @@ export const api = {
       fetchWithAuth(`/resources/${id}?permanent=true`, { method: 'DELETE' }),
     approve: (id: string): Promise<Resource> =>
       fetchWithAuth(`/resources/${id}/approve`, { method: 'PATCH' }),
+  },
+  trash: {
+    summary: (): Promise<TrashSummary[]> =>
+      fetchWithAuth('/admin/trash/summary').then((res: { data: TrashSummary[] }) => res.data ?? []),
+    list: (type: string, offset = 0, limit = 50): Promise<{ data: TrashItem[]; total: number }> =>
+      fetchWithAuth(`/admin/trash?type=${encodeURIComponent(type)}&limit=${limit}&offset=${offset}`),
+    restore: (type: string, id: string): Promise<void> =>
+      fetchWithAuth(`/admin/trash/${encodeURIComponent(type)}/${id}/restore`, { method: 'POST' }),
+    // Super admins only (the API answers 403 otherwise). Also removes files.
+    purge: (type: string, id: string): Promise<void> =>
+      fetchWithAuth(`/admin/trash/${encodeURIComponent(type)}/${id}`, { method: 'DELETE' }),
+    // Second step of a "Permanently delete" from a page's delete dialog: the
+    // page has just soft-deleted the row, now erase it. "Not in the Trash"
+    // means the delete was already final, so that counts as done.
+    purgeDeleted: (type: string, id: string): Promise<void> =>
+      fetchWithAuth(`/admin/trash/${encodeURIComponent(type)}/${id}`, { method: 'DELETE' })
+        .then(() => undefined)
+        .catch((e: unknown) => { if (!(e instanceof Error && e.message.includes('Not in the Trash'))) throw e }),
   },
   banners: {
     getAll: (scope?: string): Promise<Banner[]> =>
@@ -2069,6 +2233,8 @@ export const api = {
       fetchWithAuth(`/billing/invoices?${params || ''}`),
     payments: (params?: string): Promise<{ payments: AdminPayment[] }> =>
       fetchWithAuth(`/billing/payments?${params || ''}`),
+    subscriptionAttempts: (params?: string): Promise<{ attempts: SubscriptionAttempt[]; count: number; limit: number; offset: number }> =>
+      fetchWithAuth(`/billing/subscription-attempts?${params || ''}`),
     payouts: (params?: string): Promise<{ payouts: MerchantPayout[]; total: number }> =>
       fetchWithAuth(`/billing/payouts?${params || ''}`),
     markPayoutPaid: (id: string, reference: string): Promise<MerchantPayout> =>

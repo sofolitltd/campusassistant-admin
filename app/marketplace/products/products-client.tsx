@@ -48,11 +48,11 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
     }
   }
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!deleteId) return
     setDeleteLoading(true)
     try {
-      await api.products.delete(deleteId)
+      await api.products.delete(deleteId); if (permanent) await api.trash.purgeDeleted("products", deleteId)
       setProducts(prev => prev.filter(p => p.id !== deleteId))
       setDeleteId(null)
     } catch (err) {
@@ -231,7 +231,7 @@ export default function ProductsClient({ initialProducts }: ProductsClientProps)
         open={!!deleteId}
         label="product"
         onClose={() => setDeleteId(null)}
-        onConfirm={handleDelete}
+        trashType="products" onConfirm={handleDelete}
         loading={deleteLoading}
       />
     </div>

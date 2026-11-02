@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { api, User, UserSubscription } from "@/lib/api"
 import { fmtDdMmYy } from "@/lib/utils"
+import { useIsSuperAdmin } from "@/lib/auth"
 import { EditUserModal } from "../EditUserModal"
 import { SubscriptionModal } from "../SubscriptionModal"
 import { GrantProModal, GrantProTarget } from "@/components/GrantProModal"
@@ -35,6 +36,7 @@ export default function UserDetailClient({ user: initialUser }: { user: User }) 
 
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deletePermanently, setDeletePermanently] = useState(false)
+  const superAdmin = useIsSuperAdmin()
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState("")
   const [userDeleted, setUserDeleted] = useState(false)
@@ -407,8 +409,9 @@ export default function UserDetailClient({ user: initialUser }: { user: User }) 
               <p className="text-sm text-muted-foreground">
                 {deletePermanently
                   ? "This removes the account from the database entirely — cannot be undone, and frees the email for reuse."
-                  : "This deactivates the account (soft delete) — it disappears from lists, but can be restored from the database if needed."}
+                  : "This deactivates the account (soft delete) — it disappears from lists, and can be restored from the Trash."}
               </p>
+              {superAdmin && (
               <label className="flex w-full items-start gap-2.5 rounded-md border border-destructive/30 bg-destructive-subtle p-3 text-left">
                 <input
                   type="checkbox"
@@ -420,6 +423,7 @@ export default function UserDetailClient({ user: initialUser }: { user: User }) 
                   Permanently delete — skip the soft delete and erase this account for good.
                 </span>
               </label>
+              )}
               {deleteError && <p className="text-sm text-destructive bg-destructive-subtle w-full rounded-sm p-2">{deleteError}</p>}
             </div>
             <div className="flex gap-3 mt-6">

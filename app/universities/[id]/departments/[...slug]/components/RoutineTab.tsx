@@ -199,11 +199,11 @@ function RoutineArchive({
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!selected) return
     setLoading(true)
     try {
-      await api.routines.delete(selected.id)
+      await api.routines.delete(selected.id); if (permanent) await api.trash.purgeDeleted("routines", selected.id)
       onRefresh()
       setDeleteOpen(false)
     } catch (e) {
@@ -294,7 +294,7 @@ function RoutineArchive({
         open={deleteOpen}
         label="routine"
         onClose={() => setDeleteOpen(false)}
-        onConfirm={handleDelete}
+        trashType="routines" onConfirm={handleDelete}
         loading={loading}
       />
     </div>

@@ -77,11 +77,11 @@ export function BannersTab({ banners, universityId, departmentId, onRefresh }: {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!selected) return
     setLoading(true)
     try {
-      await api.banners.delete(selected.id)
+      await api.banners.delete(selected.id); if (permanent) await api.trash.purgeDeleted("banners", selected.id)
       onRefresh()
       setDeleteOpen(false)
     } catch (e) {
@@ -168,7 +168,7 @@ export function BannersTab({ banners, universityId, departmentId, onRefresh }: {
         open={deleteOpen}
         label="banner"
         onClose={() => setDeleteOpen(false)}
-        onConfirm={handleDelete}
+        trashType="banners" onConfirm={handleDelete}
         loading={loading}
       />
     </div>
@@ -188,11 +188,11 @@ export function ContactsTab({ contacts, universityId, departmentId, onRefresh }:
     return acc
   }, {})
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!selected) return
     setLoading(true)
     try {
-      await api.emergencyContacts.delete(selected.id)
+      await api.emergencyContacts.delete(selected.id); if (permanent) await api.trash.purgeDeleted("emergency-contacts", selected.id)
       onRefresh()
       setDeleteOpen(false)
     } catch (e) {
@@ -300,7 +300,7 @@ export function ContactsTab({ contacts, universityId, departmentId, onRefresh }:
         open={deleteOpen}
         label="emergency contact"
         onClose={() => setDeleteOpen(false)}
-        onConfirm={handleDelete}
+        trashType="emergency-contacts" onConfirm={handleDelete}
         loading={loading}
       />
     </div>

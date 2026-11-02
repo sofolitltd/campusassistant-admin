@@ -43,11 +43,11 @@ export default function ContactsClient({ initialContacts }: ContactsClientProps)
     setTimeout(() => setIsSearching(false), 300)
   }
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!deleting) return
     setDeleteLoading(true)
     try {
-      await api.emergencyContacts.delete(deleting.id)
+      await api.emergencyContacts.delete(deleting.id); if (permanent) await api.trash.purgeDeleted("emergency-contacts", deleting.id)
       setDeleting(null)
       router.refresh()
     } catch (err: any) {
@@ -262,7 +262,7 @@ export default function ContactsClient({ initialContacts }: ContactsClientProps)
         open={!!deleting} 
         label={`contact "${deleting?.title}"`}
         onClose={() => setDeleting(null)} 
-        onConfirm={handleDelete} 
+        trashType="emergency-contacts" onConfirm={handleDelete} 
         loading={deleteLoading}
       />
 

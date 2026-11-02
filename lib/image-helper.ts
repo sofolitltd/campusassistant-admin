@@ -58,7 +58,10 @@ function loadImageEl(file: File | Blob): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("Failed to load image for optimization"));
+    img.onerror = () => {
+      URL.revokeObjectURL(img.src);
+      reject(new Error("Failed to load image for optimization"));
+    };
     img.src = URL.createObjectURL(file);
   });
 }
@@ -116,4 +119,49 @@ export async function compressForNotification(
 
   URL.revokeObjectURL(img.src);
   return blob;
+}
+
+/**
+ * Compresses a batch cover photo: center-crops to 16:9, scales down (never
+ * up) to at most 1280x720, and encodes WebP, lowering quality and then size
+ * until it is under maxSizeKB. The API's "batches" folder rejects anything
+ * over 300KB, so the 150KB default leaves headroom.
+ *
+ * The object URL and the canvas backing store are released even when
+ * encoding fails — a large phone photo decodes to ~50MB of pixels.
+ */
+export async function compressBatchCover(file: File, maxSizeKB = 150): Promise<Blob> {
+  const img = await loadImageEl(file);
+  const canvas = document.createElement('canvas');
+  try {
+    // Largest 16:9 window that fits the source, centred.
+    const cropW = Math.min(img.width, Math.round((img.height * 16) / 9));
+    const cropH = Math.round((cropW * 9) / 16);
+    const sx = Math.round((img.width - cropW) / 2);
+    const sy = Math.round((img.height - cropH) / 2);
+
+    let width = Math.min(1280, cropW);
+    for (;;) {
+      canvas.width = width;
+      canvas.height = Math.round((width * 9) / 16);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error("Could not create canvas context");
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, sx, sy, cropW, cropH, 0, 0, canvas.width, canvas.height);
+
+      let quality = 0.8;
+      let blob = await canvasToWebp(canvas, quality);
+      while (blob.size > maxSizeKB * 1024 && quality > 0.5) {
+        quality -= 0.1;
+        blob = await canvasToWebp(canvas, quality);
+      }
+      if (blob.size <= maxSizeKB * 1024 || width <= 640) return blob;
+      width = Math.round(width * 0.8);
+    }
+  } finally {
+    URL.revokeObjectURL(img.src);
+    canvas.width = 0;
+    canvas.height = 0;
+  }
 }

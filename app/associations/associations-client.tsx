@@ -36,11 +36,11 @@ export default function AssociationsClient({ initialAssociations }: Associations
     return true
   })
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!deleteId) return
     setDeleteLoading(true)
     try {
-      await api.associations.delete(deleteId)
+      await api.associations.delete(deleteId); if (permanent) await api.trash.purgeDeleted("associations", deleteId)
       setAssociations(prev => prev.filter(a => a.id !== deleteId))
       setDeleteId(null)
     } catch (err) {
@@ -224,7 +224,7 @@ export default function AssociationsClient({ initialAssociations }: Associations
         open={!!deleteId}
         label="association"
         onClose={() => setDeleteId(null)}
-        onConfirm={handleDelete}
+        trashType="associations" onConfirm={handleDelete}
         loading={deleteLoading}
       />
     </div>

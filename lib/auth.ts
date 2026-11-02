@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from "react"
+
 // Client-side view of the admin session.
 //
 // The access token itself is NOT here: it lives in an httpOnly cookie set by
@@ -41,6 +43,7 @@ export function isAuthenticated(): boolean {
 /** Exchange login tokens for session cookies. */
 export async function startSession(payload: {
   access_token: string
+  refresh_token: string
   expires_in?: number
   admin: AdminInfo
 }): Promise<void> {
@@ -55,4 +58,12 @@ export async function startSession(payload: {
 /** Clear the session cookies. */
 export async function endSession(): Promise<void> {
   await fetch("/api/session", { method: "DELETE" })
+}
+
+// Permanent (hard) deletes are super-admin only — the API enforces it with a
+// 403; this just hides the option for everyone else. Server render answers
+// false, so the option can only appear after hydration (no mismatch).
+const noopSubscribe = () => () => {}
+export function useIsSuperAdmin(): boolean {
+  return useSyncExternalStore(noopSubscribe, () => getAdmin()?.role === "super_admin", () => false)
 }

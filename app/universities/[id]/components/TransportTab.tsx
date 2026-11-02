@@ -194,11 +194,11 @@ export function TransportTab({
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!selected) return
     setLoading(true)
     try {
-      await api.transports.delete(selected.id)
+      await api.transports.delete(selected.id); if (permanent) await api.trash.purgeDeleted("transports", selected.id)
       onRefresh()
       setDeleteOpen(false)
     } catch (e) {
@@ -288,7 +288,7 @@ export function TransportTab({
         open={deleteOpen}
         label="transport"
         onClose={() => setDeleteOpen(false)}
-        onConfirm={handleDelete}
+        trashType="transports" onConfirm={handleDelete}
         loading={loading}
       />
     </div>

@@ -252,11 +252,11 @@ export function ExamsTab({ exams, batches, universityId, departmentId, onRefresh
   const [deleteTarget, setDeleteTarget] = useState<ExamNotice | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!deleteTarget) return
     setDeleting(true)
     try {
-      await api.examNotices.delete(deleteTarget.id)
+      await api.examNotices.delete(deleteTarget.id); if (permanent) await api.trash.purgeDeleted("exam-notices", deleteTarget.id)
       if (deleteTarget.seat_plan_url) await deleteFile(deleteTarget.seat_plan_url)
       if (deleteTarget.syllabus_url) await deleteFile(deleteTarget.syllabus_url)
       onRefresh()
@@ -365,7 +365,7 @@ export function ExamsTab({ exams, batches, universityId, departmentId, onRefresh
         open={!!deleteTarget}
         label="exam notice"
         onClose={() => setDeleteTarget(null)}
-        onConfirm={handleDelete}
+        trashType="exam-notices" onConfirm={handleDelete}
         loading={deleting}
       />
     </div>

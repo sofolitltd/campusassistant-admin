@@ -114,11 +114,11 @@ export default function ItemsClient({ initialItems }: ItemsClientProps) {
     }
   }
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!deleteId) return
     setDeleteLoading(true)
     try {
-      await api.lostFoundItems.delete(deleteId)
+      await api.lostFoundItems.delete(deleteId); if (permanent) await api.trash.purgeDeleted("lost-found-items", deleteId)
       setItems(prev => prev.filter(i => i.id !== deleteId))
       setDeleteId(null)
     } catch (err) {
@@ -253,7 +253,7 @@ export default function ItemsClient({ initialItems }: ItemsClientProps) {
         open={!!deleteId}
         label="item"
         onClose={() => setDeleteId(null)}
-        onConfirm={handleDelete}
+        trashType="lost-found-items" onConfirm={handleDelete}
         loading={deleteLoading}
       />
       <RemoveModal

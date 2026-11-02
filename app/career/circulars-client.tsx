@@ -51,11 +51,11 @@ export default function CircularsClient({ initialCirculars }: CircularsClientPro
     }
   }
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!deleteId) return
     setDeleteLoading(true)
     try {
-      await api.careerCirculars.delete(deleteId)
+      await api.careerCirculars.delete(deleteId); if (permanent) await api.trash.purgeDeleted("career-circulars", deleteId)
       setCirculars(prev => prev.filter(c => c.id !== deleteId))
       setDeleteId(null)
     } catch (err) {
@@ -179,7 +179,7 @@ export default function CircularsClient({ initialCirculars }: CircularsClientPro
         open={!!deleteId}
         label="circular"
         onClose={() => setDeleteId(null)}
-        onConfirm={handleDelete}
+        trashType="career-circulars" onConfirm={handleDelete}
         loading={deleteLoading}
       />
     </div>

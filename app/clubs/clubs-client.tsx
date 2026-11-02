@@ -36,11 +36,11 @@ export default function ClubsClient({ initialClubs }: ClubsClientProps) {
     return true
   })
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!deleteId) return
     setDeleteLoading(true)
     try {
-      await api.clubs.delete(deleteId)
+      await api.clubs.delete(deleteId); if (permanent) await api.trash.purgeDeleted("clubs", deleteId)
       setClubs(prev => prev.filter(c => c.id !== deleteId))
       setDeleteId(null)
     } catch (err) {
@@ -222,7 +222,7 @@ export default function ClubsClient({ initialClubs }: ClubsClientProps) {
         open={!!deleteId}
         label="club"
         onClose={() => setDeleteId(null)}
-        onConfirm={handleDelete}
+        trashType="clubs" onConfirm={handleDelete}
         loading={deleteLoading}
       />
     </div>

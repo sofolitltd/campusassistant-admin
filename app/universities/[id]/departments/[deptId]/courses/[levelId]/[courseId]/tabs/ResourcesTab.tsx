@@ -7,10 +7,9 @@ import { Plus, Loader2, Layers, HelpCircle, FileText, BookMarked, Play, Users, S
 
 import { ResourceCard } from "./ResourceCard"
 import { ResourceModal } from "./ResourceModal"
-import { ConfirmDelete } from "./ConfirmDelete"
+import { ConfirmDelete } from "@/app/universities/[id]/departments/[...slug]/components/SharedUI"
 import { VideoPlayerModal } from "./VideoPlayerModal"
 import { PdfViewerModal } from "./PdfViewerModal"
-import { deleteFile } from "./resource-utils"
 
 const TYPE_ICONS: Record<ResourceType, React.ElementType> = {
   book: Layers,
@@ -41,16 +40,16 @@ interface ResourcesTabProps {
 
 export default function ResourcesTab({ type, courseCode, universityId, departmentId, batches, lessonNo }: ResourcesTabProps) {
   // Shown from cache when returning to this course; load() refreshes it.
-  const cacheKey = `resources:${courseCode}:${type}:${lessonNo ?? ""}`
+  const cacheKey = `resources:${departmentId}:${courseCode}:${type}:${lessonNo ?? ""}`
   const [resources, setResources] = useState<Resource[]>(() => getCached<Resource[]>(cacheKey) ?? [])
   const [loading, setLoading] = useState(() => !getCached(cacheKey))
   const [error, setError] = useState("")
   const [modal, setModal] = useState(false)
   const [editTarget, setEditTarget] = useState<Resource | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Resource | null>(null)
-  const [permanentDeleteTarget, setPermanentDeleteTarget] = useState<Resource | null>(null)
+  const [removeTarget, setRemoveTarget] = useState<Resource | null>(null)
+  const [removing, setRemoving] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [permanentDeleting, setPermanentDeleting] = useState(false)
   const [batchFilter, setBatchFilter] = useState<string>("all")
   const [playVideo, setPlayVideo] = useState<{ url: string; title: string; description?: string } | null>(null)
   const [viewPdf, setViewPdf] = useState<{ url: string; title: string } | null>(null)
@@ -63,36 +62,44 @@ export default function ResourcesTab({ type, courseCode, universityId, departmen
     if (cached) setResources(cached)
     setLoading(!cached); setError("")
     try {
-      const data = await api.resources.getAllByCourse(courseCode, type, lessonNo)
+      const data = await api.resources.getAllByCourse(courseCode, departmentId, type, lessonNo)
       setCached(cacheKey, data)
       setResources(data)
     } catch (e: any) { setError(e.message) }
     finally { setLoading(false) }
-  }, [cacheKey, courseCode, type, lessonNo])
+  }, [cacheKey, courseCode, departmentId, type, lessonNo])
 
   useEffect(() => { load() }, [load])
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!deleteTarget) return
     setDeleting(true)
     try { 
-      if (deleteTarget.file_url) await deleteFile(deleteTarget.file_url)
-      if (deleteTarget.thumbnail_url) await deleteFile(deleteTarget.thumbnail_url)
+      // Soft delete keeps the files so the resource can be restored from the
+      // Trash; the purge (super admins only) also removes them from storage.
       await api.resources.delete(deleteTarget.id)
+      if (permanent) await api.trash.purgeDeleted("resources", deleteTarget.id)
       await load() 
     }
     finally { setDeleting(false); setDeleteTarget(null) }
   }
 
-  async function handlePermanentDelete() {
-    if (!permanentDeleteTarget) return
-    setPermanentDeleting(true)
+  // Takes the resource off the filtered batch only — the file, the row and
+  // every other batch's link stay. PUT is a partial update, and batch_ids
+  // replaces the batch list.
+  async function handleRemoveFromBatch() {
+    if (!removeTarget) return
+    setRemoving(true)
     try {
-      await api.resources.permanentDelete(permanentDeleteTarget.id)
+      const remaining = (removeTarget.batches ?? []).map(b => b.id).filter(id => id !== batchFilter)
+      await api.resources.update(removeTarget.id, { batch_ids: remaining } as Partial<Resource>)
       await load()
-    }
-    finally { setPermanentDeleting(false); setPermanentDeleteTarget(null) }
+    } catch (e: any) { setError(e.message) }
+    finally { setRemoving(false); setRemoveTarget(null) }
   }
+
+  const batchName = (id: string) => batches.find(b => b.id === id)?.name ?? "this batch"
+  const batchNames = (r: Resource | null) => (r?.batches ?? []).map(b => b.name).join(", ")
 
   const filteredResources = resources.filter(r => {
     if (batchFilter === "all") return true
@@ -167,7 +174,8 @@ export default function ResourcesTab({ type, courseCode, universityId, departmen
               resource={r}
               onEdit={() => { setEditTarget(r); setModal(true) }}
               onDelete={() => setDeleteTarget(r)}
-              onPermanentDelete={() => setPermanentDeleteTarget(r)}
+              onRemoveFromBatch={batchFilter === "all" ? undefined : () => setRemoveTarget(r)}
+              removeFromBatchLabel={batchName(batchFilter)}
               onPlay={(url, title, desc) => setPlayVideo({ url, title, description: desc })}
               onView={(url, title) => setViewPdf({ url, title })}
             />
@@ -192,17 +200,31 @@ export default function ResourcesTab({ type, courseCode, universityId, departmen
         open={!!deleteTarget}
         label={deleteTarget ? `"${deleteTarget.title}"` : ""}
         onClose={() => setDeleteTarget(null)}
+        trashType="resources"
         onConfirm={handleDelete}
         loading={deleting}
+        description={deleteTarget && (deleteTarget.batches?.length ?? 0) > 0 && (
+          <p className="text-sm text-muted-foreground">
+            It will be hidden from <b>every</b> batch it is on: {batchNames(deleteTarget)}. It moves to the Trash, where any admin can restore it.
+            To take it off just one batch, pick that batch in the filter and use “Remove from batch” instead.
+          </p>
+        )}
       />
 
       <ConfirmDelete
-        open={!!permanentDeleteTarget}
-        label={permanentDeleteTarget ? `"${permanentDeleteTarget.title}" permanently` : ""}
-        onClose={() => setPermanentDeleteTarget(null)}
-        onConfirm={handlePermanentDelete}
-        loading={permanentDeleting}
-        permanent
+        open={!!removeTarget}
+        label=""
+        title={removeTarget ? `Remove "${removeTarget.title}" from ${batchName(batchFilter)}?` : ""}
+        description={removeTarget && (() => {
+          const others = (removeTarget.batches ?? []).filter(b => b.id !== batchFilter)
+          return others.length > 0
+            ? <p className="text-sm text-muted-foreground">It stays on {others.map(b => b.name).join(", ")}. The file is not deleted.</p>
+            : <p className="text-sm text-muted-foreground">This is its only batch, so no batch will see it in the app afterwards. The file is not deleted — add a batch from Edit to bring it back.</p>
+        })()}
+        confirmLabel="Remove"
+        onClose={() => setRemoveTarget(null)}
+        onConfirm={handleRemoveFromBatch}
+        loading={removing}
       />
 
       <VideoPlayerModal 

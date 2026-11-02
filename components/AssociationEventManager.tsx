@@ -10,13 +10,14 @@ import {
   Bell,
 } from "lucide-react"
 import { api, AssociationEvent } from "@/lib/api"
-import { Field, inputCls } from "@/app/universities/[id]/departments/[...slug]/components/SharedUI"
+import { Field, inputCls, ConfirmDelete } from "@/app/universities/[id]/departments/[...slug]/components/SharedUI"
 
 interface AssociationEventManagerProps {
   associationId: string
 }
 
 export function AssociationEventManager({ associationId }: AssociationEventManagerProps) {
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null)
   const [events, setEvents] = useState<AssociationEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
@@ -64,11 +65,16 @@ export function AssociationEventManager({ associationId }: AssociationEventManag
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("Delete this event?")) return
+  function handleDelete(id: string) { setPendingDelete(id) }
+
+  async function confirmDelete(permanent = false) {
+    const id = pendingDelete
+    if (!id) return
+    setPendingDelete(null)
     setDeletingId(id)
     try {
       await api.associationEvents.delete(id)
+      if (permanent) await api.trash.purgeDeleted("association-events", id)
       setEvents(prev => prev.filter(e => e.id !== id))
     } catch (err: any) {
       alert(`Failed to delete event: ${err.message}`)
@@ -169,6 +175,14 @@ export function AssociationEventManager({ associationId }: AssociationEventManag
           ))}
         </div>
       )}
+      <ConfirmDelete
+        open={!!pendingDelete}
+        label="this event"
+        trashType="association-events"
+        onClose={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
+        loading={false}
+      />
     </div>
   )
 }

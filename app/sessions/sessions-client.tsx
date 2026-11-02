@@ -19,20 +19,19 @@ export default function SessionsClient({ initialSessions }: SessionsClientProps)
   const [editing, setEditing] = useState<Session | null>(null)
   const [deleting, setDeleting] = useState<Session | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
-  const [deletePermanently, setDeletePermanently] = useState(false)
   const [search, setSearch] = useState("")
 
   const onRefresh = useCallback(async () => {
     setSessions(await api.sessions.getAll())
   }, [])
 
-  const handleDelete = useCallback(async () => {
+  const handleDelete = useCallback(async (permanent = false) => {
     if (!deleting) return
     setDeleteLoading(true)
-    try { await api.sessions.delete(deleting.id, deletePermanently); await onRefresh() }
+    try { await api.sessions.delete(deleting.id); if (permanent) await api.trash.purgeDeleted("sessions", deleting.id); await onRefresh() }
     catch (e) { console.error(e) }
-    finally { setDeleteLoading(false); setDeleting(null); setDeletePermanently(false) }
-  }, [deleting, deletePermanently, onRefresh])
+    finally { setDeleteLoading(false); setDeleting(null) }
+  }, [deleting, onRefresh])
 
   // The API returns them newest first (by sort_key).
   const sorted = sessions.filter(s => s.name.toLowerCase().includes(search.toLowerCase()))
@@ -52,11 +51,10 @@ export default function SessionsClient({ initialSessions }: SessionsClientProps)
       <ConfirmDelete
         open={!!deleting}
         label={`"${deleting?.name}" session`}
-        onClose={() => { setDeleting(null); setDeletePermanently(false) }}
+        onClose={() => setDeleting(null)}
         onConfirm={handleDelete}
         loading={deleteLoading}
-        permanent={deletePermanently}
-        onPermanentChange={setDeletePermanently}
+        trashType="sessions"
       />
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 transition-all">

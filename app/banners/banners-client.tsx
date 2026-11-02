@@ -26,13 +26,13 @@ export default function BannersClient({ initialBanners }: BannersClientProps) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!deleteId) return
     setDeleteLoading(true)
     const bannerToDelete = banners.find(b => b.id === deleteId)
     
     try {
-      await api.banners.delete(deleteId)
+      await api.banners.delete(deleteId); if (permanent) await api.trash.purgeDeleted("banners", deleteId)
       if (bannerToDelete?.image_url) {
         try {
           fetch(`${getApiUrl()}/upload?url=${bannerToDelete.image_url}`, {
@@ -196,7 +196,7 @@ export default function BannersClient({ initialBanners }: BannersClientProps) {
         open={!!deleteId}
         label="banner"
         onClose={() => setDeleteId(null)}
-        onConfirm={handleDelete}
+        trashType="banners" onConfirm={handleDelete}
         loading={deleteLoading}
       />
     </div>

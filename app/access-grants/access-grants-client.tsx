@@ -9,7 +9,7 @@ import {
   api, AccessGrant, AccessGrantInput, AccessGrantScope, University, Department, Batch, User,
 } from "@/lib/api"
 import { cn } from "@/lib/utils"
-import { selectCls, inputCls } from "@/app/universities/[id]/departments/[...slug]/components/SharedUI"
+import { selectCls, inputCls, ConfirmDelete } from "@/app/universities/[id]/departments/[...slug]/components/SharedUI"
 
 function Card({ children, className }: { children: React.ReactNode; className?: string }) {
   return <div className={cn("rounded-sm border bg-card shadow-sm overflow-hidden", className)}>{children}</div>
@@ -331,6 +331,7 @@ function GrantModal({ open, onClose, grant, onSuccess }: {
 const th = "px-4 py-3 font-black text-[10px] uppercase tracking-widest text-muted-foreground"
 
 export default function AccessGrantsClient() {
+  const [deleteGrant, setDeleteGrant] = useState<AccessGrant | null>(null)
   const [grants, setGrants] = useState<AccessGrant[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
@@ -354,12 +355,19 @@ export default function AccessGrantsClient() {
     finally { setBusyId(null) }
   }
 
-  async function remove(g: AccessGrant) {
-    if (!confirm(`Delete "${g.label}"? This removes it from history too.`)) return
+  function remove(g: AccessGrant) { setDeleteGrant(g) }
+
+  async function confirmRemove(permanent = false) {
+    const g = deleteGrant
+    if (!g) return
     setBusyId(g.id)
-    try { await api.accessGrants.delete(g.id); setGrants(prev => prev.filter(x => x.id !== g.id)) }
+    try {
+      await api.accessGrants.delete(g.id)
+      if (permanent) await api.trash.purgeDeleted("access-grants", g.id)
+      setGrants(prev => prev.filter(x => x.id !== g.id))
+    }
     catch (err) { alert(String(err)) }
-    finally { setBusyId(null) }
+    finally { setBusyId(null); setDeleteGrant(null) }
   }
 
   const now = new Date()
@@ -470,6 +478,14 @@ export default function AccessGrantsClient() {
       </Card>
 
       <GrantModal open={modalOpen} onClose={() => setModalOpen(false)} grant={editGrant} onSuccess={loadData} />
+      <ConfirmDelete
+        open={!!deleteGrant}
+        label={deleteGrant ? `"${deleteGrant.label}"` : ""}
+        trashType="access-grants"
+        onClose={() => setDeleteGrant(null)}
+        onConfirm={confirmRemove}
+        loading={!!deleteGrant && busyId === deleteGrant.id}
+      />
     </div>
   )
 }

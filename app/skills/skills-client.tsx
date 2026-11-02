@@ -25,11 +25,11 @@ export default function SkillsClient({ initialSkills }: SkillsClientProps) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!deleteId) return
     setDeleteLoading(true)
     try {
-      await api.skills.delete(deleteId)
+      await api.skills.delete(deleteId); if (permanent) await api.trash.purgeDeleted("skills", deleteId)
       setSkills(prev => prev.filter(s => s.id !== deleteId))
       setDeleteId(null)
     } catch (err) {
@@ -175,7 +175,7 @@ export default function SkillsClient({ initialSkills }: SkillsClientProps) {
         open={!!deleteId}
         label="skill"
         onClose={() => setDeleteId(null)}
-        onConfirm={handleDelete}
+        trashType="skills" onConfirm={handleDelete}
         loading={deleteLoading}
       />
     </div>

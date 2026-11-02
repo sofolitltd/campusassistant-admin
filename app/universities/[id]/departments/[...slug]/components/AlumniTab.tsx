@@ -625,11 +625,11 @@ export function AlumniTab({
     api.organizations.getAll().then(setOrganizations).catch(console.error)
   }, [alumni])
 
-  async function handleDelete() {
+  async function handleDelete(permanent = false) {
     if (!selected) return
     setLoading(true)
     try {
-      await api.alumni.delete(selected.id)
+      await api.alumni.delete(selected.id); if (permanent) await api.trash.purgeDeleted("alumni", selected.id)
       onRefresh()
       setDeleteOpen(false)
     } catch (e) {
@@ -864,7 +864,7 @@ export function AlumniTab({
         open={deleteOpen}
         label="alumni record"
         onClose={() => setDeleteOpen(false)}
-        onConfirm={handleDelete}
+        trashType="alumni" onConfirm={handleDelete}
         loading={loading}
       />
     </div>
