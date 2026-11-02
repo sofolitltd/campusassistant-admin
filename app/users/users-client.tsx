@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { createPortal } from "react-dom"
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import {
   Search, Filter, MoreHorizontal, UserPlus, Loader2, Phone, Mail, Fingerprint,
@@ -14,6 +15,7 @@ import { EditUserModal } from "./EditUserModal"
 import { SubscriptionModal } from "./SubscriptionModal"
 import { GrantProModal, GrantProTarget } from "@/components/GrantProModal"
 import { IssueResetCodeModal, type ResetCodeTarget } from "@/components/IssueResetCodeModal"
+import { ModeratorRoleManager } from "@/components/ModeratorRoleManager"
 import { fmtDdMmYy } from "@/lib/utils"
 
 const filterSelectCls =
@@ -32,7 +34,106 @@ function isUserExpiredPro(user: User) {
   return !!user.is_pro && !!user.pro_expiry && new Date(user.pro_expiry) <= new Date()
 }
 
-function UserMenuList({ user, onEdit, onPro, onExpiry, onClose, onDelete, onResetCode }: {
+function UserActionsMenu({ open, onOpenChange, triggerClassName, children }: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  triggerClassName: string
+  children: React.ReactNode
+}) {
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const [position, setPosition] = useState<{ top: number; left: number; placement: "above" | "below" } | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+
+    const updatePosition = () => {
+      const trigger = triggerRef.current
+      const menu = menuRef.current
+      if (!trigger || !menu) return
+
+      const triggerRect = trigger.getBoundingClientRect()
+      const menuRect = menu.getBoundingClientRect()
+      const margin = 8
+      const gap = 4
+      const spaceAbove = triggerRect.top - margin
+      const spaceBelow = window.innerHeight - triggerRect.bottom - margin
+      const openAbove = menuRect.height > spaceBelow && spaceAbove > spaceBelow
+      const desiredTop = openAbove
+        ? triggerRect.top - menuRect.height - gap
+        : triggerRect.bottom + gap
+      const desiredLeft = triggerRect.right - menuRect.width
+
+      setPosition({
+        top: Math.min(Math.max(margin, desiredTop), window.innerHeight - menuRect.height - margin),
+        left: Math.min(Math.max(margin, desiredLeft), window.innerWidth - menuRect.width - margin),
+        placement: openAbove ? "above" : "below",
+      })
+    }
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (!triggerRef.current?.contains(target) && !menuRef.current?.contains(target)) {
+        onOpenChange(false)
+      }
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onOpenChange(false)
+        triggerRef.current?.focus()
+      }
+    }
+
+    updatePosition()
+    document.addEventListener("mousedown", handleOutsideClick)
+    document.addEventListener("keydown", handleKeyDown)
+    window.addEventListener("resize", updatePosition)
+    window.addEventListener("scroll", updatePosition, true)
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick)
+      document.removeEventListener("keydown", handleKeyDown)
+      window.removeEventListener("resize", updatePosition)
+      window.removeEventListener("scroll", updatePosition, true)
+    }
+  }, [open, onOpenChange])
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-label="User actions"
+        aria-expanded={open}
+        onClick={(event) => {
+          event.stopPropagation()
+          if (!open) setPosition(null)
+          onOpenChange(!open)
+        }}
+        className={triggerClassName}
+      >
+        <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+      </button>
+      {open && typeof document !== "undefined" && createPortal(
+        <div
+          ref={menuRef}
+          onClick={(event) => event.stopPropagation()}
+          className={`fixed z-[120] w-44 max-h-[calc(100vh-1rem)] overflow-y-auto rounded-sm border bg-card shadow-xl animate-in fade-in zoom-in-95 duration-150 ${position?.placement === "above" ? "origin-bottom-right" : "origin-top-right"}`}
+          style={{
+            top: position?.top ?? 0,
+            left: position?.left ?? 0,
+            visibility: position ? "visible" : "hidden",
+          }}
+        >
+          {children}
+        </div>,
+        document.body
+      )}
+    </>
+  )
+}
+
+function UserMenuList({ user, onEdit, onPro, onExpiry, onClose, onDelete, onResetCode, onModerators }: {
   user: User
   onEdit: (e: React.MouseEvent) => void
   onPro: (e: React.MouseEvent) => void
@@ -40,6 +141,7 @@ function UserMenuList({ user, onEdit, onPro, onExpiry, onClose, onDelete, onRese
   onClose: (e: React.MouseEvent) => void
   onDelete: (e: React.MouseEvent) => void
   onResetCode: (e: React.MouseEvent) => void
+  onModerators: (e: React.MouseEvent) => void
 }) {
   return (
     <>
@@ -55,6 +157,14 @@ function UserMenuList({ user, onEdit, onPro, onExpiry, onClose, onDelete, onRese
       >
         <KeyRound className="h-3.5 w-3.5 text-muted-foreground" /> Send Reset Code
       </button>
+      {user.student && (
+        <button
+          onClick={onModerators}
+          className="flex w-full items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-left hover:bg-accent transition-all"
+        >
+          <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Manage moderator roles
+        </button>
+      )}
       <div className="border-t border-border/50" />
       <button
         onClick={onPro}
@@ -93,7 +203,7 @@ function UserMenuList({ user, onEdit, onPro, onExpiry, onClose, onDelete, onRese
 }
 
 
-function UsersCardView({ users, uniMap, deptMap, batchMap, sessionMap, onEdit, onPro, onExpiry, onDelete, onOpen, onResetCode }: {
+function UsersCardView({ users, uniMap, deptMap, batchMap, sessionMap, onEdit, onPro, onExpiry, onDelete, onOpen, onResetCode, onModerators }: {
   users: User[]
   uniMap: Map<string, University>
   deptMap: Map<string, Department>
@@ -105,19 +215,9 @@ function UsersCardView({ users, uniMap, deptMap, batchMap, sessionMap, onEdit, o
   onDelete: (u: User) => void
   onOpen: (u: User) => void
   onResetCode: (u: User) => void
+  onModerators: (u: User) => void
 }) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setActiveMenu(null)
-      }
-    }
-    document.addEventListener("mousedown", handleClick)
-    return () => document.removeEventListener("mousedown", handleClick)
-  }, [])
 
   return (
     <div className="grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -183,27 +283,22 @@ function UsersCardView({ users, uniMap, deptMap, batchMap, sessionMap, onEdit, o
                 >
                   <Crown className="h-3 w-3" />
                 </button>
-                <div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === user.id ? null : user.id) }}
-                    className="p-1.5 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all shadow-sm"
-                  >
-                    <MoreHorizontal className="h-3.5 w-3.5" />
-                  </button>
-                  {activeMenu === user.id && (
-                    <div ref={menuRef} className="absolute right-3 top-10 z-50 w-44 rounded-sm border bg-card shadow-xl animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
-                      <UserMenuList
-                        user={user}
-                        onEdit={(e) => { e.stopPropagation(); onEdit(user); setActiveMenu(null) }}
-                        onPro={(e) => { e.stopPropagation(); onPro(user); setActiveMenu(null) }}
-                        onExpiry={(e) => { e.stopPropagation(); onExpiry(user); setActiveMenu(null) }}
-                        onClose={(e) => { e.stopPropagation(); setActiveMenu(null) }}
-                        onDelete={(e) => { e.stopPropagation(); onDelete(user); setActiveMenu(null) }}
-                        onResetCode={(e) => { e.stopPropagation(); onResetCode(user); setActiveMenu(null) }}
-                      />
-                    </div>
-                  )}
-                </div>
+                <UserActionsMenu
+                  open={activeMenu === user.id}
+                  onOpenChange={(open) => setActiveMenu(open ? user.id : null)}
+                  triggerClassName="p-1.5 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all shadow-sm"
+                >
+                  <UserMenuList
+                    user={user}
+                    onEdit={(e) => { e.stopPropagation(); onEdit(user); setActiveMenu(null) }}
+                    onPro={(e) => { e.stopPropagation(); onPro(user); setActiveMenu(null) }}
+                    onExpiry={(e) => { e.stopPropagation(); onExpiry(user); setActiveMenu(null) }}
+                    onClose={(e) => { e.stopPropagation(); setActiveMenu(null) }}
+                    onDelete={(e) => { e.stopPropagation(); onDelete(user); setActiveMenu(null) }}
+                    onResetCode={(e) => { e.stopPropagation(); onResetCode(user); setActiveMenu(null) }}
+                    onModerators={(e) => { e.stopPropagation(); onModerators(user); setActiveMenu(null) }}
+                  />
+                </UserActionsMenu>
               </div>
             </div>
 
@@ -339,7 +434,7 @@ export default function UsersClient({
   const [deleting, setDeleting] = useState(false)
   const [actionError, setActionError] = useState("")
   const [resetCodeTarget, setResetCodeTarget] = useState<ResetCodeTarget | null>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
+  const [moderatorTarget, setModeratorTarget] = useState<User | null>(null)
 
   const filterValue = (key: UserFilterKey) => searchParams.get(key) || ""
   const activeFilterCount = USER_FILTER_KEYS.filter((k) => searchParams.get(k)).length
@@ -348,12 +443,10 @@ export default function UsersClient({
   // Cascading option lists, fetched on demand and cached per parent id so
   // switching back and forth doesn't refetch.
   const [deptCache, setDeptCache] = useState<Record<string, Department[]>>({})
-  const [sessionCache, setSessionCache] = useState<Record<string, Session[]>>({})
   const [batchCache, setBatchCache] = useState<Record<string, Batch[]>>({})
   const selectedUni = filterValue("university_id")
   const selectedDept = filterValue("department_id")
   const deptOptions = selectedUni ? deptCache[selectedUni] : undefined
-  const sessionOptions = selectedDept ? sessionCache[selectedDept] : undefined
   const batchOptions = selectedDept ? batchCache[selectedDept] : undefined
 
   useEffect(() => {
@@ -364,15 +457,11 @@ export default function UsersClient({
   }, [selectedUni, deptCache])
 
   useEffect(() => {
-    if (!selectedDept || (sessionCache[selectedDept] && batchCache[selectedDept])) return
-    Promise.all([
-      api.sessions.getAll(`department_id=${selectedDept}&limit=100`).catch(() => [] as Session[]),
-      api.batches.getAll(`department_id=${selectedDept}&limit=100`).catch(() => [] as Batch[]),
-    ]).then(([sessionList, batchList]) => {
-      setSessionCache((c) => ({ ...c, [selectedDept]: sessionList }))
-      setBatchCache((c) => ({ ...c, [selectedDept]: batchList }))
-    })
-  }, [selectedDept, sessionCache, batchCache])
+    if (!selectedDept || batchCache[selectedDept]) return
+    api.batches.getAll(`department_id=${selectedDept}&limit=100`)
+      .catch(() => [] as Batch[])
+      .then((batchList) => setBatchCache((c) => ({ ...c, [selectedDept]: batchList })))
+  }, [selectedDept, batchCache])
 
   const setFilter = (key: UserFilterKey, value: string) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -391,17 +480,6 @@ export default function UsersClient({
     params.set("offset", "0")
     router.push(`${pathname}?${params.toString()}`)
   }
-
-  // Close menu on outside click
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setActiveMenu(null)
-      }
-    }
-    document.addEventListener("mousedown", handleClick)
-    return () => document.removeEventListener("mousedown", handleClick)
-  }, [])
 
   useEffect(() => {
     const saved = localStorage.getItem("ca_users_view")
@@ -621,11 +699,10 @@ export default function UsersClient({
                 <select
                   value={filterValue("session_id")}
                   onChange={(e) => setFilter("session_id", e.target.value)}
-                  disabled={!selectedDept || !sessionOptions}
                   className={filterSelectCls}
                 >
-                  <option value="">{!selectedDept ? "Select a department first" : !sessionOptions ? "Loading..." : "All sessions"}</option>
-                  {sessionOptions?.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  <option value="">All sessions</option>
+                  {sessions.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </FilterField>
               <FilterField label="Batch">
@@ -665,6 +742,7 @@ export default function UsersClient({
             onDelete={(u) => setDeleteTarget(u)}
             onOpen={(u) => router.push(`/users/${u.id}`)}
             onResetCode={(u) => setResetCodeTarget({ email: u.email, accountType: "user" })}
+            onModerators={(u) => setModeratorTarget(u)}
           />
         )}
 
@@ -820,23 +898,23 @@ export default function UsersClient({
                         </span>
                       </td>
 
-                      <td className="px-3 py-2 text-right relative">
-                        <button onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === user.id ? null : user.id) }} className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-accent transition-colors">
-                          <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                        </button>
-                        {activeMenu === user.id && (
-                          <div ref={menuRef} className="absolute right-4 top-12 z-50 w-44 rounded-sm border bg-card shadow-xl animate-in fade-in zoom-in-95 duration-150 overflow-hidden">
-                            <UserMenuList
-                              user={user}
-                              onEdit={(e) => { e.stopPropagation(); setEditTarget(user); setActiveMenu(null) }}
-                              onPro={(e) => { e.stopPropagation(); setProTarget({ id: user.id, name: `${user.first_name} ${user.last_name}`, email: user.email }); setActiveMenu(null) }}
-                              onExpiry={(e) => { e.stopPropagation(); setSubscriptionTarget(user); setActiveMenu(null) }}
-                              onClose={(e) => { e.stopPropagation(); setActiveMenu(null) }}
-                              onDelete={(e) => { e.stopPropagation(); setDeleteTarget(user); setActiveMenu(null) }}
-                              onResetCode={(e) => { e.stopPropagation(); setResetCodeTarget({ email: user.email, accountType: "user" }); setActiveMenu(null) }}
-                            />
-                          </div>
-                        )}
+                      <td className="px-3 py-2 text-right">
+                        <UserActionsMenu
+                          open={activeMenu === user.id}
+                          onOpenChange={(open) => setActiveMenu(open ? user.id : null)}
+                          triggerClassName="h-7 w-7 rounded-full flex items-center justify-center hover:bg-accent transition-colors"
+                        >
+                          <UserMenuList
+                            user={user}
+                            onEdit={(e) => { e.stopPropagation(); setEditTarget(user); setActiveMenu(null) }}
+                            onPro={(e) => { e.stopPropagation(); setProTarget({ id: user.id, name: `${user.first_name} ${user.last_name}`, email: user.email }); setActiveMenu(null) }}
+                            onExpiry={(e) => { e.stopPropagation(); setSubscriptionTarget(user); setActiveMenu(null) }}
+                            onClose={(e) => { e.stopPropagation(); setActiveMenu(null) }}
+                            onDelete={(e) => { e.stopPropagation(); setDeleteTarget(user); setActiveMenu(null) }}
+                            onResetCode={(e) => { e.stopPropagation(); setResetCodeTarget({ email: user.email, accountType: "user" }); setActiveMenu(null) }}
+                            onModerators={(e) => { e.stopPropagation(); setModeratorTarget(user); setActiveMenu(null) }}
+                          />
+                        </UserActionsMenu>
                       </td>
                     </tr>
                   )
@@ -907,6 +985,14 @@ export default function UsersClient({
         onClose={() => setResetCodeTarget(null)}
         onSuccess={() => router.refresh()}
       />
+      {moderatorTarget?.student && (
+        <ModeratorRoleManager
+          student={{ ...moderatorTarget.student, user_id: moderatorTarget.student.user_id || moderatorTarget.id }}
+          dialogOpen
+          onDialogClose={() => setModeratorTarget(null)}
+          hideTrigger
+        />
+      )}
 
       {/* ── Confirm Delete Modal ──────────────────────────────── */}
       {deleteTarget && (

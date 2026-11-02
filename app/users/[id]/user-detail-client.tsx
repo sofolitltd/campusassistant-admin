@@ -8,6 +8,7 @@ import { fmtDdMmYy } from "@/lib/utils"
 import { EditUserModal } from "../EditUserModal"
 import { SubscriptionModal } from "../SubscriptionModal"
 import { GrantProModal, GrantProTarget } from "@/components/GrantProModal"
+import { ModeratorRoleManager } from "@/components/ModeratorRoleManager"
 import {
   Mail, Phone, Crown, CalendarDays, Pencil, Trash2, Loader2, AlertTriangle,
   Building2, GraduationCap, Briefcase, Fingerprint, ShieldCheck, XCircle,
@@ -230,9 +231,12 @@ export default function UserDetailClient({ user: initialUser }: { user: User }) 
 
           {studentInfo && (
             <section className="rounded-xl border bg-card p-4 shadow-sm">
-              <h2 className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-info">
-                <GraduationCap className="h-3.5 w-3.5" /> Student Profile
-              </h2>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-info">
+                  <GraduationCap className="h-3.5 w-3.5" /> Student Profile
+                </h2>
+                <ModeratorRoleManager student={{ ...studentInfo, user_id: studentInfo.user_id || user.id }} />
+              </div>
               <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground w-20 shrink-0">ID</span>
@@ -261,7 +265,7 @@ export default function UserDetailClient({ user: initialUser }: { user: User }) 
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground w-20 shrink-0">CR</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground w-20 shrink-0">Legacy CR marker</span>
                   <span className="text-xs font-bold">{studentInfo.is_cr ? "Yes" : "No"}</span>
                 </div>
                 <div className="flex items-center gap-2">

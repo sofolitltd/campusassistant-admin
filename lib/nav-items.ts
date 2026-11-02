@@ -24,6 +24,8 @@ import {
   Gift,
   type LucideIcon,
   KeyRound,
+  CalendarRange,
+  GraduationCap,
 } from "lucide-react"
 
 export interface NavLeaf {
@@ -51,7 +53,9 @@ export function isNavGroup(entry: NavEntry): entry is NavGroup {
 export const navStructure: NavEntry[] = [
   { title: "Dashboard", href: "/", icon: LayoutDashboard },
   { title: "Universities", href: "/universities", icon: School },
+  { title: "Sessions", href: "/sessions", icon: CalendarRange },
   { title: "Users", href: "/users", icon: Users },
+  { title: "Students", href: "/students", icon: GraduationCap },
   { title: "Verifications", href: "/verifications", icon: BadgeCheck },
   {
     title: "Community",
@@ -98,6 +102,7 @@ export const navStructure: NavEntry[] = [
     icon: Shield,
     items: [
       { title: "Admins", href: "/admins", icon: Shield },
+      { title: "Moderators", href: "/moderators", icon: BadgeCheck },
       { title: "Password Resets", href: "/password-resets", icon: KeyRound },
       { title: "Logs", href: "/logs", icon: ScrollText },
       { title: "App Version", href: "/app-version", icon: Smartphone },

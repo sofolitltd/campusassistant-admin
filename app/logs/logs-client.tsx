@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { AlertTriangle, OctagonAlert, RefreshCcw, Search } from "lucide-react"
 
-import { api, type SystemLog, type SystemLogStats, type User } from "@/lib/api"
+import { api, type AuditLog, type SystemLog, type SystemLogStats, type User } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 const inputCls =
@@ -13,6 +13,8 @@ interface LogsClientProps {
   initialLogs: SystemLog[]
   initialCount: number
   initialStats: SystemLogStats
+  initialAuditLogs: AuditLog[]
+  initialAuditCount: number
 }
 
 function StatTile({
@@ -56,7 +58,14 @@ function StatusBadge({ status }: { status: number }) {
   )
 }
 
-export default function LogsClient({ initialLogs, initialCount, initialStats }: LogsClientProps) {
+export default function LogsClient({
+  initialLogs,
+  initialCount,
+  initialStats,
+  initialAuditLogs,
+  initialAuditCount,
+}: LogsClientProps) {
+  const [tab, setTab] = useState<"system" | "audit">("system")
   const [logs, setLogs] = useState(initialLogs)
   const [count, setCount] = useState(initialCount)
   const [stats, setStats] = useState(initialStats)
@@ -64,6 +73,15 @@ export default function LogsClient({ initialLogs, initialCount, initialStats }: 
   const [path, setPath] = useState("")
   const [loading, setLoading] = useState(false)
   const [users, setUsers] = useState<Record<string, User | null>>({})
+  const [auditLogs, setAuditLogs] = useState(initialAuditLogs)
+  const [auditCount, setAuditCount] = useState(initialAuditCount)
+  const [auditActor, setAuditActor] = useState("")
+  const [auditAction, setAuditAction] = useState("")
+  const [auditEntity, setAuditEntity] = useState("")
+  const [auditScopeType, setAuditScopeType] = useState("")
+  const [auditScopeId, setAuditScopeId] = useState("")
+  const [auditFrom, setAuditFrom] = useState("")
+  const [auditTo, setAuditTo] = useState("")
 
   useEffect(() => {
     const unresolvedIds = Array.from(
@@ -100,17 +118,39 @@ export default function LogsClient({ initialLogs, initialCount, initialStats }: 
     }
   }
 
+  async function refreshAudit() {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (auditActor.trim()) params.set("actor_id", auditActor.trim())
+      if (auditAction.trim()) params.set("action", auditAction.trim())
+      if (auditEntity.trim()) params.set("entity_type", auditEntity.trim())
+      if (auditScopeType && auditScopeId.trim()) {
+        params.set(`${auditScopeType}_id`, auditScopeId.trim())
+      }
+      if (auditFrom) params.set("from", auditFrom)
+      if (auditTo) params.set("to", auditTo)
+      const result = await api.auditLogs.getAll(params.toString())
+      setAuditLogs(result.data)
+      setAuditCount(result.count)
+    } catch {
+      // Keep the last successful audit result visible if filtering fails.
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold tracking-tight">Logs</h1>
           <p className="text-sm text-muted-foreground">
-            Failed requests (4xx/5xx) captured across the backend.
+            {tab === "system" ? "Failed requests (4xx/5xx) captured across the backend." : "Administrative and moderation actions recorded for accountability."}
           </p>
         </div>
         <button
-          onClick={() => refresh()}
+          onClick={() => tab === "system" ? refresh() : refreshAudit()}
           disabled={loading}
           className="flex items-center gap-2 rounded-sm border bg-background px-3 py-2 text-sm font-medium transition-colors hover:bg-accent disabled:opacity-50"
         >
@@ -119,6 +159,13 @@ export default function LogsClient({ initialLogs, initialCount, initialStats }: 
         </button>
       </div>
 
+      <div className="flex w-fit gap-1 rounded-sm border bg-muted/20 p-1">
+        <button onClick={() => setTab("system")} className={cn("rounded-sm px-4 py-2 text-sm font-bold", tab === "system" ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground")}>System</button>
+        <button onClick={() => setTab("audit")} className={cn("rounded-sm px-4 py-2 text-sm font-bold", tab === "audit" ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:text-foreground")}>Audit</button>
+      </div>
+
+      {tab === "system" ? (
+      <>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile label="Errors today" value={stats.today_total} />
         <StatTile label="Errors this week" value={stats.week_total} />
@@ -233,6 +280,72 @@ export default function LogsClient({ initialLogs, initialCount, initialStats }: 
             </tbody>
           </table>
         </div>
+      )}
+      </>
+      ) : (
+        <section className="space-y-4">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            <input value={auditActor} onChange={(e) => setAuditActor(e.target.value)} placeholder="Actor ID" className={inputCls} />
+            <input value={auditAction} onChange={(e) => setAuditAction(e.target.value)} placeholder="Action (e.g. moderator.assign)" className={inputCls} />
+            <input value={auditEntity} onChange={(e) => setAuditEntity(e.target.value)} placeholder="Entity type" className={inputCls} />
+            <div className="flex gap-2">
+              <select value={auditScopeType} onChange={(e) => setAuditScopeType(e.target.value)} className="min-w-0 flex-1 rounded-sm border bg-background px-2 py-2 text-sm">
+                <option value="">All scopes</option>
+                <option value="university">University</option>
+                <option value="department">Department</option>
+                <option value="batch">Batch</option>
+              </select>
+              <input value={auditScopeId} onChange={(e) => setAuditScopeId(e.target.value)} placeholder="Scope ID" className={cn(inputCls, "min-w-0 flex-1")} />
+            </div>
+            <label className="text-xs text-muted-foreground">From<input type="date" value={auditFrom} onChange={(e) => setAuditFrom(e.target.value)} className={cn(inputCls, "mt-1")} /></label>
+            <label className="text-xs text-muted-foreground">To<input type="date" value={auditTo} onChange={(e) => setAuditTo(e.target.value)} className={cn(inputCls, "mt-1")} /></label>
+            <button onClick={refreshAudit} disabled={loading} className="self-end rounded-sm bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50">Apply filters</button>
+            <span className="self-center text-sm text-muted-foreground">{auditCount} matching events</span>
+          </div>
+
+          {auditLogs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 rounded-sm border bg-card p-12 text-center">
+              <OctagonAlert className="h-8 w-8 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">No audit events match these filters.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-sm border bg-card">
+              <table className="w-full min-w-[1000px] text-left text-sm">
+                <thead className="bg-muted/50 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3">Time</th><th className="px-4 py-3">Actor</th>
+                    <th className="px-4 py-3">Via role</th><th className="px-4 py-3">Action</th>
+                    <th className="px-4 py-3">Entity</th><th className="px-4 py-3">Scope</th>
+                    <th className="px-4 py-3">Reason / Changes</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {auditLogs.map((entry) => {
+                    const scope = entry.batch_id ? `Batch ${entry.batch_id}` :
+                      entry.department_id ? `Department ${entry.department_id}` :
+                        entry.university_id ? `University ${entry.university_id}` : "—"
+                    const changes = entry.changes ? JSON.stringify(entry.changes) : ""
+                    return (
+                      <tr key={entry.id} className="align-top hover:bg-muted/30">
+                        <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">{new Date(entry.created_at).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-xs"><p className="font-semibold">{entry.actor_label || entry.actor_id.slice(0, 8)}</p><p className="text-muted-foreground">{entry.actor_type}</p></td>
+                        <td className="px-4 py-3 text-xs">{entry.via_role || "—"}</td>
+                        <td className="px-4 py-3 font-mono text-xs">{entry.action}</td>
+                        <td className="px-4 py-3 text-xs"><p>{entry.entity_type}</p><p className="font-mono text-muted-foreground">{entry.entity_id.slice(0, 8)}</p></td>
+                        <td className="max-w-[200px] truncate px-4 py-3 text-xs text-muted-foreground" title={scope}>{scope}</td>
+                        <td className="max-w-sm px-4 py-3 text-xs text-muted-foreground">
+                          {entry.reason && <p>{entry.reason}</p>}
+                          {changes && <details className="mt-1"><summary className="cursor-pointer text-primary">Changes</summary><pre className="mt-1 whitespace-pre-wrap break-words">{changes}</pre></details>}
+                          {!entry.reason && !changes && "—"}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
       )}
     </div>
   )

@@ -7,6 +7,7 @@ import { AlertTriangle, ArrowLeft, Check, Link2, Loader2, UserPlus, X } from "lu
 import { api, StudentVerificationMatch, StudentVerificationRequest } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { VerificationDocument } from "@/components/VerificationDocument"
+import { AuditHistory } from "@/components/AuditHistory"
 import { VERIFICATION_STATUS_BADGE } from "../verifications-client"
 
 const SECOND_DOC_LABEL: Record<StudentVerificationRequest["second_doc_type"], string> = {
@@ -58,7 +59,7 @@ function MatchPanel({ match }: { match: StudentVerificationMatch }) {
   const owner = s?.user ? `${s.user.first_name} ${s.user.last_name}`.trim() || s.user.email : undefined
 
   const meta = {
-    unclaimed: { icon: Link2, cls: "bg-info-subtle text-info", title: "Will link to an existing profile", body: "A CR/admin already added this roll. Approving attaches it to this account." },
+    unclaimed: { icon: Link2, cls: "bg-info-subtle text-info", title: "Will link to an existing profile", body: "A moderator or admin already added this roll. Approving attaches it to this account." },
     none: { icon: UserPlus, cls: "bg-success-subtle text-success", title: "A new student profile will be created", body: "No profile exists for this roll in this batch." },
     conflict: { icon: AlertTriangle, cls: "bg-destructive-subtle text-destructive", title: "Roll already claimed", body: `This profile belongs to ${owner ?? "another account"}. Approve is disabled — reject, or resolve the conflict first.` },
     linked: { icon: Check, cls: "bg-success-subtle text-success", title: "Linked to this profile", body: "This request was approved and linked." },
@@ -163,6 +164,8 @@ export default function VerificationDetailClient({ initialRequest, initialMatch 
         )}
       </div>
 
+      <AuditHistory entityType="student_verification_request" entityId={request.id} />
+
       {request.status === "rejected" && request.rejection_reason && (
         <div className="rounded-sm bg-destructive-subtle text-destructive p-4 text-sm">
           <span className="font-bold">Rejection reason:</span> {request.rejection_reason}
@@ -200,6 +203,15 @@ export default function VerificationDetailClient({ initialRequest, initialMatch 
               <InfoRow label="Email" value={account?.email} />
               <InfoRow label="Phone" value={account?.phone} />
               <InfoRow label="Joined" value={account ? new Date(account.created_at).toLocaleDateString("en-GB") : undefined} />
+              {request.reviewed_by_id && (
+                <InfoRow
+                  label="Reviewed by"
+                  value={request.reviewed_by
+                    ? `${request.reviewed_by.first_name} ${request.reviewed_by.last_name}`.trim() || request.reviewed_by.email
+                    : request.reviewed_by_id.slice(0, 8)}
+                />
+              )}
+              {request.reviewed_at && <InfoRow label="Reviewed at" value={new Date(request.reviewed_at).toLocaleString("en-GB")} />}
             </div>
           </div>
 

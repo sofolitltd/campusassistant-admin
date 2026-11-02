@@ -477,7 +477,7 @@ function TodaySchedule({ universityId, departmentId, batches }: { universityId: 
         <div className="rounded-sm border border-dashed bg-muted/30 p-8 text-center">
           <p className="text-sm font-medium">No classes scheduled for today</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            The CR enters the weekly routine once at the start of the semester via &quot;Manage&quot;, then only marks changes here.
+            The assigned batch moderator enters the weekly routine once at the start of the semester via &quot;Manage&quot;, then only marks changes here.
           </p>
         </div>
       ) : (

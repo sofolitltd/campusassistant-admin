@@ -5,18 +5,16 @@ import { api, CR, Student, Batch, getFullImageUrl } from "@/lib/api"
 import { Modal, Field, Avatar, inputCls } from "./SharedUI"
 import { AlertCircle, Loader2 } from "lucide-react"
 
-// A CR counts as current only while flagged so AND inside their term — the
-// same rule the API uses (domain.ActiveCR), so this list never disagrees with
-// who can actually post.
+// A directory entry is current only while flagged so AND inside its term.
 export function isActiveCR(cr: CR) {
   return cr.is_current && (!cr.term_end || new Date(cr.term_end).getTime() > Date.now())
 }
 
 const endOfDay = (v: string) => new Date(`${v}T23:59:59`).toISOString()
 
-// ─── Make CR ─────────────────────────────────────────────────────────────────
+// ─── Official CR directory entry ─────────────────────────────────────────────
 
-export function MakeCRModal({ student, batches, activeCRs, universityId, departmentId, onClose, onDone }: {
+export function CreateCRDirectoryEntryModal({ student, batches, activeCRs, universityId, departmentId, onClose, onDone }: {
   student: Student
   batches: Batch[]
   activeCRs: CR[]
@@ -60,7 +58,7 @@ export function MakeCRModal({ student, batches, activeCRs, universityId, departm
         const now = new Date().toISOString()
         await Promise.all(predecessors.map(c => api.crs.update(c.id, { is_current: false, term_end: now })))
       }
-      onDone(`${student.name} is now CR${batch ? ` of ${batch.name}` : ""}`)
+      onDone(`${student.name} added to the official CR directory${batch ? ` for ${batch.name}` : ""}`)
     } catch (err: any) {
       setError(err.message || "Failed to assign CR")
       setLoading(false)
@@ -68,7 +66,7 @@ export function MakeCRModal({ student, batches, activeCRs, universityId, departm
   }
 
   return (
-    <Modal open onClose={onClose} title="Make CR" className="max-w-md">
+    <Modal open onClose={onClose} title="Add official CR directory entry" className="max-w-md">
       <form onSubmit={submit}>
         <div className="px-6 py-4 space-y-4">
           {error && (
@@ -84,11 +82,16 @@ export function MakeCRModal({ student, batches, activeCRs, universityId, departm
             </div>
           </div>
           {!student.batch_id && (
-            <p className="text-xs text-destructive">This student has no batch, so they cannot be made CR.</p>
+            <p className="text-xs text-destructive">This student has no batch, so they cannot be added to the CR directory.</p>
           )}
           {!student.is_claimed && (
             <p className="text-xs text-muted-foreground bg-muted/50 rounded-sm p-2.5">
-              This student hasn&apos;t claimed their profile in the app yet. CR access turns on automatically once they do.
+              This records official CR information only. It does not grant app moderator permissions.
+            </p>
+          )}
+          {student.is_claimed && (
+            <p className="text-xs text-muted-foreground bg-muted/50 rounded-sm p-2.5">
+              This records official CR information only. Manage app moderator permissions separately from the student actions.
             </p>
           )}
           <Field label="Term ends (optional)">
@@ -104,7 +107,7 @@ export function MakeCRModal({ student, batches, activeCRs, universityId, departm
         <div className="border-t bg-muted/30 p-4 px-6 flex justify-end gap-2">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium rounded-sm border bg-background hover:bg-muted transition-colors">Cancel</button>
           <button type="submit" disabled={loading || !student.batch_id} className="px-4 py-2 text-sm font-bold rounded-sm bg-primary-gradient text-primary-foreground hover:opacity-90 disabled:opacity-50 flex items-center gap-2">
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />} Make CR
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />} Add directory entry
           </button>
         </div>
       </form>
@@ -124,7 +127,7 @@ export function EndCRModal({ cr, onClose, onDone }: { cr: CR; onClose: () => voi
     try {
       // Kept as history rather than deleted; they just stop being a current CR.
       await api.crs.update(cr.id, { is_current: false, term_end: new Date().toISOString() })
-      onDone(`${cr.name} is no longer CR`)
+      onDone(`${cr.name}'s official CR directory term has ended`)
     } catch (err: any) {
       setError(err.message || "Failed to end CR term")
       setLoading(false)
@@ -132,11 +135,11 @@ export function EndCRModal({ cr, onClose, onDone }: { cr: CR; onClose: () => voi
   }
 
   return (
-    <Modal open onClose={onClose} title="End CR term" className="max-w-sm">
+    <Modal open onClose={onClose} title="End official CR directory term" className="max-w-sm">
       <div className="px-6 py-4 space-y-3">
         {error && <p className="text-sm text-destructive">{error}</p>}
         <p className="text-sm">
-          <strong>{cr.name}</strong> will immediately lose the ability to post class notices. The record stays in the CR history.
+          The official CR directory term for <strong>{cr.name}</strong> will end. This does not change any app moderator permissions, and the directory record stays in history.
         </p>
       </div>
       <div className="border-t bg-muted/30 p-4 px-6 flex justify-end gap-2">

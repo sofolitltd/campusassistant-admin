@@ -222,6 +222,13 @@ function ResourceRow({ resource }: { resource: Resource }) {
           <h3 className="font-bold text-xs leading-snug line-clamp-2 group-hover:text-primary transition-colors">{resource.title}</h3>
           <p className="text-[10px] text-muted-foreground mt-0.5 font-medium">{resource.course_code}</p>
           {meta.author && <p className="text-[10px] text-muted-foreground mt-0.5 truncate italic">by {meta.author}</p>}
+          {resource.reviewed_by_id && (
+            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+              Reviewed by {resource.reviewed_by
+                ? `${resource.reviewed_by.first_name} ${resource.reviewed_by.last_name}`.trim() || resource.reviewed_by.email
+                : resource.reviewed_by_id.slice(0, 8)}
+            </p>
+          )}
         </div>
 
         <div className="mt-auto flex items-center justify-between">

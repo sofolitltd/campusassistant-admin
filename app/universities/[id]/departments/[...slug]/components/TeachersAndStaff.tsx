@@ -16,7 +16,7 @@ interface TeachersTabProps {
 }
 
 function handleCopyTeacherCode(teacher: Teacher) {
-  const msg = `🎓 *Campus Assistant Teacher Profile*\n----------------------------------\nName: ${teacher.name}\nDesignation: ${teacher.designation}\nVerification Code: ${teacher.verification_code}\n\n🚀 *How to verify:*\n1. Download App: https://play.google.com/store/apps/details?id=com.sofolit.campusassistant\n2. Create a new account (select Teacher)\n3. Provide the code above & verify your profile.`
+  const msg = `🎓 *Campus Assistant Teacher Profile*\n----------------------------------\nName: ${teacher.name}\nDesignation: ${teacher.designation}\nVerification Code:\n*${teacher.verification_code}*\n\n🚀 *How to verify:*\n1. Get the app:\n   Android: https://play.google.com/store/apps/details?id=com.sofolit.campusassistant\n   iOS / Web: https://campusassistant.web.app/\n2. Create a new account (select Teacher)\n3. Enter the code above to verify your profile`
   navigator.clipboard.writeText(msg)
 }
 
@@ -249,7 +249,7 @@ export function TeachersTab({ teachers, universityId, departmentId, onRefresh }:
 }
 
 function handleCopyStaffCode(staff: Staff) {
-  const msg = `🎓 *Campus Assistant Staff Profile*\n----------------------------------\nName: ${staff.name}\nPost: ${staff.post}\nVerification Code: ${staff.verification_code}\n\n🚀 *How to verify:*\n1. Download App: https://play.google.com/store/apps/details?id=com.sofolit.campusassistant\n2. Create a new account (select Staff)\n3. Provide the code above & verify your profile.`
+  const msg = `🎓 *Campus Assistant Staff Profile*\n----------------------------------\nName: ${staff.name}\nPost: ${staff.post}\nVerification Code:\n*${staff.verification_code}*\n\n🚀 *How to verify:*\n1. Get the app:\n   Android: https://play.google.com/store/apps/details?id=com.sofolit.campusassistant\n   iOS / Web: https://campusassistant.web.app/\n2. Create a new account (select Staff)\n3. Enter the code above to verify your profile`
   navigator.clipboard.writeText(msg)
 }
 

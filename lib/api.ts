@@ -128,13 +128,20 @@ export interface Faculty {
   university_id: string;
 }
 
+// Sessions are global: one row per admission period ("2017-2018" or
+// "Spring 2023"), shared by every university. A department's sessions are
+// the ones its batches link to (Batch.sessions). The API derives name and
+// sort_key from kind/start_year/term.
+export type SessionKind = 'academic_year' | 'semester';
+export type SessionTerm = '' | 'spring' | 'summer' | 'fall' | 'autumn' | 'winter';
+
 export interface Session {
   id: string;
+  kind: SessionKind;
+  start_year: number;
+  term: SessionTerm;
   name: string;
-  slug: string;
-  university_id: string;
-  department_id: string;
-  is_active: boolean;
+  sort_key: number;
   created_at: string;
 }
 
@@ -168,11 +175,45 @@ export interface Student {
   department_id: string;
   university_id: string;
   session_id: string;
-  hall_id?: string;
+  hall_id?: string | null;
   hall?: Hall;
   user_id?: string;
   user?: { id: string; first_name: string; last_name: string; email: string; avatar_url?: string };
   created_at: string;
+}
+
+export type ModeratorScopeType = "batch" | "department" | "university";
+
+export interface Moderator {
+  id: string;
+  user_id: string;
+  user?: User;
+  scope_type: ModeratorScopeType;
+  scope_id: string;
+  scope_name?: string;
+  university_id: string;
+  university?: University;
+  department_id?: string | null;
+  department?: Department;
+  batch?: Batch;
+  term_start?: string | null;
+  term_end?: string | null;
+  is_active: boolean;
+  granted_by?: string | null;
+  granted_by_admin?: Admin;
+  revoked_by?: string | null;
+  revoked_at?: string | null;
+  note?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface ModeratorInput {
+  user_id: string;
+  scope_type: ModeratorScopeType;
+  term_start?: string;
+  term_end?: string;
+  note?: string;
 }
 
 export interface Teacher {
@@ -322,6 +363,8 @@ export interface Resource {
   status: ResourceStatus;
   access_level: ResourceAccessLevel;
   creator?: { id: string; name: string; email: string } | null;
+  reviewed_by_id?: string;
+  reviewed_by?: User;
   department_id: string;
   university_id: string;
   file_size_bytes: number;
@@ -681,6 +724,7 @@ export interface StudentVerificationRequest {
   status: StudentVerificationStatus;
   rejection_reason?: string;
   reviewed_by_id?: string;
+  reviewed_by?: User;
   reviewed_at?: string;
   linked_student_id?: string;
   created_at: string;
@@ -1114,6 +1158,25 @@ export interface SystemLogStats {
   week_server_errors: number;
   week_client_errors: number;
   top_failing_paths: { path: string; count: number }[];
+}
+
+export interface AuditLog {
+  id: string;
+  actor_type: "admin" | "user" | string;
+  actor_id: string;
+  actor_label: string;
+  via_role: string;
+  action: string;
+  entity_type: string;
+  entity_id: string;
+  university_id?: string | null;
+  department_id?: string | null;
+  batch_id?: string | null;
+  changes?: Record<string, unknown> | null;
+  reason?: string;
+  ip_address?: string;
+  user_agent?: string;
+  created_at: string;
 }
 
 // One "forgot password" request, as reported by GET /admin/password-resets.
@@ -1709,14 +1772,9 @@ export const api = {
       fetchWithAuth(`/association-events/${id}`, { method: 'DELETE' }),
   },
   sessions: {
-    getAll: (params?: string): Promise<Session[]> =>
-      fetchWithAuth(`/sessions?${params || ''}`).then((res: PaginatedResponse<Session>) => res.data ?? []),
-    // limit=100 is the backend's cap; the default of 20 dropped older/newer sessions
-    // once a department passed 20 (same issue as batches.getAllByDepartment).
-    getAllByDepartment: (deptId: string): Promise<Session[]> =>
-      fetchWithAuth(`/sessions?department_id=${deptId}&limit=100`).then((res: PaginatedResponse<Session>) => res.data ?? []),
-    getAllByUniversity: (uniId: string): Promise<Session[]> =>
-      fetchWithAuth(`/sessions?university_id=${uniId}&limit=100`).then((res: PaginatedResponse<Session>) => res.data ?? []),
+    // The whole global list (newest first) — it's small, so fetch it in one go.
+    getAll: (): Promise<Session[]> =>
+      fetchWithAuth('/sessions?limit=500').then((res: PaginatedResponse<Session>) => res.data ?? []),
     create: (data: Partial<Session>): Promise<Session> =>
       fetchWithAuth('/sessions', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: Partial<Session>): Promise<Session> =>
@@ -1773,6 +1831,8 @@ export const api = {
   students: {
     getAll: (params?: string): Promise<Student[]> =>
       fetchWithAuth(`/students?limit=1000&${params || ''}`).then((res: PaginatedResponse<Student>) => res.data ?? []),
+    getPage: (params: string): Promise<PaginatedResponse<Student>> =>
+      fetchWithAuth(`/students?${params}`),
     getAllByDepartment: (deptId: string): Promise<Student[]> =>
       fetchWithAuth(`/students?department_id=${deptId}`).then((res: PaginatedResponse<Student>) => res.data ?? []),
     getAllByBatch: (batchId: string): Promise<Student[]> =>
@@ -1788,10 +1848,25 @@ export const api = {
     // have none) — the Send Mail / Claim flows need a code to exist first.
     generateCode: (id: string): Promise<Student> =>
       fetchWithAuth(`/students/${id}/generate-code`, { method: 'POST' }),
+    rotateUnclaimedCodes: (): Promise<{ rotated_count: number }> =>
+      fetchWithAuth('/students/rotate-unclaimed-codes', {
+        method: 'POST',
+        body: JSON.stringify({ confirm: true }),
+      }),
     sendCodeEmail: (id: string): Promise<void> =>
       fetchWithAuth(`/students/${id}/send-code-email`, { method: 'POST' }),
     delete: (id: string): Promise<void> =>
       fetchWithAuth(`/students/${id}`, { method: 'DELETE' }),
+  },
+  moderators: {
+    getAll: (params?: string): Promise<{ data: Moderator[]; count: number }> =>
+      fetchWithAuth(`/moderators?${params || ''}`),
+    create: (data: ModeratorInput): Promise<Moderator> =>
+      fetchWithAuth('/moderators', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<Pick<ModeratorInput, "term_start" | "term_end" | "note">>): Promise<Moderator> =>
+      fetchWithAuth(`/moderators/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    revoke: (id: string): Promise<Moderator> =>
+      fetchWithAuth(`/moderators/${id}/revoke`, { method: 'POST' }),
   },
   levels: {
     getAllByDepartment: (deptId: string): Promise<Level[]> =>
@@ -2232,6 +2307,10 @@ export const api = {
       fetchWithAuth(`/system-logs?limit=50&${params || ''}`),
     getStats: (): Promise<SystemLogStats> =>
       fetchWithAuth('/system-logs/stats'),
+  },
+  auditLogs: {
+    getAll: (params?: string): Promise<{ data: AuditLog[]; count: number }> =>
+      fetchWithAuth(`/audit-logs?${params || ''}`),
   },
   passwordResets: {
     // History of "forgot password" requests (last 7 days — the backend side

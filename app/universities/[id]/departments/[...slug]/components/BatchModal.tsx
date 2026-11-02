@@ -126,12 +126,12 @@ export function BatchModal({
       setBulkStart(""); setBulkEnd(""); setMode("single"); setError("")
       
       setSessionsLoading(true)
-      api.sessions.getAllByUniversity(universityId)
-        .then((data) => setAllSessions([...data].sort((a, b) => b.name.localeCompare(a.name))))
+      api.sessions.getAll()
+        .then(setAllSessions)
         .catch(() => { })
         .finally(() => setSessionsLoading(false))
     }
-  }, [open, batch, universityId])
+  }, [open, batch])
 
   function handleNumberChange(val: string) {
     setBatchNumber(val)

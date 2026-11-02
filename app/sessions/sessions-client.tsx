@@ -1,21 +1,20 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { api, Session, Batch } from "@/lib/api"
-import { Badge, ConfirmDelete, Modal, inputCls } from "./SharedUI"
+import { api, Session } from "@/lib/api"
+import { Badge, ConfirmDelete, inputCls } from "../universities/[id]/departments/[...slug]/components/SharedUI"
 import { SessionModal } from "./SessionModal"
 import { Search, Plus, Clock, Pencil, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-interface SessionsTabProps {
-  sessions: Session[]
-  batches?: Batch[]
-  universityId: string
-  departmentId: string
-  onRefresh: () => void
+interface SessionsClientProps {
+  initialSessions: Session[]
 }
 
-export function SessionsTab({ sessions, batches = [], universityId, departmentId, onRefresh }: SessionsTabProps) {
+// Sessions are global — one row per admission period, shared by every
+// university. Departments pick theirs by linking sessions to batches.
+export default function SessionsClient({ initialSessions }: SessionsClientProps) {
+  const [sessions, setSessions] = useState<Session[]>(initialSessions)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Session | null>(null)
   const [deleting, setDeleting] = useState<Session | null>(null)
@@ -23,29 +22,28 @@ export function SessionsTab({ sessions, batches = [], universityId, departmentId
   const [deletePermanently, setDeletePermanently] = useState(false)
   const [search, setSearch] = useState("")
 
+  const onRefresh = useCallback(async () => {
+    setSessions(await api.sessions.getAll())
+  }, [])
+
   const handleDelete = useCallback(async () => {
     if (!deleting) return
     setDeleteLoading(true)
-    try { await api.sessions.delete(deleting.id, deletePermanently); onRefresh() }
+    try { await api.sessions.delete(deleting.id, deletePermanently); await onRefresh() }
     catch (e) { console.error(e) }
     finally { setDeleteLoading(false); setDeleting(null); setDeletePermanently(false) }
   }, [deleting, deletePermanently, onRefresh])
 
-  const filtered = sessions.filter(s => 
-    s.name.toLowerCase().includes(search.toLowerCase()) || 
-    s.slug.toLowerCase().includes(search.toLowerCase())
-  )
-  const sorted = [...filtered].sort((a, b) => b.name.localeCompare(a.name))
+  // The API returns them newest first (by sort_key).
+  const sorted = sessions.filter(s => s.name.toLowerCase().includes(search.toLowerCase()))
 
   const isCompact = sessions.length > 20
 
   return (
-    <>
+    <div className="animate-in fade-in duration-300">
       <SessionModal 
         open={modalOpen} 
         onClose={() => { setModalOpen(false); setEditing(null) }}
-        universityId={universityId} 
-        departmentId={departmentId} 
         session={editing} 
         onSuccess={onRefresh}
         existingSessions={sessions} 
@@ -63,8 +61,10 @@ export function SessionsTab({ sessions, batches = [], universityId, departmentId
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 transition-all">
         <div>
-          <h3 className="text-lg font-bold">Academic Sessions</h3>
-          <p className="text-sm text-muted-foreground">Manage and organize sessions</p>
+          <h1 className="text-xl font-bold tracking-tight">Sessions</h1>
+          <p className="text-sm text-muted-foreground">
+            Admission periods shared by every university. Link them to a department&apos;s batches to make them selectable for its students.
+          </p>
         </div>
         <div className="flex items-center gap-2 w-full md:w-auto">
           <div className="relative flex-1 md:w-64">
@@ -116,15 +116,14 @@ export function SessionsTab({ sessions, batches = [], universityId, departmentId
               </div>
 
               <div className="flex items-center gap-3">
-                <p className="text-[10px] text-muted-foreground font-mono bg-muted px-1.5 py-0.5 rounded-xs tracking-tighter">{s.slug}</p>
-                <Badge variant={s.is_active ? "success" : "default"} className="text-[9px] px-1.5 py-1 leading-tight">
-                  {s.is_active ? "Active" : "Inactive"}
+                <Badge variant={s.kind === "semester" ? "info" : "default"} className="text-[9px] px-1.5 py-1 leading-tight">
+                  {s.kind === "semester" ? "Semester" : "Academic year"}
                 </Badge>
               </div>
             </div>
           ))}
         </div>
       )}
-    </>
+    </div>
   )
 }

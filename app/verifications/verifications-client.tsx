@@ -136,6 +136,13 @@ export default function VerificationsClient() {
                     <td className="px-4 py-4 text-xs text-muted-foreground">{new Date(v.created_at).toLocaleDateString("en-GB")}</td>
                     <td className="px-4 py-4">
                       <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-widest", VERIFICATION_STATUS_BADGE[v.status])}>{v.status}</span>
+                      {v.reviewed_by_id && (
+                        <p className="mt-1 text-[10px] text-muted-foreground">
+                          Reviewed by {v.reviewed_by
+                            ? `${v.reviewed_by.first_name} ${v.reviewed_by.last_name}`.trim() || v.reviewed_by.email
+                            : v.reviewed_by_id.slice(0, 8)}
+                        </p>
+                      )}
                     </td>
                     <td className="px-4 py-4 text-right pr-6">
                       <Link href={`/verifications/${v.id}`} className="inline-flex items-center gap-1 rounded-sm border px-3 py-1.5 text-xs font-bold hover:bg-muted transition-all">

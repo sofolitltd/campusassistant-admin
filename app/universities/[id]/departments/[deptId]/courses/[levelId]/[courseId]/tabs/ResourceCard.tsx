@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react"
 import { Resource, ResourceType, Batch } from "@/lib/api"
+import { AuditHistory } from "@/components/AuditHistory"
 import {
   Pencil, Trash2, Download, Play, BookOpen, Layers, HelpCircle, FileText, BookMarked, Search, AlertTriangle, Eye, Star
 } from "lucide-react"
@@ -117,6 +118,16 @@ export function ResourceCard({ resource, onEdit, onDelete, onPermanentDelete, on
               <h3 className="font-bold text-xs leading-snug line-clamp-2 group-hover:text-primary transition-colors flex-1">{resource.title}</h3>
             </div>
             {meta.author && <p className="text-[10px] text-muted-foreground mt-0.5 truncate italic">by {meta.author}</p>}
+            {resource.reviewed_by_id && (
+              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                Reviewed by {resource.reviewed_by
+                  ? `${resource.reviewed_by.first_name} ${resource.reviewed_by.last_name}`.trim() || resource.reviewed_by.email
+                  : resource.reviewed_by_id.slice(0, 8)}
+              </p>
+            )}
+            <div className="mt-1" onClick={(e) => e.stopPropagation()}>
+              <AuditHistory entityType="resource" entityId={resource.id} />
+            </div>
           </div>
 
           <div className="mt-auto flex items-center justify-between">
@@ -208,6 +219,13 @@ export function ResourceCard({ resource, onEdit, onDelete, onPermanentDelete, on
 
         <div className="flex flex-wrap gap-2 mt-auto pt-2 items-center">
           {meta.author && <span className="text-[10px] font-medium text-muted-foreground truncate max-w-[120px]">by {meta.author}</span>}
+          {resource.reviewed_by_id && (
+            <span className="text-[10px] text-muted-foreground truncate max-w-[160px]">
+              Reviewed by {resource.reviewed_by
+                ? `${resource.reviewed_by.first_name} ${resource.reviewed_by.last_name}`.trim() || resource.reviewed_by.email
+                : resource.reviewed_by_id.slice(0, 8)}
+            </span>
+          )}
           {meta.exam_type && <span className="text-[9px] font-black bg-warning-subtle text-warning rounded-sm px-1.5 py-0.5 uppercase tracking-tighter">{meta.exam_type}</span>}
           {meta.year && <span className="text-[10px] font-medium text-muted-foreground">{meta.year}</span>}
           {engagementStats}
@@ -224,6 +242,7 @@ export function ResourceCard({ resource, onEdit, onDelete, onPermanentDelete, on
 
       <div className="border-t bg-muted/5 p-2 flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
         <div className="flex gap-1 items-center">
+          <AuditHistory entityType="resource" entityId={resource.id} />
           <button onClick={onEdit} className="rounded-sm p-1.5 hover:bg-background hover:shadow-sm transition-all text-muted-foreground hover:text-foreground" title="Edit">
             <Pencil className="h-3.5 w-3.5" />
           </button>

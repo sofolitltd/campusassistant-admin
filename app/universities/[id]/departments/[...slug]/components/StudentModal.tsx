@@ -5,6 +5,8 @@ import { api, Student, Batch, Session, Hall } from "@/lib/api"
 import { Modal, Field, inputCls, selectCls } from "./SharedUI"
 import { Loader2, ToggleLeft, ToggleRight, RefreshCcw } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { AuditHistory } from "@/components/AuditHistory"
+import { ModeratorRoleManager } from "@/components/ModeratorRoleManager"
 
 interface StudentModalProps {
   open: boolean
@@ -30,12 +32,11 @@ export function StudentModal({
   const [hallId, setHallId] = useState(student?.hall_id ?? "")
   const [verificationCode, setVerificationCode] = useState(student?.verification_code ?? "")
   const [isRegular, setIsRegular] = useState(student?.is_regular ?? true)
-  const [isCr, setIsCr] = useState(student?.is_cr ?? false)
   const [weight, setWeight] = useState(student?.weight ?? 0)
   const [createdAt, setCreatedAt] = useState("")
+  const [moderatorManagerOpen, setModeratorManagerOpen] = useState(false)
 
   const [batches, setBatches] = useState<Batch[]>([])
-  const [sessions, setSessions] = useState<Session[]>([])
   const [halls, setHalls] = useState<Hall[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -52,22 +53,38 @@ export function StudentModal({
       setHallId(student?.hall_id ?? "")
       setVerificationCode(student?.verification_code ?? Math.random().toString(36).substring(2, 8).toUpperCase())
       setIsRegular(student?.is_regular ?? true)
-      setIsCr(student?.is_cr ?? false)
       setWeight(student?.weight ?? 0)
       setCreatedAt(student?.created_at ? new Date(student.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0])
       setError("")
 
       Promise.all([
         api.batches.getAllByDepartment(departmentId),
-        api.sessions.getAllByUniversity(universityId),
         api.halls.getAllByUniversity(universityId),
-      ]).then(([b, s, h]) => {
+      ]).then(([b, h]) => {
         setBatches(b)
-        setSessions([...s].sort((a, b) => b.name.localeCompare(a.name)))
         setHalls(h)
       }).catch(() => { })
     }
   }, [open, student, departmentId, universityId, currentBatchId])
+
+  function closeModal() {
+    setModeratorManagerOpen(false)
+    onClose()
+  }
+
+  // Sessions are global; the ones that apply are the selected batch's. A
+  // legacy student whose session isn't linked to their batch still sees
+  // their current one, so editing other fields doesn't silently drop it.
+  const batchSessions: Session[] = batches.find((b) => b.id === batchId)?.sessions ?? []
+  const sessions: Session[] = sessionId && student?.session && !batchSessions.some((s) => s.id === sessionId)
+    ? [...batchSessions, student.session]
+    : batchSessions
+
+  function selectBatch(id: string) {
+    setBatchId(id)
+    const next = batches.find((b) => b.id === id)?.sessions ?? []
+    if (!next.some((s) => s.id === sessionId)) setSessionId(next.length === 1 ? next[0].id : "")
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -83,8 +100,9 @@ export function StudentModal({
       const payload = {
         student_id: studentId.trim(), name: name.trim(), email: email.trim(), phone: phone.trim(), 
         blood_group: bloodGroup,
-        batch_id: batchId, session_id: sessionId, hall_id: hallId,
-        verification_code: verificationCode, is_regular: isRegular, is_cr: isCr, weight,
+        // Backend hall_id is *uuid.UUID — "" fails to parse, null means "no hall"
+        batch_id: batchId, session_id: sessionId, hall_id: hallId || null,
+        verification_code: verificationCode, is_regular: isRegular, is_cr: student?.is_cr ?? false, weight,
         created_at: new Date(createdAt).toISOString(),
         university_id: universityId, department_id: departmentId
       }
@@ -99,7 +117,9 @@ export function StudentModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? "Edit Student" : "Add Student"}>
+    <>
+    {open && !moderatorManagerOpen && (
+    <Modal open onClose={closeModal} title={isEdit ? "Edit Student" : "Add Student"}>
       <form onSubmit={handleSubmit} className="space-y-4 p-6">
 
         {/* Row: Name */}
@@ -110,7 +130,7 @@ export function StudentModal({
         {/* Row: Batch | ID */}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Batch" required>
-            <select value={batchId} onChange={(e) => setBatchId(e.target.value)} className={selectCls}>
+            <select value={batchId} onChange={(e) => selectBatch(e.target.value)} className={selectCls}>
               <option value="">Select Batch</option>
               {batches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
@@ -124,7 +144,7 @@ export function StudentModal({
         <div className="grid grid-cols-2 gap-3">
           <Field label="Session" required>
             <select value={sessionId} onChange={(e) => setSessionId(e.target.value)} className={selectCls} required>
-              <option value="">Select Session</option>
+              <option value="">{!batchId ? "Select a batch first" : sessions.length ? "Select Session" : "This batch has no sessions"}</option>
               {sessions.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </Field>
@@ -204,13 +224,12 @@ export function StudentModal({
           </div>
         )}
 
-        {/* Row: Class CR */}
-        <div className="flex items-center justify-between rounded-sm border p-3">
-          <span className="text-sm font-medium">Class CR?</span>
-          <button type="button" onClick={() => setIsCr(!isCr)} className="transition-all">
-              {isCr ? <ToggleRight className="h-7 w-7 text-success" /> : <ToggleLeft className="h-7 w-7 text-muted-foreground" />}
-          </button>
-        </div>
+        {isEdit && (
+          <div className="flex items-center justify-between rounded-sm border p-3 text-sm">
+            <span className="font-medium">Legacy CR marker (read-only)</span>
+            <span className="text-muted-foreground">{student?.is_cr ? "Yes" : "No"}</span>
+          </div>
+        )}
 
         {/* Row: Member Since */}
         <Field label="Member Since (Registration Date)">
@@ -221,14 +240,46 @@ export function StudentModal({
             className={inputCls} 
           />
         </Field>
+        {isEdit && (
+          <section className="flex items-center justify-between gap-3 rounded-sm border p-4">
+            <div>
+              <h3 className="text-sm font-bold">App moderator permissions</h3>
+              <p className="text-xs text-muted-foreground">Manage batch, department, and university roles separately from CR directory records.</p>
+            </div>
+            {student && (
+              <button type="button" onClick={() => setModeratorManagerOpen(true)} className="rounded-sm border px-3 py-1.5 text-xs font-semibold hover:bg-muted">
+                Manage moderator roles
+              </button>
+            )}
+          </section>
+        )}
+        {isEdit && student?.id && (
+          <section className="flex items-center justify-between gap-3 rounded-sm border p-4">
+            <div>
+              <h3 className="text-sm font-bold">Student history</h3>
+              <p className="text-xs text-muted-foreground">Changes and actions recorded for this student.</p>
+            </div>
+            <AuditHistory entityType="student" entityId={student.id} />
+          </section>
+        )}
         {error && <p className="text-sm text-destructive rounded-sm bg-destructive-subtle p-2">{error}</p>}
         <div className="flex gap-3 pt-2">
-          <button type="button" onClick={onClose} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
+          <button type="button" onClick={closeModal} className="flex-1 rounded-sm border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-all">Cancel</button>
           <button type="submit" disabled={loading} className="flex-1 rounded-sm bg-primary-gradient px-4 py-2.5 text-sm font-bold text-primary-foreground hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}{isEdit ? "Update" : "Add Student"}
           </button>
         </div>
       </form>
     </Modal>
+    )}
+    {student && (
+      <ModeratorRoleManager
+        student={student}
+        dialogOpen={moderatorManagerOpen}
+        onDialogClose={() => setModeratorManagerOpen(false)}
+        hideTrigger
+      />
+    )}
+    </>
   )
 }

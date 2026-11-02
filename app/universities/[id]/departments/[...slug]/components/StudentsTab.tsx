@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback, useDeferredValue, useRef } from "reac
 import { api, Student, Batch, Session, Contributor, CR, getApiUrl } from "@/lib/api"
 import { Avatar, Badge, ConfirmDelete, selectCls, inputCls, Modal, ActionMenu } from "./SharedUI"
 import { StudentModal } from "./StudentModal"
-import { MakeCRModal, EndCRModal, isActiveCR } from "./CRModals"
+import { CreateCRDirectoryEntryModal, EndCRModal, isActiveCR } from "./CRModals"
 import { GrantProModal, GrantProTarget } from "@/components/GrantProModal"
-import { Users, Plus, Pencil, Trash2, Mail, Phone, ExternalLink, Search, Copy, Share2, RefreshCcw, Loader2, LayoutGrid, List, ChevronLeft, ChevronRight, MoreVertical, GraduationCap, Handshake, UserCheck, Send, UserMinus, Crown } from "lucide-react"
+import { ModeratorRoleManager } from "@/components/ModeratorRoleManager"
+import { Users, Plus, Pencil, Trash2, Mail, Phone, ExternalLink, Search, Copy, Share2, RefreshCcw, Loader2, LayoutGrid, List, ChevronLeft, ChevronRight, MoreVertical, GraduationCap, Handshake, UserCheck, Send, UserMinus, ShieldCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const CONTRIBUTOR_TIERS = ["Platinum", "Gold", "Silver", "Bronze"]
@@ -45,6 +46,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
   const [activeCRs, setActiveCRs] = useState<CR[]>([])
   const [crStudent, setCrStudent] = useState<Student | null>(null)
   const [endingCR, setEndingCR] = useState<CR | null>(null)
+  const [moderatorStudent, setModeratorStudent] = useState<Student | null>(null)
   const [proTarget, setProTarget] = useState<GrantProTarget | null>(null)
   const [sessions, setSessions] = useState<Session[]>([])
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table')
@@ -89,7 +91,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
 
       // Only load sessions once if needed
       if (sessions.length === 0) {
-        const sessData = await api.sessions.getAllByUniversity(universityId)
+        const sessData = await api.sessions.getAll()
         setSessions(sessData)
       }
     }
@@ -225,7 +227,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
 
   const handleCopyCode = (s: Student) => {
     const batchName = batches.find(b => b.id === s.batch_id)?.name || "N/A"
-    const msg = `🎓 *Campus Assistant Student Profile*\n----------------------------------\nName: ${s.name}\nBatch: ${batchName}\nStudent ID: ${s.student_id}\nVerification Code: ${s.verification_code}\n\n🚀 *How to verify:*\n1. Download App: https://play.google.com/store/apps/details?id=com.sofolit.campusassistant\n2. Create a new account\n3. Provide the code above & verify your profile.`
+    const msg = `🎓 *Campus Assistant Student Profile*\n----------------------------------\nName: ${s.name}\nBatch: ${batchName}\nStudent ID: ${s.student_id}\nVerification Code:\n*${s.verification_code}*\n\n🚀 *How to verify:*\n1. Get the app:\n   Android: https://play.google.com/store/apps/details?id=com.sofolit.campusassistant\n   iOS / Web: https://campusassistant.web.app/\n2. Create a new account\n3. Enter the code above to verify your profile`
     navigator.clipboard.writeText(msg)
     setToast("Verification details copied!")
   }
@@ -439,7 +441,7 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
       />
 
       {crStudent && (
-        <MakeCRModal
+        <CreateCRDirectoryEntryModal
           student={crStudent}
           batches={batches}
           activeCRs={activeCRs}
@@ -449,11 +451,14 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
           onDone={(msg) => { setToast(msg); setCrStudent(null); loadCRs() }}
         />
       )}
+      {moderatorStudent && (
+        <ModeratorRoleManager student={moderatorStudent} dialogOpen onDialogClose={() => setModeratorStudent(null)} hideTrigger />
+      )}
       {endingCR && (
         <EndCRModal
           cr={endingCR}
           onClose={() => setEndingCR(null)}
-          onDone={(msg) => { setToast(msg); setEndingCR(null); loadCRs() }}
+          onDone={(msg) => { setToast(`${msg} (official CR directory only; moderator roles are unchanged)`); setEndingCR(null); loadCRs() }}
         />
       )}
 
@@ -623,13 +628,17 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
                                 <Handshake className="h-4 w-4 text-primary" /> Add to Contributor
                               </button>
                             )}
-                            {crOf(s) ? (
+                            <button onClick={() => { setActionMenuStudentId(null); setModeratorStudent(s) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
+                              <ShieldCheck className="h-4 w-4 text-primary" /> Manage moderator roles
+                            </button>
+                            {crOf(s) && (
                               <button onClick={() => { setActionMenuStudentId(null); setEndingCR(crOf(s)!) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors text-destructive">
-                                <UserMinus className="h-4 w-4" /> Remove as CR
+                                <UserMinus className="h-4 w-4" /> End official CR term
                               </button>
-                            ) : (
+                            )}
+                            {!crOf(s) && (
                               <button onClick={() => { setActionMenuStudentId(null); setCrStudent(s) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
-                                <Crown className="h-4 w-4 text-primary" /> Make CR
+                                <GraduationCap className="h-4 w-4 text-info" /> Add official CR directory entry
                               </button>
                             )}
                             {s.user_id ? (
@@ -832,13 +841,17 @@ export function StudentsTab({ batches, departmentId, universityId, universityNam
                                     <Handshake className="h-4 w-4 text-primary" /> Add to Contributor
                                   </button>
                                 )}
-                                {crOf(s) ? (
+                                <button onClick={() => { setActionMenuStudentId(null); setModeratorStudent(s) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
+                                  <ShieldCheck className="h-4 w-4 text-primary" /> Manage moderator roles
+                                </button>
+                                {crOf(s) && (
                                   <button onClick={() => { setActionMenuStudentId(null); setEndingCR(crOf(s)!) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors text-destructive">
-                                    <UserMinus className="h-4 w-4" /> Remove as CR
+                                    <UserMinus className="h-4 w-4" /> End official CR term
                                   </button>
-                                ) : (
+                                )}
+                                {!crOf(s) && (
                                   <button onClick={() => { setActionMenuStudentId(null); setCrStudent(s) }} className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium hover:bg-muted text-left transition-colors">
-                                    <Crown className="h-4 w-4 text-primary" /> Make CR
+                                    <GraduationCap className="h-4 w-4 text-info" /> Add official CR directory entry
                                   </button>
                                 )}
                                 {s.user_id ? (
@@ -1008,7 +1021,7 @@ function StudentPreviewModal({ student, onClose, batches, sessions, onToast, onC
               <h2 className="text-xl font-black tracking-tight truncate">{student.name}</h2>
               <div className="flex flex-wrap items-center gap-1.5 mt-2">
                 {student.is_cr && (
-                  <Badge variant="info" className="font-black uppercase text-[9px] tracking-tighter">Class Rep</Badge>
+                  <Badge variant="info" className="font-black uppercase text-[9px] tracking-tighter">Legacy CR marker</Badge>
                 )}
                 <Badge variant={student.is_regular ? "success" : "warn"} className="font-black uppercase text-[9px] tracking-tighter">{student.is_regular ? "Regular" : "Irregular"}</Badge>
                 <Badge variant={student.is_claimed ? "success" : "warn"} className="font-black uppercase text-[9px] tracking-tighter">{student.is_claimed ? "Verified" : "Pending"}</Badge>

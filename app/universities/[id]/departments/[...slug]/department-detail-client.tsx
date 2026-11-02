@@ -5,13 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import {
   ArrowLeft, GraduationCap, Layers, Users, BookOpen, UserSquare2,
-  Briefcase, Megaphone, Phone, Info, Clock, Loader2, MapPin, Globe,
+  Briefcase, Megaphone, Phone, Info, Loader2, MapPin, Globe,
   School, CalendarDays, ExternalLink, Users2, Bell, ClipboardList
 } from "lucide-react"
 
 // API & Types
 import {
-  api, Department, Session, Batch, Student, Teacher, Staff,
+  api, Department, Batch, Student, Teacher, Staff,
   Level, CR, Banner, EmergencyContact, University, Alumni, Routine, Notice, ExamNotice
 } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -20,7 +20,6 @@ import { getCached, setCached } from "@/lib/page-cache"
 
 // Modular Components
 import { AboutTab } from "./components/AboutTab"
-import { SessionsTab } from "./components/SessionsTab"
 import { BatchesTab } from "./components/BatchesTab"
 import { StudentsTab } from "./components/StudentsTab"
 import { StudyTab } from "./components/StudyTab"
@@ -32,10 +31,10 @@ import { RoutineTab } from "./components/RoutineTab"
 import { NoticesTab } from "./components/NoticesTab"
 import { ExamsTab } from "./components/ExamsTab"
 
-type TabType = "overview" | "sessions" | "batches" | "students" | "study" | "career" | "teachers" | "staff" | "crs" | "banners" | "contacts" | "alumni" | "routines" | "notices" | "exams"
+type TabType = "overview" | "batches" | "students" | "study" | "career" | "teachers" | "staff" | "crs" | "banners" | "contacts" | "alumni" | "routines" | "notices" | "exams"
 
 interface TabData {
-  sessions: Session[]; batches: Batch[]; students: Student[]
+  batches: Batch[]; students: Student[]
   study: Level[]; teachers: Teacher[]; staff: Staff[]
   crs: CR[]; banners: Banner[]; contacts: EmergencyContact[]; alumni: Alumni[]; routines: Routine[]
   notices: Notice[]; exams: ExamNotice[]
@@ -65,7 +64,7 @@ export default function DepartmentDetailClient({
   // once; loadTabData still refetches each one the first time it's shown.
   const cacheKey = `department:${departmentId}`
   const [tabData, setTabData] = useState<TabData>(() => ({
-    sessions: [], batches: [], students: [], study: [],
+    batches: [], students: [], study: [],
     teachers: [], staff: [], crs: [], contacts: [], alumni: [], routines: [],
     notices: [], exams: [],
     ...getCached<{ tabData: TabData }>(cacheKey)?.tabData,
@@ -117,7 +116,6 @@ export default function DepartmentDetailClient({
     try {
       let patch: Partial<TabData> = {}
       switch (tab) {
-        case "sessions": patch = { sessions: await api.sessions.getAllByDepartment(departmentId) }; break
         case "batches": patch = { batches: await api.batches.getAllByDepartment(departmentId) }; break
         case "students":
           const [bList, sList] = await Promise.all([
@@ -160,7 +158,6 @@ export default function DepartmentDetailClient({
 
   const tabs: { id: TabType; label: string; icon: React.ElementType }[] = [
     { id: "overview", label: "Overview", icon: Info },
-    { id: "sessions", label: "Sessions", icon: Clock },
     { id: "batches", label: "Batches", icon: Layers },
     { id: "students", label: "Students", icon: Users },
     { id: "study", label: "Study", icon: BookOpen },
@@ -243,7 +240,6 @@ export default function DepartmentDetailClient({
       {/* ─── Modular Tab Panels ─── */}
       <main className="min-h-[50vh] animate-in fade-in slide-in-from-bottom-2 duration-500">
         {activeTab === "overview" && <AboutTab department={department} university={university} />}
-        {activeTab === "sessions" && <SessionsTab sessions={tabData.sessions} universityId={universityId} departmentId={departmentId} onRefresh={() => loadTabData("sessions", true)} />}
         {activeTab === "batches" && <BatchesTab batches={tabData.batches} universityId={universityId} departmentId={departmentId} onRefresh={() => loadTabData("batches", true)} />}
         {activeTab === "students" && <StudentsTab batches={tabData.batches} universityId={universityId} departmentId={departmentId} universityName={university.name} departmentName={department.name} onBatchesRefresh={() => loadTabData("batches", true)} />}
         {activeTab === "study" && <StudyTab study={tabData.study} universityId={universityId} departmentId={departmentId} batches={tabData.batches} onRefresh={() => loadTabData("study", true)} />}

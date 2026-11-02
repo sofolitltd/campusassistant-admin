@@ -18,9 +18,9 @@ export function CRsTab({ crs, onRefresh, onGoToStudents }: { crs: CR[]; onRefres
 
   const howTo = (
     <p className="text-xs text-muted-foreground">
-      To add a CR, open the{" "}
+      This is the official CR directory, separate from app permissions. From the{" "}
       <button onClick={onGoToStudents} className="font-bold text-primary hover:underline">Students</button>{" "}
-      tab, click ⋮ on the student and choose <strong>Make CR</strong>.
+      tab, use <strong>Add official CR directory entry</strong> for directory records or <strong>Manage moderator roles</strong> for app permissions.
     </p>
   )
 
