@@ -1,11 +1,12 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
-import { api, Resource, ResourceType, Batch, sortBatches } from "@/lib/api"
+import { api, Resource, ResourceAuthor, ResourceType, Batch, sortBatches } from "@/lib/api"
 import {
   X, Plus, Users, HardDrive, FilePlus2, BookOpen, Loader2, AlertTriangle, Bell, Download, Eye, Star, Lock
 } from "lucide-react"
 import { BatchSelectionModal } from "@/components/BatchSelectionModal"
+import { ResourceAuthorsEditor, authorsLine } from "@/components/ResourceAuthorsEditor"
 import { uploadFile, deleteFile } from "./resource-utils"
 import { cn } from "@/lib/utils"
 
@@ -69,6 +70,7 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
   const [sameSize, setSameSize] = useState<Resource[]>([])
   const [tags, setTags] = useState("")
   const [metaCreator, setMetaCreator] = useState("")
+  const [authors, setAuthors] = useState<ResourceAuthor[]>([])
   const [metaChapter, setMetaChapter] = useState("")
   const [metaAuthor, setMetaAuthor] = useState("")
   const [metaPublisher, setMetaPublisher] = useState("")
@@ -100,6 +102,7 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
       setSameSize([])
       setTags((resource?.tags ?? []).join(", "))
       setMetaCreator(creatorOf(meta))
+      setAuthors(resource?.authors ?? [])
       setMetaChapter(meta.chapter ?? (resource ? "" : lessonNo != null ? String(lessonNo) : ""))
       setMetaAuthor(meta.author ?? "")
       setMetaPublisher(meta.publisher ?? "")
@@ -152,7 +155,15 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
       setUploading(false)
 
       const meta: Record<string, any> = { ...(resource?.metadata ?? {}) }
-      if (type === "note") { setCreator(meta, metaCreator); if (metaChapter) meta.chapter = metaChapter }
+      // Rows left blank in the editor are dropped.
+      const finalAuthors = authors
+        .map((a) => ({ ...a, name: a.name.trim() }))
+        .filter((a) => a.name || a.teacher_id || a.student_id)
+      if (type === "note") {
+        // Older app versions show the creator text; keep it in step with the authors.
+        setCreator(meta, finalAuthors.length ? authorsLine(finalAuthors) : metaCreator)
+        if (metaChapter) meta.chapter = metaChapter
+      }
       if (type === "book") { if (metaAuthor) meta.author = metaAuthor; if (metaPublisher) meta.publisher = metaPublisher; if (metaEdition) meta.edition = metaEdition }
       if (type === "question") { if (metaExamType) meta.exam_type = metaExamType; if (metaYear) meta.year = parseInt(metaYear) }
       if (type === "syllabus") { if (metaAcadYear) meta.academic_year = metaAcadYear }
@@ -175,6 +186,7 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
         batch_only: batchOnly && selectedBatchIds.length > 0,
         notify: notifyBatches,
         file_size_bytes: pickedFile?.size ?? undefined,
+        ...(type === "note" ? { authors: finalAuthors } : {}),
       }
       if (isEdit) { await api.resources.update(resource!.id, payload) }
       else { await api.resources.create(payload) }
@@ -329,9 +341,12 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
           <div className="grid grid-cols-2 gap-4 pt-4 border-t">
             {type === "note" && (
               <>
-                <div className="space-y-1.5">
-                  <label className={labelCls}>Creator</label>
-                  <input value={metaCreator} onChange={(e) => setMetaCreator(e.target.value)} placeholder="Teacher / creator name" className={inputCls} />
+                <div className="col-span-2 space-y-1.5">
+                  <label className={labelCls}>Authors</label>
+                  <ResourceAuthorsEditor departmentId={departmentId} batches={batches} value={authors} onChange={setAuthors} />
+                  {authors.length === 0 && metaCreator && (
+                    <p className="text-[10px] text-muted-foreground">Creator text: {metaCreator}</p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <label className={labelCls}>Chapter</label>

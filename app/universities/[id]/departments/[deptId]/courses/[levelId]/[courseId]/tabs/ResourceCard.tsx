@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react"
 import { Resource, ResourceType, Batch } from "@/lib/api"
 import { AuditHistory } from "@/components/AuditHistory"
+import { creditLine } from "@/components/ResourceAuthorsEditor"
 import {
   Pencil, Trash2, Download, Play, BookOpen, Layers, HelpCircle, FileText, BookMarked, Search, Eye, Star, MinusCircle
 } from "lucide-react"
@@ -123,6 +124,9 @@ export function ResourceCard({ resource, onEdit, onDelete, onRemoveFromBatch, re
               <h3 className="font-bold text-xs leading-snug line-clamp-2 group-hover:text-primary transition-colors flex-1">{resource.title}</h3>
             </div>
             {meta.author && <p className="text-[10px] text-muted-foreground mt-0.5 truncate italic">by {meta.author}</p>}
+            {creditLine(resource.authors) && (
+              <p className="text-[10px] text-muted-foreground mt-0.5 truncate" title={creditLine(resource.authors)}>{creditLine(resource.authors)}</p>
+            )}
             {resource.reviewed_by_id && (
               <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
                 Reviewed by {resource.reviewed_by

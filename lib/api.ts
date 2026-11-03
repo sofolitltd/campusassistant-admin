@@ -425,7 +425,32 @@ export interface Resource {
   batch_only?: boolean;
   metadata?: Record<string, unknown>;
   batches?: Batch[];
+  // Who made it (the uploader is `creator`). Omit on update to keep them; [] clears.
+  authors?: ResourceAuthor[];
   created_at: string;
+}
+
+// lecture = the teacher whose class it is, writer = who wrote it, source = a textbook.
+export type ResourceAuthorRole = 'lecture' | 'writer' | 'source';
+
+export interface ResourceAuthor {
+  id?: string;
+  role: ResourceAuthorRole;
+  teacher_id?: string | null;
+  student_id?: string | null;
+  // Always set on read; optional on write when linked (the API fills it from the profile).
+  name: string;
+}
+
+export interface ContributorStats {
+  written: number;
+  lectures: number;
+  uploaded: number;
+  views: number;
+  downloads: number;
+  courses: { course_code: string; count: number }[];
+  rank?: number;
+  badge?: 'top_contributor';
 }
 
 export interface CR {
@@ -2096,6 +2121,11 @@ export const api = {
       fetchWithAuth(`/resources/${id}?permanent=true`, { method: 'DELETE' }),
     approve: (id: string): Promise<Resource> =>
       fetchWithAuth(`/resources/${id}/approve`, { method: 'PATCH' }),
+    // What a teacher or student profile is credited with.
+    contributor: (who: { teacher_id: string } | { student_id: string }): Promise<ContributorStats> =>
+      fetchWithAuth(`/resources/contributor?${new URLSearchParams(who as Record<string, string>)}`),
+    getByAuthor: (who: { author_teacher_id: string } | { author_student_id: string }, limit = 200): Promise<Resource[]> =>
+      fetchWithAuth(`/resources?${new URLSearchParams(who as Record<string, string>)}&limit=${limit}`).then((res: PaginatedResponse<Resource>) => res.data ?? []),
   },
   trash: {
     summary: (): Promise<TrashSummary[]> =>
