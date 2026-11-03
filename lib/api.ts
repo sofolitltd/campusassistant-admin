@@ -362,6 +362,9 @@ export interface Course {
   id: string;
   course_code: string;
   course_title: string;
+  // Code before a syllabus change; chapters and resources under either code
+  // show under both courses.
+  previous_code?: string;
   university_id: string;
   department_id: string;
   total_credits: number;
@@ -418,6 +421,8 @@ export interface Resource {
   rating_count: number;
   tags: string[];
   is_public: boolean;
+  // Only students of the tagged batches see it; otherwise every batch does.
+  batch_only?: boolean;
   metadata?: Record<string, unknown>;
   batches?: Batch[];
   created_at: string;
@@ -1934,6 +1939,9 @@ export const api = {
     // keeps the student's current one. All-or-nothing on the server.
     promote: (id: string, data: { session_id: string; students: { id: string; roll?: string }[] }): Promise<{ promoted: number }> =>
       fetchWithAuth(`/batches/${id}/promote`, { method: 'POST', body: JSON.stringify(data) }),
+    // Tags this batch onto every level, course and chapter of another batch.
+    copySyllabus: (id: string, fromBatchId: string): Promise<{ added: Record<string, number> }> =>
+      fetchWithAuth(`/batches/${id}/copy-syllabus`, { method: 'POST', body: JSON.stringify({ from_batch_id: fromBatchId }) }),
   },
   teachers: {
     getAll: (params?: string): Promise<Teacher[]> =>
@@ -2073,6 +2081,9 @@ export const api = {
   resources: {
     getAllByCourse: (courseCode: string, departmentId: string, type?: ResourceType, lessonNo?: number): Promise<Resource[]> =>
       fetchWithAuth(`/resources?course_code=${encodeURIComponent(courseCode)}&department_id=${departmentId}${type ? `&type=${type}` : ''}${lessonNo ? `&lesson_no=${lessonNo}` : ''}&limit=500&status=published`).then((res: PaginatedResponse<Resource>) => res.data ?? []),
+    // Same byte size in the department: almost always the same file uploaded again.
+    getSameSize: (departmentId: string, sizeBytes: number): Promise<Resource[]> =>
+      fetchWithAuth(`/resources?department_id=${departmentId}&file_size_bytes=${sizeBytes}&limit=5`).then((res: PaginatedResponse<Resource>) => res.data ?? []),
     getAllByDepartment: (departmentId: string, type?: ResourceType, search?: string, offset?: number, limit?: number): Promise<PaginatedResponse<Resource>> =>
       fetchWithAuth(`/resources?department_id=${departmentId}&limit=${limit ?? 20}&offset=${offset ?? 0}${type ? `&type=${type}` : ''}${search ? `&search=${search}` : ''}`),
     create: (data: Partial<Resource>): Promise<Resource> =>

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react"
 import { api, Resource, ResourceType, Batch, sortBatches } from "@/lib/api"
 import {
-  X, Plus, Users, HardDrive, FilePlus2, BookOpen, Loader2, AlertTriangle, Bell, Download, Eye, Star
+  X, Plus, Users, HardDrive, FilePlus2, BookOpen, Loader2, AlertTriangle, Bell, Download, Eye, Star, Lock
 } from "lucide-react"
 import { BatchSelectionModal } from "@/components/BatchSelectionModal"
 import { uploadFile, deleteFile } from "./resource-utils"
@@ -16,6 +16,31 @@ const TYPE_LABELS: Record<ResourceType, string> = {
   note: "Note",
   video: "Video Lecture",
   research: "Research Paper",
+}
+
+// A note's creator. Older notes keep it in `subtitle` (subtitle_type
+// "Creator"), newer ones in `creator`, the oldest in `teacher`.
+function creatorOf(meta: Record<string, any>): string {
+  const isCreator = (meta.subtitle_type ?? "Creator") === "Creator"
+  for (const v of [meta.creator, isCreator ? meta.subtitle : undefined, meta.teacher]) {
+    if (typeof v === "string" && v.trim()) return v.trim()
+  }
+  return ""
+}
+
+// Writes the creator to both keys the app reads, so an edit can't leave a
+// stale `subtitle` showing; an empty value clears both.
+function setCreator(meta: Record<string, any>, value: string) {
+  const v = value.trim()
+  delete meta.teacher
+  if (!v) {
+    delete meta.creator
+    if ((meta.subtitle_type ?? "Creator") === "Creator") { delete meta.subtitle; delete meta.subtitle_type }
+    return
+  }
+  meta.creator = v
+  meta.subtitle = v
+  meta.subtitle_type = "Creator"
 }
 
 function fmtBytes(b: number) {
@@ -40,6 +65,8 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
   const [accessLevel, setAccessLevel] = useState<"basic" | "pro">("basic")
   const [selectedBatchIds, setSelectedBatchIds] = useState<string[]>([])
   const [notifyBatches, setNotifyBatches] = useState(true)
+  const [batchOnly, setBatchOnly] = useState(false)
+  const [sameSize, setSameSize] = useState<Resource[]>([])
   const [tags, setTags] = useState("")
   const [metaCreator, setMetaCreator] = useState("")
   const [metaChapter, setMetaChapter] = useState("")
@@ -69,8 +96,10 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
       setThumbnailUrl(resource?.thumbnail_url ?? "")
       setAccessLevel(resource?.access_level ?? "basic")
       setSelectedBatchIds(resource?.batches?.map((b) => b.id) ?? [])
+      setBatchOnly(resource?.batch_only ?? false)
+      setSameSize([])
       setTags((resource?.tags ?? []).join(", "))
-      setMetaCreator(meta.creator ?? meta.teacher ?? "") // fallback for old data
+      setMetaCreator(creatorOf(meta))
       setMetaChapter(meta.chapter ?? (resource ? "" : lessonNo != null ? String(lessonNo) : ""))
       setMetaAuthor(meta.author ?? "")
       setMetaPublisher(meta.publisher ?? "")
@@ -123,7 +152,7 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
       setUploading(false)
 
       const meta: Record<string, any> = { ...(resource?.metadata ?? {}) }
-      if (type === "note") { if (metaCreator) meta.creator = metaCreator; if (metaChapter) meta.chapter = metaChapter }
+      if (type === "note") { setCreator(meta, metaCreator); if (metaChapter) meta.chapter = metaChapter }
       if (type === "book") { if (metaAuthor) meta.author = metaAuthor; if (metaPublisher) meta.publisher = metaPublisher; if (metaEdition) meta.edition = metaEdition }
       if (type === "question") { if (metaExamType) meta.exam_type = metaExamType; if (metaYear) meta.year = parseInt(metaYear) }
       if (type === "syllabus") { if (metaAcadYear) meta.academic_year = metaAcadYear }
@@ -143,6 +172,7 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
         tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
         metadata: { ...meta, is_edited: isEdit ? true : meta.is_edited },
         batch_ids: selectedBatchIds,
+        batch_only: batchOnly && selectedBatchIds.length > 0,
         notify: notifyBatches,
         file_size_bytes: pickedFile?.size ?? undefined,
       }
@@ -169,6 +199,10 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
     setError("")
     setPickedFile(file)
     setThumbnailBlob(null)
+    setSameSize([])
+    api.resources.getSameSize(departmentId, file.size)
+      .then((rows) => setSameSize(rows.filter((r) => r.id !== resource?.id)))
+      .catch(() => {})
 
     try {
       const { generatePdfMetadata } = await import("@/lib/pdf-helper")
@@ -258,6 +292,16 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
               )}
               <input ref={fileInputRef} type="file" accept="application/pdf,.pdf" onChange={handleFilePick} className="hidden" />
             </div>
+
+            {pickedFile && sameSize.length > 0 && (
+              <div className="rounded-sm border border-warning/30 bg-warning-subtle p-3 text-xs text-warning space-y-1">
+                <p className="flex items-center gap-2 font-bold"><AlertTriangle className="h-3.5 w-3.5 shrink-0" /> This file may already be uploaded</p>
+                <p className="text-muted-foreground">Same size as {sameSize.length === 1 ? "this resource" : "these resources"} in the department. Every batch already sees them, so you may not need a new copy:</p>
+                <ul className="list-disc pl-5 text-foreground">
+                  {sameSize.map((r) => <li key={r.id}>{r.title} <span className="text-muted-foreground">· {r.course_code}{r.lesson_no ? ` · Ch ${r.lesson_no}` : ""}</span></li>)}
+                </ul>
+              </div>
+            )}
 
             {type === "video" && (
               <div className="space-y-1.5 animate-in slide-in-from-top-2">
@@ -372,6 +416,22 @@ export function ResourceModal({ open, onClose, resource, type, courseCode, unive
                 />
                 <Bell className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-bold text-muted-foreground">Notify selected batches</span>
+              </label>
+            )}
+
+            {selectedBatchIds.length > 0 && (
+              <label className="flex items-start gap-2.5 mt-2 rounded-sm border border-dashed border-muted-foreground/20 bg-muted/5 px-4 py-3 cursor-pointer hover:border-primary/40 transition-all">
+                <input
+                  type="checkbox"
+                  checked={batchOnly}
+                  onChange={(e) => setBatchOnly(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded-sm accent-primary"
+                />
+                <Lock className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  <span className="font-bold">Only these batches</span>
+                  <span className="block text-xs">Otherwise every batch sees it, with the selected batches&apos; students seeing it first.</span>
+                </span>
               </label>
             )}
           </div>

@@ -64,6 +64,7 @@ export function CourseModal({
 
   const [selectedPrefix, setSelectedPrefix] = useState("")
   const [codeNumber, setCodeNumber] = useState("")
+  const [previousCode, setPreviousCode] = useState("")
   const [title, setTitle] = useState("")
   const [credits, setCredits] = useState("")
   const [marks, setMarks] = useState("")
@@ -94,6 +95,7 @@ export function CourseModal({
             setCodeNumber(course.course_code)
           }
           setTitle(course.course_title)
+          setPreviousCode(course.previous_code ?? "")
           setCredits(course.total_credits?.toString() ?? "")
           setMarks(course.total_marks?.toString() ?? "")
           setCategoryId(course.course_category_id ?? "")
@@ -105,7 +107,7 @@ export function CourseModal({
           setUrlToDelete(null)
         } else {
           setSelectedPrefix(prefixes.length > 0 ? prefixes[0].prefix : "")
-          setCodeNumber(""); setTitle(""); setCredits(""); setMarks("")
+          setCodeNumber(""); setPreviousCode(""); setTitle(""); setCredits(""); setMarks("")
           setCategoryId(categories.length > 0 ? categories[0].id : "")
           setLevId(levelId); setSelectedBatchIds([]); setThumbnailUrl("")
           setPickedFile(null)
@@ -152,6 +154,7 @@ export function CourseModal({
         const payload: Partial<Course> & { batch_ids?: string[] } = {
           course_code: finalCode,
           course_title: title.trim(),
+          previous_code: previousCode.trim(),
           university_id: universityId,
           department_id: departmentId,
           total_credits: parseFloat(credits) || 0,
@@ -213,6 +216,16 @@ export function CourseModal({
             />
           </Field>
         </div>
+
+        <Field label="Previous code">
+          <input
+            value={previousCode}
+            onChange={(e) => setPreviousCode(e.target.value)}
+            placeholder="Only if the code changed in a new syllabus, e.g. PSY-101"
+            className={inputCls}
+          />
+          <p className="mt-1 text-xs text-muted-foreground">Chapters and resources under the old code also show here, and this course&apos;s show there.</p>
+        </Field>
 
         {/* Title */}
         <Field label="Course Title" required>

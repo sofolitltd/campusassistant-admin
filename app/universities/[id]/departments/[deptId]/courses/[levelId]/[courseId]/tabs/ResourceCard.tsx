@@ -108,6 +108,9 @@ export function ResourceCard({ resource, onEdit, onDelete, onRemoveFromBatch, re
           {resource.access_level === "pro" && (
             <div className="absolute top-1 left-1 px-1 py-0.5 rounded-sm bg-warning text-[8px] font-black text-white shadow-sm z-10">PRO</div>
           )}
+          {resource.batch_only && (
+            <div className="absolute bottom-1 left-1 px-1 py-0.5 rounded-sm bg-foreground/80 text-[7px] font-black text-background shadow-sm z-10 uppercase tracking-tighter" title="Only its batches see it">Batch only</div>
+          )}
           {meta.is_edited && (
             <div className="absolute bottom-1 right-1 px-1 py-0.5 rounded-sm bg-info backdrop-blur-sm text-[7px] font-black text-white shadow-sm z-10 uppercase tracking-tighter">Edited</div>
           )}
@@ -205,6 +208,9 @@ export function ResourceCard({ resource, onEdit, onDelete, onRemoveFromBatch, re
         )}
         {resource.access_level === "pro" && (
           <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded-sm bg-warning text-[9px] font-black text-white shadow-sm">PRO</div>
+        )}
+        {resource.batch_only && (
+          <div className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded-sm bg-foreground/80 text-[8px] font-black text-background shadow-sm uppercase" title="Only its batches see it">Batch only</div>
         )}
         {meta.is_edited && (
           <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-sm bg-info backdrop-blur-sm text-[8px] font-black text-white shadow-sm uppercase">Edited</div>

@@ -5,7 +5,8 @@ import { api, Batch, BatchProgram, BATCH_PROGRAM_LABEL, Level, getFullImageUrl }
 import { Badge, ConfirmDelete, inputCls } from "./SharedUI"
 import { BatchModal } from "./BatchModal"
 import { PromoteModal } from "./PromoteModal"
-import { Layers, Plus, Pencil, Trash2, Search, Clock, UserPlus, BookOpen } from "lucide-react"
+import { CopySyllabusModal } from "./CopySyllabusModal"
+import { Layers, Plus, Pencil, Trash2, Search, Clock, UserPlus, BookOpen, CopyPlus } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface BatchesTabProps {
@@ -22,6 +23,7 @@ export function BatchesTab({ batches, universityId, departmentId, onRefresh }: B
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [search, setSearch] = useState("")
   const [promoting, setPromoting] = useState<Batch | null>(null)
+  const [copyingSyllabus, setCopyingSyllabus] = useState<Batch | null>(null)
   const [notice, setNotice] = useState("")
   const [programTab, setProgramTab] = useState<BatchProgram>("honours")
   // Study content per batch = the levels linked to it. The app's Study
@@ -79,6 +81,14 @@ export function BatchesTab({ batches, universityId, departmentId, onRefresh }: B
         target={promoting}
         batches={batches}
         onSuccess={(n) => { setNotice(`${n} student${n === 1 ? "" : "s"} moved into ${promoting?.name}`); onRefresh() }}
+      />
+
+      <CopySyllabusModal
+        open={!!copyingSyllabus}
+        onClose={() => setCopyingSyllabus(null)}
+        target={copyingSyllabus}
+        batches={batches}
+        onSuccess={(msg) => { setNotice(msg); onRefresh() }}
       />
 
       <ConfirmDelete 
@@ -166,6 +176,12 @@ export function BatchesTab({ batches, universityId, departmentId, onRefresh }: B
                       <UserPlus className="h-3 w-3" />
                     </button>
                   )}
+                  <button onClick={() => setCopyingSyllabus(b)}
+                    className="p-1.5 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all shadow-xs"
+                    title="Copy syllabus from another batch"
+                  >
+                    <CopyPlus className="h-3 w-3" />
+                  </button>
                   <button onClick={() => { setEditing(b); setModalOpen(true) }} 
                     className="p-1.5 rounded-sm border bg-background hover:bg-muted text-muted-foreground hover:text-foreground transition-all shadow-xs" 
                     title="Edit"
